@@ -48,7 +48,7 @@ bool MovingObjects::init()
 	// trajectory stuff
 	if(!getParam( "rndtrial" , rndtrial))	     rndtrial = 0;
 		// rndtrial=0 -> repeat traj every tframes; 
-		// rndtrial=1 new start point and speed every tframes; start=rnd(800,600); speed= +-objVelx, objVely
+		// rndtrial=1 new start point and speed every tframes; start=rnd(mon_x_pix,mon_y_pix); speed= +-objVelx, objVely
 	if(!getParam( "rseed" , rseed))              rseed = -1;  //set start point of rnd seed;
         ran1Gen.reseed(rseed);
 	if(!getParam( "tframes" , tframes))          tframes = 120*60*60*10; // 120fps*s
@@ -189,8 +189,8 @@ void MovingObjects::drawFrame()
                                     vy = objVely; //ran1( seed ) * 10;
 				}
 				else {
-                                    x = ran1Gen()*800;
-                                    y = ran1Gen()*600;
+                                    x = ran1Gen()*mon_x_pix;
+                                    y = ran1Gen()*mon_y_pix;
                                     vx = ran1Gen()*objVelx*2 - objVelx;
                                     vy = ran1Gen()*objVely*2 - objVely; 
 				}

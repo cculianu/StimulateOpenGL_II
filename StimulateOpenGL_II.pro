@@ -29,8 +29,11 @@ win32 {
 }
 
 # Input
-HEADERS += Version.h StimApp.h Util.h RNG.h ConsoleWindow.h GLWindow.h ConnectionThread.h StimPlugin.h CalibPlugin.h MovingObjects.h GridPlugin.h MovingGrating.h CheckerFlicker.h ZigguratGauss.h StimParams.h
-SOURCES += main.cpp StimApp.cpp Util.cpp RNG.cpp ConsoleWindow.cpp GLWindow.cpp osdep.cpp ConnectionThread.cpp StimPlugin.cpp CalibPlugin.cpp MovingObjects.cpp GridPlugin.cpp MovingGrating.cpp CheckerFlicker.cpp ZigguratGauss.cpp StimParams.cpp
+HEADERS += Version.h StimApp.h Util.h RNG.h ConsoleWindow.h GLWindow.h ConnectionThread.h StimPlugin.h CalibPlugin.h MovingObjects.h GridPlugin.h MovingGrating.h CheckerFlicker.h ZigguratGauss.h StimParams.h StimGL_LeoDAQGL_Integration.h
+SOURCES += main.cpp StimApp.cpp Util.cpp RNG.cpp ConsoleWindow.cpp GLWindow.cpp osdep.cpp ConnectionThread.cpp StimPlugin.cpp CalibPlugin.cpp MovingObjects.cpp GridPlugin.cpp MovingGrating.cpp CheckerFlicker.cpp ZigguratGauss.cpp StimParams.cpp StimGL_LeoDAQGL_Integration.cpp
+
+FORMS += LeoDAQGLIntegration.ui
+
 win32-g++ {
 	LIBS += -lm
 }

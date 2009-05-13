@@ -579,7 +579,7 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
         if (dolocking) rngmut.lock();
         gen_rand_array((w128_t *)f->texels, MAX(f->nqqw, N));
         if (dolocking) rngmut.unlock();
-        if (quad_fps) {
+/*        if (quad_fps) {
             const __m128i mask = _mm_set_epi32(0, 0, 0, 0);
             for (unsigned long i = 0; i < f->nqqw; ++i)
                 quads[i] = _mm_cmpgt_epi8(mask, quads[i]);
@@ -588,6 +588,7 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
             for (unsigned long i = 0; i < f->nqqw; ++i)
                 quads[i] = _mm_cmpgt_epi32(mask, quads[i]);
         }
+		*/
     } else {
 #if 1
         const unsigned entr_arr_sz = (quad_fps ? f->nqqw*4*3 : f->nqqw*4);

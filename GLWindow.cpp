@@ -302,6 +302,8 @@ void GLWindow::pauseUnpause()
     if (!running) return;
     paused = !paused;
     Log() << (paused ? "Paused" : "Unpaused");
+    if (!paused && !running->frameNum && running->needNotifyStart) 
+        running->notifySpikeGLAboutStart();    
 }
 
 QList<QString> GLWindow::plugins() const

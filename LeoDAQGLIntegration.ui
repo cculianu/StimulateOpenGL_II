@@ -1,0 +1,197 @@
+<ui version="4.0" >
+ <class>LeoDAQGLIntegration</class>
+ <widget class="QDialog" name="LeoDAQGLIntegration" >
+  <property name="geometry" >
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>396</width>
+    <height>194</height>
+   </rect>
+  </property>
+  <property name="windowTitle" >
+   <string>Dialog</string>
+  </property>
+  <widget class="QDialogButtonBox" name="buttonBox" >
+   <property name="geometry" >
+    <rect>
+     <x>30</x>
+     <y>146</y>
+     <width>341</width>
+     <height>32</height>
+    </rect>
+   </property>
+   <property name="orientation" >
+    <enum>Qt::Horizontal</enum>
+   </property>
+   <property name="standardButtons" >
+    <set>QDialogButtonBox::Cancel|QDialogButtonBox::NoButton|QDialogButtonBox::Ok</set>
+   </property>
+  </widget>
+  <widget class="QGroupBox" name="enabledGB" >
+   <property name="geometry" >
+    <rect>
+     <x>20</x>
+     <y>9</y>
+     <width>361</width>
+     <height>122</height>
+    </rect>
+   </property>
+   <property name="toolTip" >
+    <string>If enabled, notify LeoDAQGL program on plugin start/stop.</string>
+   </property>
+   <property name="whatsThis" >
+    <string>If enabled, notify the LeoDAQGL program via a network socket when a stim plugin is started or stopped.  The notification fails if timeout ms elapses without a response from the remote socket or if the connection fails.</string>
+   </property>
+   <property name="title" >
+    <string>Notify LeoDAQGL on Plugin Start/End</string>
+   </property>
+   <property name="checkable" >
+    <bool>true</bool>
+   </property>
+   <property name="checked" >
+    <bool>true</bool>
+   </property>
+   <widget class="QLabel" name="label" >
+    <property name="geometry" >
+     <rect>
+      <x>20</x>
+      <y>26</y>
+      <width>71</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="toolTip" >
+     <string>The hostname of the remote LeoDAQGL program</string>
+    </property>
+    <property name="text" >
+     <string>Hostname:</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="hostNameLE" >
+    <property name="geometry" >
+     <rect>
+      <x>100</x>
+      <y>23</y>
+      <width>241</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="toolTip" >
+     <string>The hostname of the remote LeoDAQGL program</string>
+    </property>
+    <property name="text" >
+     <string>localhost</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_2" >
+    <property name="geometry" >
+     <rect>
+      <x>20</x>
+      <y>57</y>
+      <width>71</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="toolTip" >
+     <string>The port on which the LeoDAQGL program is listening for notifications.</string>
+    </property>
+    <property name="text" >
+     <string>Port:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_3" >
+    <property name="geometry" >
+     <rect>
+      <x>20</x>
+      <y>91</y>
+      <width>71</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="toolTip" >
+     <string>The communications timeout.  If LeoDAQGL fails to respond within this time limit, abort notification attempt.  Set this to a relatively low number.</string>
+    </property>
+    <property name="text" >
+     <string>Timeout (ms):</string>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="timeoutSB" >
+    <property name="geometry" >
+     <rect>
+      <x>100</x>
+      <y>88</y>
+      <width>101</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="toolTip" >
+     <string>The communications timeout.  If LeoDAQGL fails to respond within this time limit, abort notification attempt.  Set this to a relatively low number.</string>
+    </property>
+    <property name="minimum" >
+     <number>50</number>
+    </property>
+    <property name="maximum" >
+     <number>30000</number>
+    </property>
+    <property name="value" >
+     <number>100</number>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="portSB" >
+    <property name="geometry" >
+     <rect>
+      <x>100</x>
+      <y>60</y>
+      <width>101</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="minimum" >
+     <number>1</number>
+    </property>
+    <property name="maximum" >
+     <number>65535</number>
+    </property>
+    <property name="value" >
+     <number>52521</number>
+    </property>
+   </widget>
+  </widget>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>LeoDAQGLIntegration</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel" >
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel" >
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>LeoDAQGLIntegration</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel" >
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel" >
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

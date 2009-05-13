@@ -180,6 +180,10 @@ protected:
     unsigned frameNum; ///< starts at 0 and gets incremented for each frame (each time drawFrame() is called)
     double fps, fpsAvg, fpsMin, fpsMax;
     double cycleTimeLeft; ///< the number of seconds left in this cycle -- updated by glWindow before calling afterVSync
+    bool needNotifyStart; ///< iff true, we will notify LeoDAQGL of plugin start on unpause
+
+    void notifySpikeGLAboutStart();
+    void notifySpikeGLAboutStop();
 
     /// plugin-level mutex -- used in a couple of functions and you may reuse it yourself as well
     mutable QMutex mut; 

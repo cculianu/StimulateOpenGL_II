@@ -4,10 +4,12 @@
 #include <QMessageBox>
 #include <QDir>
 #include <QGLContext>
+#include "StimGL_LeoDAQGL_Integration.h"
 
 StimPlugin::StimPlugin(const QString &name)
     : QObject(StimApp::instance()->glWin()), parent(StimApp::instance()->glWin()), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0)
 {
+    needNotifyStart = true;
     frameNum = 0x7fffffff;
     setObjectName(name);
     parent->pluginCreated(this);    
@@ -39,6 +41,13 @@ void StimPlugin::stop(bool doSave, bool useGui)
     if (doSave) {
         saveData(useGui);
     }
+
+    // Notify LeoDAQGL via a socket.. if possible..
+    // Notify LeoDAQGL via a socket.. if possible..
+    if (stimApp()->leoDAQGLNotifyParams.enabled) {
+        notifySpikeGLAboutStop();
+    }
+    
     parent->pluginStopped(this);
     emit stopped();
     parent->makeCurrent();
@@ -54,6 +63,17 @@ void StimPlugin::stop(bool doSave, bool useGui)
 void StimPlugin::start(bool startUnpaused)
 {
     parent->pluginStarted(this);
+
+    // Notify LeoDAQGL via a socket.. if possible..
+    needNotifyStart = false;
+    if (stimApp()->leoDAQGLNotifyParams.enabled) {
+        if (startUnpaused) {
+            notifySpikeGLAboutStart();
+        } else {
+            needNotifyStart = true;
+        }
+    }
+
     emit started();
     
     parent->makeCurrent();
@@ -224,4 +244,28 @@ QByteArray StimPlugin::getFrameDump(unsigned num, GLenum datatype)
     } while (frameNum <= num);
     glClear(GL_COLOR_BUFFER_BIT);
     return ret;
+}
+
+void StimPlugin::notifySpikeGLAboutStart()
+{
+    StimApp::LeoDAQGLNotifyParams & p(stimApp()->leoDAQGLNotifyParams);
+    
+    StimGL_LeoDAQGL_Integration::Notify_PluginStart(name(), getParams(),
+                                                    0,
+                                                    p.hostname,
+                                                    p.port,
+                                                    p.timeout_ms);
+    needNotifyStart = false;
+}
+
+void StimPlugin::notifySpikeGLAboutStop()
+{
+        StimApp::LeoDAQGLNotifyParams & p(stimApp()->leoDAQGLNotifyParams);
+
+        StimGL_LeoDAQGL_Integration::Notify_PluginEnd(name(), getParams(),
+                                                        0,
+                                                        p.hostname,
+                                                        p.port,
+                                                        p.timeout_ms);
+        needNotifyStart = true;
 }

@@ -54,6 +54,14 @@ public:
     static StimApp *instance() { return singleton; }
 
     virtual ~StimApp();
+
+    /// Some parameters related to the external LeoDAQGL program notification
+    struct LeoDAQGLNotifyParams {
+        bool enabled;  ///< if true, LeoDAQGL is notified on plugin start/stop
+        QString hostname;
+        unsigned short port;
+        int timeout_ms;
+    } leoDAQGLNotifyParams;
     
     /// Returns a pointer to the application-wide GLWindow instance.
     GLWindow *glWin() const { return const_cast<GLWindow *>(glWindow); }
@@ -120,6 +128,9 @@ public slots:
 
     /// Aligns the GLWindow to the screen's top-left corner. ('A' hotkey in the UI.)
     void alignGLWindow();
+
+    /// Pops up the LeoDAQGL integration options dialog and sets the params based on this Window
+    void leoDAQGLIntegrationDialog();
 
 protected:
 

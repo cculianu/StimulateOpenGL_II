@@ -26,6 +26,8 @@
 #include <QPainter>
 #include <QDir>
 #include <QDesktopWidget>
+#include "StimGL_LeoDAQGL_Integration.h"
+#include "ui_LeoDAQGLIntegration.h"
 
 Q_DECLARE_METATYPE(unsigned);
 
@@ -140,8 +142,15 @@ void StimApp::calibrateRefresh()
 			if (r && r != p) return; // user must have aborted the operation
 		}
         Log() << "Calibrating refresh rate...";
-		refresh = 120;
+        refresh = 120;
+
+        // temporarily suppress this notification of leodaqgl for this calib plugin
+        bool leoWasEnabled = leoDAQGLNotifyParams.enabled;
+        leoDAQGLNotifyParams.enabled = false;
+
         p->start(true); // note this plugin ends up calling the calibratedRefresh() slot which then continues with initialization
+
+        leoDAQGLNotifyParams.enabled = leoWasEnabled;
     }
 }
 
@@ -298,6 +307,11 @@ void StimApp::loadSettings()
 #endif
     mut.unlock();
 
+    struct LeoDAQGLNotifyParams & leoDaq (leoDAQGLNotifyParams);
+    leoDaq.enabled = settings.value("LeoDAQGL_Notify_Enabled", true).toBool();
+    leoDaq.hostname = settings.value("LeoDAQGL_Notify_Host", "localhost").toString();
+    leoDaq.port = settings.value("LeoDAQGL_Notify_Port",  LEODAQ_GL_NOTIFY_DEFAULT_PORT).toUInt();
+    leoDaq.timeout_ms = settings.value("LeoDAQGL_Notify_TimeoutMS", LEODAQ_GL_NOTIFY_DEFAULT_TIMEOUT_MSECS ).toInt();    
 }
 
 void StimApp::saveSettings()
@@ -310,6 +324,12 @@ void StimApp::saveSettings()
     mut.lock();
     settings.setValue("outDir", outDir);
     mut.unlock();
+
+    struct LeoDAQGLNotifyParams & leoDaq (leoDAQGLNotifyParams);
+    settings.setValue("LeoDAQGL_Notify_Enabled", leoDaq.enabled);
+    settings.setValue("LeoDAQGL_Notify_Host", leoDaq.hostname);
+    settings.setValue("LeoDAQGL_Notify_Port",  leoDaq.port);
+    settings.setValue("LeoDAQGL_Notify_TimeoutMS", leoDaq.timeout_ms);    
 }
 
 
@@ -395,7 +415,7 @@ void StimApp::loadStim()
             return;
         }
         if (p && p->getFrameNum() > -1) {
-            bool doSave = QMessageBox::question(0, "Save data?", QString("Save data for currently-running '") + p->name() + "'?", QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes;
+            bool doSave = 0; //QMessageBox::question(0, "Save data?", QString("Save data for currently-running '") + p->name() + "'?", QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes;
             if (p != glWindow->runningPlugin()) {
                 QMessageBox::information(0, "Already unloaded", 
                                          "Plugin already unloaded in the meantime!");
@@ -416,7 +436,7 @@ void StimApp::loadStim()
         params.fromString(paramsBuf);
         QFileInfo fi(lastFile);
         Log() << fi.fileName() << " loaded";
-        p->setParams(params);
+        p->setParams(params);       
         p->start();
         glWindow->setWindowTitle(QString("StimulateOpenGL II - ") + fi.fileName());
     }
@@ -433,7 +453,7 @@ void StimApp::unloadStim()
                 QMessageBox::information(0, "Already unloaded", 
                                          "Plugin already unloaded in the meantime!");
             else if (p->getFrameNum() > -1) {
-                bool doSave = QMessageBox::question(0, "Save data?", QString("Save data for '") + p->name() + "'?", QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes;
+                bool doSave = 0; //QMessageBox::question(0, "Save data?", QString("Save data for '") + p->name() + "'?", QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes;
                 if (p != glWindow->runningPlugin()) {
                     QMessageBox::information(0, "Already unloaded", 
                                              "Plugin already unloaded in the meantime!");
@@ -531,7 +551,7 @@ void StimApp::alignGLWindow()
             const QRect screenRect(desktop.screenGeometry(glWindow));
             int xdelta = glWindow->geometry().x() - glWindow->x(),
                 ydelta = glWindow->geometry().y() - glWindow->y();
-            if (xdelta < 0 || ydelta < 0) {
+            if (xdelta <= 0 || ydelta <= 0) {
                 Error() << "Cannot align GLWindow since something is wrong with the window system's idea of the frame geometry!";
                 return;
             }
@@ -540,4 +560,27 @@ void StimApp::alignGLWindow()
             Log() << "Aligned GL window to monitor 0,0";
         }
     }
+}
+
+void StimApp::leoDAQGLIntegrationDialog()
+{
+    QDialog dlg(0);
+    dlg.setWindowTitle("LeoDAQGL Integration Options");
+    dlg.setWindowIcon(consoleWindow->windowIcon());
+    dlg.setModal(true);
+    LeoDAQGLNotifyParams & p (leoDAQGLNotifyParams);
+
+    Ui::LeoDAQGLIntegration controls;
+    controls.setupUi(&dlg);
+    controls.enabledGB->setChecked(p.enabled);
+    controls.hostNameLE->setText(p.hostname);
+    controls.portSB->setValue(p.port);
+    controls.timeoutSB->setValue(p.timeout_ms);    
+    if ( dlg.exec() == QDialog::Accepted ) {
+        p.enabled = controls.enabledGB->isChecked();
+        p.hostname = controls.hostNameLE->text();
+        p.port = controls.portSB->value();
+        p.timeout_ms = controls.timeoutSB->value();
+    }
+    saveSettings();
 }
