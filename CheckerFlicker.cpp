@@ -559,7 +559,7 @@ void CheckerFlicker::genGaussColors()
     for (unsigned i = 0; i < gaussColors.size(); ++i) {
         double d = ((gasGen()*(meanintensity*contrast)) + meanintensity);
         if (d < 0. || d > 1.) { --i; continue; } // keep retrying until we get a value in range
-        gaussColors[i] = static_cast<GLubyte>( d * 255.);
+        gaussColors[i] = static_cast<GLubyte>( d * 256.);
         //qDebug("%hhu", gaussColors[i]);
     }
 }
