@@ -73,10 +73,10 @@ public:
     /// returns height in pixels of the opengl 2d area
     unsigned height() const;
 
-    /// start the plugin -- marks the plugin as 'running' with the GLWindow and calls init(), then emits 'started' signal
-    void start(bool startUnpaused = false);
-    /// stop the plugin -- marks the plugin as 'not running' with the GLWindow, calls cleanup(), then emits 'stopped' signal
-    void stop(bool doSave = false, bool use_gui = false);
+    /// start the plugin -- marks the plugin as 'running' with the GLWindow and calls init(), then emits 'started' signal.  If reimplementing, call super.
+    virtual void start(bool startUnpaused = false);
+    /// stop the plugin -- marks the plugin as 'not running' with the GLWindow, calls cleanup(), then emits 'stopped' signal.  If reimplementig, call super
+    virtual void stop(bool doSave = false, bool use_gui = false);
 
     /// just calls QObject::objectName()
     QString name() const { return objectName(); }

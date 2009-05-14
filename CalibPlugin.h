@@ -29,6 +29,11 @@ public:
     
     QString description() const { return "Calibrates the refresh rate by drawing frames on the screen as fast as possible with vsync enabled."; }
 
+    /// Reimplemented from super to suppress LeoDAQGL notify
+    void start(bool startUnpaused = false);
+    /// Reimplemented from super to suppress LeoDAQGL notify
+    void stop(bool doSave = false, bool use_gui = false);
+
 protected:
     /// Draws a random background color to the screen.
     void drawFrame();

@@ -75,6 +75,7 @@ StimApp::StimApp(int & argc, char ** argv)
 #ifndef Q_OS_WIN
     refresh = 120;
 #endif
+    Connect(this, SIGNAL(aboutToQuit()), this, SLOT(quitCleanup()));
     singleton = this;
     if (!::init) ::init = new Init;
     loadSettings();
@@ -145,12 +146,7 @@ void StimApp::calibrateRefresh()
         refresh = 120;
 
         // temporarily suppress this notification of leodaqgl for this calib plugin
-        bool leoWasEnabled = leoDAQGLNotifyParams.enabled;
-        leoDAQGLNotifyParams.enabled = false;
-
         p->start(true); // note this plugin ends up calling the calibratedRefresh() slot which then continues with initialization
-
-        leoDAQGLNotifyParams.enabled = leoWasEnabled;
     }
 }
 
@@ -182,6 +178,13 @@ StimApp::~StimApp()
     delete server;
     saveSettings();
     singleton = 0;
+}
+
+void StimApp::quitCleanup()
+{
+    // NB: should delete these because they may have child objects with non-trivial destructors..
+    if (glWindow) delete glWindow, glWindow = 0;
+    if (consoleWindow) delete consoleWindow, consoleWindow = 0;
 }
 
 bool StimApp::isDebugMode() const

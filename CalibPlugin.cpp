@@ -9,6 +9,22 @@ CalibPlugin::CalibPlugin()
     Connect(this, SIGNAL(refreshRateCalibrated(unsigned)), StimApp::instance(), SLOT(calibratedRefresh(unsigned)));
 }
 
+void CalibPlugin::stop(bool doSave, bool use_gui)
+{
+    const bool wasEnabled = stimApp()->leoDAQGLNotifyParams.enabled;
+    stimApp()->leoDAQGLNotifyParams.enabled = false; // suppress for this plugin
+    StimPlugin::stop(doSave, use_gui);
+    stimApp()->leoDAQGLNotifyParams.enabled = wasEnabled;
+}
+
+void CalibPlugin::start(bool startUnpaused)
+{
+    const bool wasEnabled = stimApp()->leoDAQGLNotifyParams.enabled;
+    stimApp()->leoDAQGLNotifyParams.enabled = false; // suppress for this plugin
+    StimPlugin::start(startUnpaused);
+    stimApp()->leoDAQGLNotifyParams.enabled = wasEnabled;
+}
+
 void CalibPlugin::drawFrame()
 {
     // calibration code -- no trivial painting done of num x num random rectangles

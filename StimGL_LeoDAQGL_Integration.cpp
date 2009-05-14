@@ -132,7 +132,7 @@ namespace StimGL_LeoDAQGL_Integration
             Error() << "Notify LeoDAQGL failed: " << estr;
             return false;
         }
-        Log() << "LeoDAQGL notified of plugin `" << pname << "' " << (isStart ? "start" : "end") << " via socket!";
+        Debug() << "LeoDAQGL notified of plugin `" << pname << "' " << (isStart ? "start" : "end") << " via socket!";
         return true;
     }
 
@@ -192,7 +192,7 @@ namespace StimGL_LeoDAQGL_Integration
         line = QString(OK_STRING) + "\n";
         if (!sockSend(sock, line, timeout_msecs)) return;
         emitGotPluginNotification(isStart, pluginName, params);
-        Log() << "Received plugin " << (isStart ? "start" : "end") << " notificaton from StimGL for plugin " << pluginName;
+        //Log() << "Received plugin " << (isStart ? "start" : "end") << " notificaton from StimGL for plugin " << pluginName;
     }
  
     void NotifyServer::gotNewConnection() 

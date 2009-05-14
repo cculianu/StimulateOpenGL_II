@@ -141,6 +141,8 @@ protected slots:
     /// Called from a timer every ~250 ms to update the status bar at the bottom of the console window
     void updateStatusBar();
 
+    void quitCleanup();
+
 private:
     void initServer();
     void loadSettings();
