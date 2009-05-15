@@ -39,6 +39,7 @@ win32-g++ {
 }
 win32 {
         LIBS += -lws2_32
+        RC_FILE += WinResources.rc
 }
 unix {
 	LIBS += -lm
