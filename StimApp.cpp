@@ -93,6 +93,7 @@ StimApp::StimApp(int & argc, char ** argv)
     consoleWindow->textEdit()->installEventFilter(this);
 
     createGLWindow(false);
+    glWindow->show();
 
     getHWFrameCount(); // forces error message to print once if frame count func is not found
     consoleWindow->setWindowTitle("StimulateOpenGL II");
@@ -135,8 +136,6 @@ void StimApp::createGLWindow(bool initPlugs)
     glWindow = new GLWindow(glWinSize.width(), glWinSize.height(), !glWinHasFrame);
     glWindow->move(0,0);
     
-    glWindow->show();
-
     if (initPlugs) glWindow->initPlugins();
 }
 
@@ -464,9 +463,13 @@ void StimApp::loadStim()
                 Log() << "GLWindow size changed to: " << desiredSize.width() << "x" << desiredSize.height();
                 QString pname = p->name();
                 // need to (re)create the gl window with the desired size!
+                QDesktopWidget desktop;
+                const QRect screenRect(desktop.screenGeometry(glWindow));
                 delete glWindow;
-                glWinSize = desiredSize;
+                glWinSize = desiredSize;                
                 createGLWindow();
+                glWindow->move(screenRect.x(), screenRect.y());
+                glWindow->show();
                 p = pfound = glWindow->pluginFind(pname);
             }
         }
@@ -578,33 +581,17 @@ void StimApp::hideUnhideConsole()
 
 void StimApp::alignGLWindow()
 {
-    /*
-    if (glWindow) {
-        if (!savedGeometry.isEmpty()) {
-            glWindow->restoreGeometry(savedGeometry);
-            savedGeometry.clear();
-            Log() << "Restored GL window to original position";
-        } else {
-            QDesktopWidget desktop;
-            const QRect screenRect(desktop.screenGeometry(glWindow));
-            int xdelta = glWindow->geometry().x() - glWindow->x(),
-                ydelta = glWindow->geometry().y() - glWindow->y();
-            if (xdelta <= 0 || ydelta <= 0) {
-                Error() << "Cannot align GLWindow since something is wrong with the window system's idea of the frame geometry!";
-                return;
-            }
-            savedGeometry = glWindow->saveGeometry();
-            glWindow->move(screenRect.x()-xdelta, screenRect.y()-ydelta);
-            Log() << "Aligned GL window to monitor 0,0";
-        }
-        }*/
     if (glWindow) {
         if (glWindow->runningPlugin()) {
             Warning() << "Align of GLWindow not possible while a plugin is loaded.  Please unload the current Stim Plugin then try to align again.";
         } else {
+            QDesktopWidget desktop;
+            const QRect screenRect(desktop.screenGeometry(glWindow));
             delete glWindow;
             glWinHasFrame = !glWinHasFrame;
             createGLWindow();
+            glWindow->move(screenRect.x(), screenRect.y());
+            glWindow->show();
         }
     }
 }

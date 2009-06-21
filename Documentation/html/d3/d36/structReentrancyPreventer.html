@@ -45,7 +45,7 @@ A helper class that helps prevent reentrancy into certain functions.
 <p>
 Mainly <a class="el" href="../../d5/d08/classStimApp.html#11b8c96b8664766aa6b7d0b9cda03e33" title="Pops up a UI so that the user can select a stim. config file to load.">StimApp::loadStim()</a>, <a class="el" href="../../d5/d08/classStimApp.html#f55374492d96f86855a0fb8511c4a283" title="Unloads/stops the currently running plugin and may prompt the user to save.">StimApp::unloadStim()</a>, and <a class="el" href="../../d5/d08/classStimApp.html#0b13749e680424bcc7093c84eeca302e" title="Prompts the user to pick a save directory.">StimApp::pickOutputDir()</a> make use of this class to prevent recursive calls into themselves.<p>
 Functions that want to be mutually exclusive with respect to each other and non-reentrant with respect to themselves need merely construct an instance of this class as a local variable, and then reentrancy into the function can be guarded by checking against this class's operator bool() function. 
-<p>Definition at line <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00396">396</a> of file <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html">StimApp.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00395">395</a> of file <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html">StimApp.cpp</a>.</p>
 <hr><h2>Constructor &amp; Destructor Documentation</h2>
 <a class="anchor" name="7f5d7b40387ab9edf6575602b2121310"></a><!-- doxytag: member="ReentrancyPreventer::ReentrancyPreventer" ref="7f5d7b40387ab9edf6575602b2121310" args="()" -->
 <div class="memitem">
@@ -64,7 +64,7 @@ Functions that want to be mutually exclusive with respect to each other and non-
 
 <p>
 Increments a global counter. The global counter is 1 if only 1 instance of this class exists throughout the application, and &gt;1 otherwise. 
-<p>Definition at line <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00401">401</a> of file <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html">StimApp.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00400">400</a> of file <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html">StimApp.cpp</a>.</p>
 
 </div>
 </div><p>
@@ -85,7 +85,7 @@ Increments a global counter. The global counter is 1 if only 1 instance of this 
 
 <p>
 Decrements the global counter. If it reaches 0 this was the last instance of this class and there are no other ones active globally. 
-<p>Definition at line <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00404">404</a> of file <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html">StimApp.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00403">403</a> of file <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html">StimApp.cpp</a>.</p>
 
 </div>
 </div><p>
@@ -109,7 +109,7 @@ Decrements the global counter. If it reaches 0 this was the last instance of thi
 Returns true if the global counter is 1 (that is, only one globally active instance of this class exists throughout the application), and false otherwise. If false is returned, you can then abort your function early as a reentrancy condition has been detected. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00406">406</a> of file <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html">StimApp.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00405">405</a> of file <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html">StimApp.cpp</a>.</p>
 
 </div>
 </div><p>
@@ -127,13 +127,13 @@ Returns true if the global counter is 1 (that is, only one globally active insta
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00398">398</a> of file <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html">StimApp.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00397">397</a> of file <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html">StimApp.cpp</a>.</p>
 
 </div>
 </div><p>
 <hr>The documentation for this struct was generated from the following file:<ul>
 <li><a class="el" href="../../d9/d9a/StimApp_8cpp-source.html">StimApp.cpp</a></ul>
-<hr size="1"><address style="text-align: right;"><small>Generated on Sun Jun 21 17:53:58 2009 for StimulateOpenGL_II by&nbsp;
+<hr size="1"><address style="text-align: right;"><small>Generated on Sun Jun 21 18:07:10 2009 for StimulateOpenGL_II by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="../../doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.4 </small></address>
 </body>
