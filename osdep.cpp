@@ -72,7 +72,15 @@ double getTime()
     if (!t0) t0 = ct;
     return double(ct-t0) / double(freq);
 }
-
+/// sets the process affinity mask -- a bitset of which processors to run on
+void setProcessAffinityMask(unsigned mask)
+{
+    if (!SetProcessAffinityMask(GetCurrentProcess(), mask)) {
+        Error() << "Error from Win32 API when setting process affinity mask: " << GetLastError();
+    } else {
+        Log() << "Process affinity mask set to: " << QString().sprintf("0x%x",mask);
+    }
+}
 #elif defined(Q_OS_LINUX)
 void setRTPriority()
 {
@@ -102,10 +110,31 @@ double getTime()
         if (t0 < 0.) t0 = t; 
         return t-t0;
 }
+
+/// sets the process affinity mask -- a bitset of which processors to run on
+void setProcessAffinityMask(unsigned mask)
+{
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    for (unsigned i = 0; i < sizeof(mask)*8; ++i) {
+        if (mask & 1<<i) CPU_SET(i, &cpuset);
+    }
+    int err = sched_setaffinity(0, sizeof(cpuset), &cpuset);
+    if (err) {
+        Error() << "sched_setaffinity(" << QString().sprintf("0x%x",mask) << ") error: " << strerror(errno);
+    } else {
+        Log() << "Process affinity mask set to: " << QString().sprintf("0x%x",mask);
+    }
+}
 #else /* !WIN and !LINUX */
 void setRTPriority()
 {
     Warning() << "Cannot set realtime priority -- unknown platform!";
+}
+/// sets the process affinity mask -- a bitset of which processors to run on
+void setProcessAffinityMask(unsigned mask)
+{
+    Warning() << "`Set process affinity mask' for this platform unimplemented -- ignoring.";
 }
 } // end namespace util
 #include <QTime>

@@ -152,76 +152,79 @@ void MovingObjects::drawFrame()
 	else jitterx = jittery = 0;
 
 	for (int k=0; k<(quad_fps ? 3:1); k++) {
-		if( moveFlag ){
+            if( moveFlag ){
 			
-			// adjust for wall bounce
-			if ((x + vx + jitterx > mon_x_pix) |  (x + vx + jitterx < 0)) {
-				vx = -vx;
-				}
-			if ((y + vy + jittery > mon_y_pix) | (y + vy + jittery < 0)) {
-				vy = -vy; 
-				}
-			// initialize position iff k==0 and frameNum is a multiple of tframes
-			if ( !k && !(frameNum%tframes)) {
+                // adjust for wall bounce
+                if ((x + vx + jitterx > mon_x_pix) |  (x + vx + jitterx < 0)) {
+                    vx = -vx;
+                }
+                if ((y + vy + jittery > mon_y_pix) | (y + vy + jittery < 0)) {
+                    vy = -vy; 
+                }
+                // initialize position iff k==0 and frameNum is a multiple of tframes
+                if ( !k && !(frameNum%tframes)) {
 				
-				// update target size if size-series
-				if ((targetcycle > 0) & (frameNum > 0))
-					if (tcyclecount++ == targetcycle) {
-						tcyclecount = 0;
-						objLen = objLen_o; // if targetcycle done, reset objLen
-					}
-					else objLen = objLen*2; // double target size every tframes
-				if ((speedcycle > 0) & (frameNum > 0))
-					if (tcyclecount++ == speedcycle) {
-						tcyclecount = 0;
-						objVelx = objVelx_o; // if targetcycle done, reset objLen
-						objVely = objVely_o; // if targetcycle done, reset objLen
-					}
-					else {
-						objVelx = objVelx*2; // double target size every tframes
-						objVely = objVely*2; // double target size every tframes
-					}
-				// init position
-				if (!rndtrial) {
-                                    x = objXinit;
-                                    y = objYinit;
-                                    vx = objVelx; //ran1( seed ) * 10;
-                                    vy = objVely; //ran1( seed ) * 10;
-				}
-				else {
-                                    x = ran1Gen()*mon_x_pix;
-                                    y = ran1Gen()*mon_y_pix;
-                                    vx = ran1Gen()*objVelx*2 - objVelx;
-                                    vy = ran1Gen()*objVely*2 - objVely; 
-				}
-			}
-
-			// update position after delay period
-			if ((int(frameNum)%tframes - delay) > 0) { 
-				x += vx + jitterx;
-				y += vy + jittery;
-				}
-			}
-
-		//x = trajdata[frameNum] + jitterx;
-		//y = trajdata[frameNum+tframes] + jittery;
-		// draw stim if out of delay period
-		if ((int(frameNum)%tframes - delay) >= 0) {
-                    if (quad_fps)
-                        //glColor4f((k == 2 ? objcolor:bgcolor), (k == 1 ? objcolor:bgcolor), (k == 0 ? objcolor:bgcolor),0.5); 
-                        glColor3f((k == 2 ? objcolor:bgcolor), (k == 1 ? objcolor:bgcolor), (k == 0 ? objcolor:bgcolor)); 
-                    else  glColor3f(objcolor,objcolor,objcolor);
-                    glMatrixMode(GL_MODELVIEW);
-                    glPushMatrix();
-                    glTranslatef(x, y, 1);
-                    glCallList(objDL);
-                    glPopMatrix();
+                    // update target size if size-series
+                    if ((targetcycle > 0) && (frameNum > 0)) {
+                        if (tcyclecount++ == targetcycle) {
+                            tcyclecount = 0;
+                            objLen = objLen_o; // if targetcycle done, reset objLen
+                        }
+                        else objLen = objLen*2; // double target size every tframes
+                    }
+				
+                    if ((speedcycle > 0) && (frameNum > 0)) {
+                        if (tcyclecount++ == speedcycle) {
+                            tcyclecount = 0;
+                            objVelx = objVelx_o; // if targetcycle done, reset objLen
+                            objVely = objVely_o; // if targetcycle done, reset objLen
+                        }
+                        else {
+                            objVelx = objVelx*2; // double target size every tframes
+                            objVely = objVely*2; // double target size every tframes
+                        }
+                    }
+                    // init position
+                    if (!rndtrial) {
+                        x = objXinit;
+                        y = objYinit;
+                        vx = objVelx; //ran1( seed ) * 10;
+                        vy = objVely; //ran1( seed ) * 10;
+                    }
+                    else {
+                        x = ran1Gen()*mon_x_pix;
+                        y = ran1Gen()*mon_y_pix;
+                        vx = ran1Gen()*objVelx*2 - objVelx;
+                        vy = ran1Gen()*objVely*2 - objVely; 
+                    }
                 }
 
-			//if (k==2) { //display 120Hz object next to 480Hz object for motion smoothness comparison
-			//	glColor3f(objcolor,objcolor,objcolor);
-			//	glRecti( (int)x+4*objLen, (int)y, (int)x+5*objLen, (int)y+objLen );
-			//}
+                // update position after delay period
+                if ((int(frameNum)%tframes - delay) > 0) { 
+                    x += vx + jitterx;
+                    y += vy + jittery;
+                }
+            }
+
+            //x = trajdata[frameNum] + jitterx;
+            //y = trajdata[frameNum+tframes] + jittery;
+            // draw stim if out of delay period
+            if ((int(frameNum)%tframes - delay) >= 0) {
+                if (quad_fps)
+                    //glColor4f((k == 2 ? objcolor:bgcolor), (k == 1 ? objcolor:bgcolor), (k == 0 ? objcolor:bgcolor),0.5); 
+                    glColor3f((k == 2 ? objcolor:bgcolor), (k == 1 ? objcolor:bgcolor), (k == 0 ? objcolor:bgcolor)); 
+                else  glColor3f(objcolor,objcolor,objcolor);
+                glMatrixMode(GL_MODELVIEW);
+                glPushMatrix();
+                glTranslatef(x, y, 1);
+                glCallList(objDL);
+                glPopMatrix();
+            }
+
+            //if (k==2) { //display 120Hz object next to 480Hz object for motion smoothness comparison
+            //	glColor3f(objcolor,objcolor,objcolor);
+            //	glRecti( (int)x+4*objLen, (int)y, (int)x+5*objLen, (int)y+objLen );
+            //}
 	}
 
 	// global jitter to whole image

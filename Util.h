@@ -31,6 +31,9 @@ extern StimApp *stimApp();
 /// set the current process to realtime priority, implemented in osdep.cpp
 extern void setRTPriority(); 
 
+/// sets the process affinity mask -- a bitset of which processors to run on
+extern void setProcessAffinityMask(unsigned mask);
+
 /// return true iff opengl has the X ext gl_ext
 extern bool hasExt(const char *gl_ext);
 

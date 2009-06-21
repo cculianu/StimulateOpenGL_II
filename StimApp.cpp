@@ -104,6 +104,9 @@ StimApp::StimApp(int & argc, char ** argv)
     consoleWindow->move(0,glWindow->frameSize().height()+delta);
     consoleWindow->show();
 
+    if (getNProcessors() > 2)
+        setProcessAffinityMask(0x2|0x4); // set it to core 2 and core 3
+    
     setRTPriority();
     setVSyncMode();
 
