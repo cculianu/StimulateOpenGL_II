@@ -15,7 +15,7 @@
   </ul>
 </div>
 <div class="nav">
-<a class="el" href="../../dir_3ad7fe0462283ca58d4c668aa8aad7f4.html">src</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_1d1d503050a097160b3532f1d92f2b4c.html">StimulateOpenGL</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_252a3a386671771f6faf69f7c87f76bc.html">StimulateOpenGL_II</a></div>
+<a class="el" href="../../dir_14c46e22c23b31d069aa66eceb578538.html">projects</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_c7621532e76c5a52eb0dadf12b659c78.html">Leonardo</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_1ef02126803d67bc0459919069fcb0d8.html">StimulateOpenGL</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_19a3d25e4f3966778db7bf473054d0ec.html">StimulateOpenGL_II</a></div>
 <h1>ConsoleWindow.cpp</h1><a href="../../d1/d98/ConsoleWindow_8cpp.html">Go to the documentation of this file.</a><div class="fragment"><pre class="fragment"><a name="l00001"></a>00001 <span class="preprocessor">#include &lt;QTextEdit&gt;</span>
 <a name="l00002"></a>00002 <span class="preprocessor">#include &lt;QMenuBar&gt;</span>
 <a name="l00003"></a>00003 <span class="preprocessor">#include &lt;QApplication&gt;</span>
@@ -54,22 +54,23 @@
 <a name="l00036"></a>00036 <span class="preprocessor">#endif</span>
 <a name="l00037"></a>00037 <span class="preprocessor"></span>    action = m-&gt;addAction(<span class="stringliteral">"Hide &amp;Console C"</span>, <a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>(), SLOT(hideUnhideConsole()));
 <a name="l00038"></a>00038     action = m-&gt;addAction(<span class="stringliteral">"&amp;Align/Unalign GL Window A"</span>, <a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>(), SLOT(alignGLWindow()));
-<a name="l00039"></a>00039     m = mb -&gt;addMenu(<span class="stringliteral">"&amp;Help"</span>);
-<a name="l00040"></a>00040     action = m-&gt;addAction(<span class="stringliteral">"&amp;About"</span>, <a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>(), SLOT(about()));
-<a name="l00041"></a>00041     action = m-&gt;addAction(<span class="stringliteral">"About &amp;Qt"</span>, <a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>(), SLOT(aboutQt()));
-<a name="l00042"></a>00042 }
-<a name="l00043"></a>00043 
-<a name="l00044"></a><a class="code" href="../../d7/d7c/classConsoleWindow.html#0e0152f07f4d5c5cb39ecb05b5aa8d47">00044</a> QTextEdit *<a class="code" href="../../d7/d7c/classConsoleWindow.html#0e0152f07f4d5c5cb39ecb05b5aa8d47" title="Returns a pointer to the QTextEdit area which is used for messages in the console...">ConsoleWindow::textEdit</a>()<span class="keyword"> const</span>
-<a name="l00045"></a>00045 <span class="keyword"></span>{
-<a name="l00046"></a>00046     <span class="keywordflow">return</span> centralWidget() ? <span class="keyword">dynamic_cast&lt;</span>QTextEdit *<span class="keyword">&gt;</span>(centralWidget()) : 0;
-<a name="l00047"></a>00047 }
-<a name="l00048"></a>00048 
-<a name="l00049"></a><a class="code" href="../../d7/d7c/classConsoleWindow.html#3f5c6a4e3d8b080621c32e1a20e06d6d">00049</a> <span class="keywordtype">void</span> <a class="code" href="../../d7/d7c/classConsoleWindow.html#3f5c6a4e3d8b080621c32e1a20e06d6d" title="Basically calls QApplication::quit -- closing the console window is equivalent to...">ConsoleWindow::closeEvent</a>(QCloseEvent *e)
-<a name="l00050"></a>00050 {
-<a name="l00051"></a>00051     e-&gt;accept();
-<a name="l00052"></a>00052     qApp-&gt;quit();
-<a name="l00053"></a>00053 }
-</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Wed Jul 9 23:09:12 2008 for StimulateOpenGL_II by&nbsp;
+<a name="l00039"></a>00039     action = m-&gt;addAction(<span class="stringliteral">"&amp;LeoDAQGL Integration..."</span>, <a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>(), SLOT(leoDAQGLIntegrationDialog()));
+<a name="l00040"></a>00040     m = mb -&gt;addMenu(<span class="stringliteral">"&amp;Help"</span>);
+<a name="l00041"></a>00041     action = m-&gt;addAction(<span class="stringliteral">"&amp;About"</span>, <a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>(), SLOT(about()));
+<a name="l00042"></a>00042     action = m-&gt;addAction(<span class="stringliteral">"About &amp;Qt"</span>, <a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>(), SLOT(aboutQt()));
+<a name="l00043"></a>00043 }
+<a name="l00044"></a>00044 
+<a name="l00045"></a><a class="code" href="../../d7/d7c/classConsoleWindow.html#0e0152f07f4d5c5cb39ecb05b5aa8d47">00045</a> QTextEdit *<a class="code" href="../../d7/d7c/classConsoleWindow.html#0e0152f07f4d5c5cb39ecb05b5aa8d47" title="Returns a pointer to the QTextEdit area which is used for messages in the console...">ConsoleWindow::textEdit</a>()<span class="keyword"> const</span>
+<a name="l00046"></a>00046 <span class="keyword"></span>{
+<a name="l00047"></a>00047     <span class="keywordflow">return</span> centralWidget() ? <span class="keyword">dynamic_cast&lt;</span>QTextEdit *<span class="keyword">&gt;</span>(centralWidget()) : 0;
+<a name="l00048"></a>00048 }
+<a name="l00049"></a>00049 
+<a name="l00050"></a><a class="code" href="../../d7/d7c/classConsoleWindow.html#3f5c6a4e3d8b080621c32e1a20e06d6d">00050</a> <span class="keywordtype">void</span> <a class="code" href="../../d7/d7c/classConsoleWindow.html#3f5c6a4e3d8b080621c32e1a20e06d6d" title="Basically calls QApplication::quit -- closing the console window is equivalent to...">ConsoleWindow::closeEvent</a>(QCloseEvent *e)
+<a name="l00051"></a>00051 {
+<a name="l00052"></a>00052     e-&gt;accept();
+<a name="l00053"></a>00053     qApp-&gt;quit();
+<a name="l00054"></a>00054 }
+</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Sun Jun 21 17:53:57 2009 for StimulateOpenGL_II by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="../../doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.4 </small></address>
 </body>

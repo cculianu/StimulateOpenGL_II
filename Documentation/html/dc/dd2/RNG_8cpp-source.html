@@ -15,7 +15,7 @@
   </ul>
 </div>
 <div class="nav">
-<a class="el" href="../../dir_3ad7fe0462283ca58d4c668aa8aad7f4.html">src</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_1d1d503050a097160b3532f1d92f2b4c.html">StimulateOpenGL</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_252a3a386671771f6faf69f7c87f76bc.html">StimulateOpenGL_II</a></div>
+<a class="el" href="../../dir_14c46e22c23b31d069aa66eceb578538.html">projects</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_c7621532e76c5a52eb0dadf12b659c78.html">Leonardo</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_1ef02126803d67bc0459919069fcb0d8.html">StimulateOpenGL</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_19a3d25e4f3966778db7bf473054d0ec.html">StimulateOpenGL_II</a></div>
 <h1>RNG.cpp</h1><a href="../../dc/dbc/RNG_8cpp.html">Go to the documentation of this file.</a><div class="fragment"><pre class="fragment"><a name="l00001"></a>00001 <span class="preprocessor">#include "<a class="code" href="../../d4/d22/RNG_8h.html">RNG.h</a>"</span>
 <a name="l00002"></a>00002 <span class="preprocessor">#include &lt;math.h&gt;</span>
 <a name="l00003"></a>00003 <span class="preprocessor">#include &lt;exception&gt;</span>
@@ -103,11 +103,11 @@
 <a name="l00085"></a>00085 {
 <a name="l00086"></a>00086     <span class="keywordtype">int</span> s, t;
 <a name="l00087"></a>00087     <span class="keywordtype">unsigned</span> n;
-<a name="l00088"></a>00088     std::string <a class="code" href="../../d0/d28/StimApp_8cpp.html#288b834f8b483958be715bc77558bf46">str</a>(<span class="stringliteral">""</span>);
-<a name="l00089"></a>00089     <span class="keywordflow">if</span> (argc &gt; 1) <a class="code" href="../../d0/d28/StimApp_8cpp.html#288b834f8b483958be715bc77558bf46">str</a> += argv[1];
-<a name="l00090"></a>00090     <span class="keywordflow">if</span> (argc &gt; 2) <a class="code" href="../../d0/d28/StimApp_8cpp.html#288b834f8b483958be715bc77558bf46">str</a> += std::string(<span class="stringliteral">" "</span>) + argv[2];
-<a name="l00091"></a>00091     <span class="keywordflow">if</span> (argc &gt; 3) <a class="code" href="../../d0/d28/StimApp_8cpp.html#288b834f8b483958be715bc77558bf46">str</a> += std::string(<span class="stringliteral">" "</span>) + argv[3];
-<a name="l00092"></a>00092     std::istringstream is(<a class="code" href="../../d0/d28/StimApp_8cpp.html#288b834f8b483958be715bc77558bf46">str</a>);
+<a name="l00088"></a>00088     std::string str(<span class="stringliteral">""</span>);
+<a name="l00089"></a>00089     <span class="keywordflow">if</span> (argc &gt; 1) str += argv[1];
+<a name="l00090"></a>00090     <span class="keywordflow">if</span> (argc &gt; 2) str += std::string(<span class="stringliteral">" "</span>) + argv[2];
+<a name="l00091"></a>00091     <span class="keywordflow">if</span> (argc &gt; 3) str += std::string(<span class="stringliteral">" "</span>) + argv[3];
+<a name="l00092"></a>00092     std::istringstream is(str);
 <a name="l00093"></a>00093     <span class="keywordflow">if</span> (argc != 4
 <a name="l00094"></a>00094         || (argc == 4 &amp;&amp; ( !(is &gt;&gt; s) || !(is &gt;&gt; t) || !(is &gt;&gt; n) ) || t &lt; 0 || t &gt; 2 ) ) {
 <a name="l00095"></a>00095         std::cerr &lt;&lt; <span class="stringliteral">"Please pass a seed and a number 0, 1, 2 for Ran0, Ran1, Gasdev, and a count\n"</span>;
@@ -124,7 +124,7 @@
 <a name="l00106"></a>00106 }
 <a name="l00107"></a>00107 
 <a name="l00108"></a>00108 <span class="preprocessor">#endif</span>
-</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Wed Jul 9 23:09:12 2008 for StimulateOpenGL_II by&nbsp;
+</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Sun Jun 21 17:53:57 2009 for StimulateOpenGL_II by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="../../doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.4 </small></address>
 </body>

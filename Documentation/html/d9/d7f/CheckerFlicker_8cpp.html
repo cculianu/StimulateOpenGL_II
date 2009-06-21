@@ -15,7 +15,7 @@
   </ul>
 </div>
 <div class="nav">
-<a class="el" href="../../dir_3ad7fe0462283ca58d4c668aa8aad7f4.html">src</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_1d1d503050a097160b3532f1d92f2b4c.html">StimulateOpenGL</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_252a3a386671771f6faf69f7c87f76bc.html">StimulateOpenGL_II</a></div>
+<a class="el" href="../../dir_14c46e22c23b31d069aa66eceb578538.html">projects</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_c7621532e76c5a52eb0dadf12b659c78.html">Leonardo</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_1ef02126803d67bc0459919069fcb0d8.html">StimulateOpenGL</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_19a3d25e4f3966778db7bf473054d0ec.html">StimulateOpenGL_II</a></div>
 <h1>CheckerFlicker.cpp File Reference</h1><code>#include &lt;QTime&gt;</code><br>
 <code>#include &lt;QSemaphore&gt;</code><br>
 <code>#include &lt;QMutex&gt;</code><br>
@@ -32,6 +32,9 @@
 <p>
 <a href="../../d0/d33/CheckerFlicker_8cpp-source.html">Go to the source code of this file.</a><table border="0" cellpadding="0" cellspacing="0">
 <tr><td></td></tr>
+<tr><td colspan="2"><br><h2>Namespaces</h2></td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">namespace &nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d09/namespaceanonymous__namespace_02CheckerFlicker_8cpp_03.html">anonymous_namespace{CheckerFlicker.cpp}</a></td></tr>
+
 <tr><td colspan="2"><br><h2>Classes</h2></td></tr>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">struct &nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/de6/structFrame.html">Frame</a></td></tr>
 
@@ -61,6 +64,9 @@
 <tr><td class="memItemLeft" nowrap align="right" valign="top">#define&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d7f/CheckerFlicker_8cpp.html#2cde8953a3c0685181e8fdf51d3bdaab">HAVE_SSE2</a></td></tr>
 
 <tr><td class="memItemLeft" nowrap align="right" valign="top">#define&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d7f/CheckerFlicker_8cpp.html#cff9c8882ddb918df117f9710013d828">MEXP</a>&nbsp;&nbsp;&nbsp;19937</td></tr>
+
+<tr><td colspan="2"><br><h2>Functions</h2></td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">static bool&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d7f/CheckerFlicker_8cpp.html#42d0535cc914508276f3081f0e68aed4">checkFBStatus</a> ()</td></tr>
 
 </table>
 <hr><h2>Define Documentation</h2>
@@ -94,7 +100,7 @@
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00025">25</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00030">30</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
 
 </div>
 </div><p>
@@ -111,9 +117,9 @@
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00022">22</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00027">27</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00264">CheckerFlicker::init()</a>.</p>
+<p>Referenced by <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00269">CheckerFlicker::init()</a>.</p>
 
 </div>
 </div><p>
@@ -130,7 +136,7 @@
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00040">40</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00045">45</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
 
 </div>
 </div><p>
@@ -164,9 +170,9 @@
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00037">37</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00042">42</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00695">CheckerFlicker::afterVSync()</a>, and <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00635">CheckerFlicker::drawFrame()</a>.</p>
+<p>Referenced by <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00701">CheckerFlicker::afterVSync()</a>, and <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00641">CheckerFlicker::drawFrame()</a>.</p>
 
 </div>
 </div><p>
@@ -183,7 +189,7 @@
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00034">34</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00039">39</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
 
 </div>
 </div><p>
@@ -200,7 +206,7 @@
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00031">31</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00036">36</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
 
 </div>
 </div><p>
@@ -217,9 +223,9 @@
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00028">28</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00033">33</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00264">CheckerFlicker::init()</a>.</p>
+<p>Referenced by <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00269">CheckerFlicker::init()</a>.</p>
 
 </div>
 </div><p>
@@ -236,7 +242,7 @@
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00158">158</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00163">163</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
 
 </div>
 </div><p>
@@ -253,11 +259,33 @@
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00162">162</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00167">167</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
 
 </div>
 </div><p>
-<hr size="1"><address style="text-align: right;"><small>Generated on Wed Jul 9 23:09:12 2008 for StimulateOpenGL_II by&nbsp;
+<hr><h2>Function Documentation</h2>
+<a class="anchor" name="42d0535cc914508276f3081f0e68aed4"></a><!-- doxytag: member="CheckerFlicker.cpp::checkFBStatus" ref="42d0535cc914508276f3081f0e68aed4" args="()" -->
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">static bool checkFBStatus           </td>
+          <td>(</td>
+          <td class="paramname">          </td>
+          <td>&nbsp;)&nbsp;</td>
+          <td width="100%"><code> [static]</code></td>
+        </tr>
+      </table>
+</div>
+<div class="memdoc">
+
+<p>
+
+<p>Definition at line <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00246">246</a> of file <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html">CheckerFlicker.cpp</a>.</p>
+
+</div>
+</div><p>
+<hr size="1"><address style="text-align: right;"><small>Generated on Sun Jun 21 17:53:58 2009 for StimulateOpenGL_II by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="../../doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.4 </small></address>
 </body>

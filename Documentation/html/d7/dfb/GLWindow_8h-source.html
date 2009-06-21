@@ -15,7 +15,7 @@
   </ul>
 </div>
 <div class="nav">
-<a class="el" href="../../dir_3ad7fe0462283ca58d4c668aa8aad7f4.html">src</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_1d1d503050a097160b3532f1d92f2b4c.html">StimulateOpenGL</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_252a3a386671771f6faf69f7c87f76bc.html">StimulateOpenGL_II</a></div>
+<a class="el" href="../../dir_14c46e22c23b31d069aa66eceb578538.html">projects</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_c7621532e76c5a52eb0dadf12b659c78.html">Leonardo</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_1ef02126803d67bc0459919069fcb0d8.html">StimulateOpenGL</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_19a3d25e4f3966778db7bf473054d0ec.html">StimulateOpenGL_II</a></div>
 <h1>GLWindow.h</h1><a href="../../d5/d3b/GLWindow_8h.html">Go to the documentation of this file.</a><div class="fragment"><pre class="fragment"><a name="l00001"></a>00001 <span class="preprocessor">#ifndef GLWindow_H</span>
 <a name="l00002"></a>00002 <span class="preprocessor"></span><span class="preprocessor">#define GLWindow_H</span>
 <a name="l00003"></a>00003 <span class="preprocessor"></span>
@@ -32,7 +32,7 @@
 <a name="l00026"></a><a class="code" href="../../d8/da9/classGLWindow.html#faae6c2acdaff8589b82b7eaed3033ca">00026</a>      <span class="keyword">friend</span> <span class="keyword">class </span><a class="code" href="../../d0/d7e/classStimPlugin.html" title="Abstract class -- inherit from this class to create a plugin.">StimPlugin</a>;
 <a name="l00027"></a><a class="code" href="../../d8/da9/classGLWindow.html#0b6bf43dc7414f21adab2da8d38f9fee">00027</a>      <span class="keyword">friend</span> <span class="keyword">class </span><a class="code" href="../../d5/d08/classStimApp.html" title="The central class to the program that more-or-less encapsulates most objects and...">StimApp</a>;
 <a name="l00028"></a>00028 
-<a name="l00029"></a>00029      <a class="code" href="../../d8/da9/classGLWindow.html" title="The main Open GL display window.">GLWindow</a>(<span class="keywordtype">unsigned</span> width = 800, <span class="keywordtype">unsigned</span> height = 600);
+<a name="l00029"></a>00029      <a class="code" href="../../d8/da9/classGLWindow.html" title="The main Open GL display window.">GLWindow</a>(<span class="keywordtype">unsigned</span> width = 800, <span class="keywordtype">unsigned</span> height = 600, <span class="keywordtype">bool</span> frameless = <span class="keyword">false</span>);
 <a name="l00030"></a>00030 
 <a name="l00031"></a>00031 <span class="keyword">public</span>:
 <a name="l00032"></a>00032      <a class="code" href="../../d8/da9/classGLWindow.html#2eeaea2148f4f72344edd6d1bac9759b">~GLWindow</a>();
@@ -48,10 +48,10 @@
 <a name="l00048"></a>00048     <span class="keywordtype">void</span> <a class="code" href="../../d8/da9/classGLWindow.html#31adf747b270050d37b28ec736389bb1" title="Toggles the paused/unpaused state of the plugin execution engine.">pauseUnpause</a>();
 <a name="l00049"></a>00049 
 <a name="l00050"></a>00050 <span class="keyword">protected</span>:
-<a name="l00052"></a>00052     <span class="keywordtype">void</span> <a class="code" href="../../d8/da9/classGLWindow.html#e8ad8c52e2668dfb3b955f7b1212b51b" title="Plugins call this when they want to tell the execution engine that they have been...">pluginCreated</a>(<a class="code" href="../../d0/d7e/classStimPlugin.html" title="Abstract class -- inherit from this class to create a plugin.">StimPlugin</a> *<a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8a87f79b64677743f55350a25b90e50e">plugin</a>);
-<a name="l00054"></a>00054     <span class="keywordtype">void</span> <a class="code" href="../../d8/da9/classGLWindow.html#688ea41730716f4d571c6e8684d39f2e" title="Plugins call this method when they want to tell the execution engine that they have...">pluginStarted</a>(<a class="code" href="../../d0/d7e/classStimPlugin.html" title="Abstract class -- inherit from this class to create a plugin.">StimPlugin</a> *<a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8a87f79b64677743f55350a25b90e50e">plugin</a>);
-<a name="l00056"></a>00056     <span class="keywordtype">void</span> <a class="code" href="../../d8/da9/classGLWindow.html#bfbd86a2a103b4e31607ab600e60c5fd" title="Plugins call this method when they want to tell the execution engine that they have...">pluginStopped</a>(<a class="code" href="../../d0/d7e/classStimPlugin.html" title="Abstract class -- inherit from this class to create a plugin.">StimPlugin</a> *<a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8a87f79b64677743f55350a25b90e50e">plugin</a>);
-<a name="l00058"></a>00058     <span class="keywordtype">void</span> <a class="code" href="../../d8/da9/classGLWindow.html#dda599ba8758ee94da3532e3006b20f4" title="Plugins call this method to inform the execution engine that they are being deleted...">pluginDeleted</a>(<a class="code" href="../../d0/d7e/classStimPlugin.html" title="Abstract class -- inherit from this class to create a plugin.">StimPlugin</a> *<a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8a87f79b64677743f55350a25b90e50e">plugin</a>);
+<a name="l00052"></a>00052     <span class="keywordtype">void</span> <a class="code" href="../../d8/da9/classGLWindow.html#e8ad8c52e2668dfb3b955f7b1212b51b" title="Plugins call this when they want to tell the execution engine that they have been...">pluginCreated</a>(<a class="code" href="../../d0/d7e/classStimPlugin.html" title="Abstract class -- inherit from this class to create a plugin.">StimPlugin</a> *plugin);
+<a name="l00054"></a>00054     <span class="keywordtype">void</span> <a class="code" href="../../d8/da9/classGLWindow.html#688ea41730716f4d571c6e8684d39f2e" title="Plugins call this method when they want to tell the execution engine that they have...">pluginStarted</a>(<a class="code" href="../../d0/d7e/classStimPlugin.html" title="Abstract class -- inherit from this class to create a plugin.">StimPlugin</a> *plugin);
+<a name="l00056"></a>00056     <span class="keywordtype">void</span> <a class="code" href="../../d8/da9/classGLWindow.html#bfbd86a2a103b4e31607ab600e60c5fd" title="Plugins call this method when they want to tell the execution engine that they have...">pluginStopped</a>(<a class="code" href="../../d0/d7e/classStimPlugin.html" title="Abstract class -- inherit from this class to create a plugin.">StimPlugin</a> *plugin);
+<a name="l00058"></a>00058     <span class="keywordtype">void</span> <a class="code" href="../../d8/da9/classGLWindow.html#dda599ba8758ee94da3532e3006b20f4" title="Plugins call this method to inform the execution engine that they are being deleted...">pluginDeleted</a>(<a class="code" href="../../d0/d7e/classStimPlugin.html" title="Abstract class -- inherit from this class to create a plugin.">StimPlugin</a> *plugin);
 <a name="l00059"></a>00059  
 <a name="l00060"></a>00060 <span class="keyword">protected</span>:
 <a name="l00061"></a>00061 
@@ -80,7 +80,7 @@
 <a name="l00095"></a>00095 };
 <a name="l00096"></a>00096 
 <a name="l00097"></a>00097 <span class="preprocessor">#endif</span>
-</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Wed Jul 9 23:09:12 2008 for StimulateOpenGL_II by&nbsp;
+</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Sun Jun 21 17:53:57 2009 for StimulateOpenGL_II by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="../../doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.4 </small></address>
 </body>

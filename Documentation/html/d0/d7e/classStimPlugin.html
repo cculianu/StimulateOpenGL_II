@@ -65,12 +65,12 @@ Inheritance diagram for StimPlugin:</div>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">unsigned&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d7e/classStimPlugin.html#6b0b70bbeca546d2d2684975fd81d018">height</a> () const </td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">returns height in pixels of the opengl 2d area  <a href="#6b0b70bbeca546d2d2684975fd81d018"></a><br></td></tr>
-<tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d7e/classStimPlugin.html#0e257811d1c4ec2d1a86ff90859a2e77">start</a> (bool startUnpaused=false)</td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d7e/classStimPlugin.html#0e257811d1c4ec2d1a86ff90859a2e77">start</a> (bool startUnpaused=false)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">start the plugin -- marks the plugin as 'running' with the <a class="el" href="../../d8/da9/classGLWindow.html" title="The main Open GL display window.">GLWindow</a> and calls <a class="el" href="../../d0/d7e/classStimPlugin.html#eb19b900498e435bddeb9512a4458694" title="Called as a result of start() when plugin is started.">init()</a>, then emits 'started' signal  <a href="#0e257811d1c4ec2d1a86ff90859a2e77"></a><br></td></tr>
-<tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d7e/classStimPlugin.html#958e569388fc4fb5be4be563a86d2a76">stop</a> (bool doSave=false, bool use_gui=false)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">start the plugin -- marks the plugin as 'running' with the <a class="el" href="../../d8/da9/classGLWindow.html" title="The main Open GL display window.">GLWindow</a> and calls <a class="el" href="../../d0/d7e/classStimPlugin.html#eb19b900498e435bddeb9512a4458694" title="Called as a result of start() when plugin is started.">init()</a>, then emits 'started' signal. If reimplementing, call super.  <a href="#0e257811d1c4ec2d1a86ff90859a2e77"></a><br></td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d7e/classStimPlugin.html#958e569388fc4fb5be4be563a86d2a76">stop</a> (bool doSave=false, bool use_gui=false)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">stop the plugin -- marks the plugin as 'not running' with the <a class="el" href="../../d8/da9/classGLWindow.html" title="The main Open GL display window.">GLWindow</a>, calls <a class="el" href="../../d0/d7e/classStimPlugin.html#68bdea5dc53d6e6b8e19267c4b458c08" title="Called as a result of stop() when plugin is stopped.">cleanup()</a>, then emits 'stopped' signal  <a href="#958e569388fc4fb5be4be563a86d2a76"></a><br></td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">stop the plugin -- marks the plugin as 'not running' with the <a class="el" href="../../d8/da9/classGLWindow.html" title="The main Open GL display window.">GLWindow</a>, calls <a class="el" href="../../d0/d7e/classStimPlugin.html#68bdea5dc53d6e6b8e19267c4b458c08" title="Called as a result of stop() when plugin is stopped.">cleanup()</a>, then emits 'stopped' signal. If reimplementig, call super  <a href="#958e569388fc4fb5be4be563a86d2a76"></a><br></td></tr>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">QString&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d7e/classStimPlugin.html#c855a6f3fd359456f0db60ca01c72517">name</a> () const </td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">just calls QObject::objectName()  <a href="#c855a6f3fd359456f0db60ca01c72517"></a><br></td></tr>
@@ -137,6 +137,10 @@ Inheritance diagram for StimPlugin:</div>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d7e/classStimPlugin.html#5eba98527ca0ca0329cd71677f821d33">afterVSync</a> (bool isSimulated=false)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Called immediately after a vsync (if not paused).  <a href="#5eba98527ca0ca0329cd71677f821d33"></a><br></td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d7e/classStimPlugin.html#0b1c4ecfa862531f98a5fd3d78e80920">notifySpikeGLAboutStart</a> ()</td></tr>
+
+<tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d7e/classStimPlugin.html#d1af564d84dd406844fdb960f4401d81">notifySpikeGLAboutStop</a> ()</td></tr>
+
 <tr><td class="memItemLeft" nowrap align="right" valign="top">virtual void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d7e/classStimPlugin.html#695d55237260c81ab30cb4f12a2e5464">save</a> ()</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">default implementation does nothing, reimplement -- called for you on plugin exit if user elected to save data. In this method you should write to the <a class="el" href="../../d0/d7e/classStimPlugin.html#f31bddf8c47e3fb85e222764bac089b9" title="the output stream you should use in your &quot;save()&quot; method reimplementation...">StimPlugin::outStream</a> member.  <a href="#695d55237260c81ab30cb4f12a2e5464"></a><br></td></tr>
@@ -160,6 +164,9 @@ Inheritance diagram for StimPlugin:</div>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">double&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d7e/classStimPlugin.html#3bf0ec85f644e77716bd0514a9d22b37">cycleTimeLeft</a></td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">the number of seconds left in this cycle -- updated by glWindow before calling afterVSync  <a href="#3bf0ec85f644e77716bd0514a9d22b37"></a><br></td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">bool&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d7e/classStimPlugin.html#2cbec86f764f0fa56acc1fa6e22193fc">needNotifyStart</a></td></tr>
+
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">iff true, we will notify LeoDAQGL of plugin start on unpause  <a href="#2cbec86f764f0fa56acc1fa6e22193fc"></a><br></td></tr>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">QMutex&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d7e/classStimPlugin.html#11019e11d4008ceaa4fff8684c264280">mut</a></td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">plugin-level mutex -- used in a couple of functions and you may reuse it yourself as well  <a href="#11019e11d4008ceaa4fff8684c264280"></a><br></td></tr>
@@ -203,7 +210,7 @@ You may put any setup code you wish to execute on plugin startup in your reimple
 Any cleanup code should go in your reimplementation of the <a class="el" href="../../d0/d7e/classStimPlugin.html#68bdea5dc53d6e6b8e19267c4b458c08" title="Called as a result of stop() when plugin is stopped.">cleanup()</a> method.<p>
 Access your plugin's configuration parameters with <a class="el" href="../../d0/d7e/classStimPlugin.html#14caa0e41ed9bd3a65128ab4e287dbaa" title="templatized function for reading parameters">getParam()</a>.<p>
 Note that in order for plugins you write to appear in the main application, they need to be also created (new'd) inside GLWindow::initPlugin(). 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00051">51</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00056">56</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 <hr><h2>Constructor &amp; Destructor Documentation</h2>
 <a class="anchor" name="6fd2d8af162ddfa96330adecb9983fa0"></a><!-- doxytag: member="StimPlugin::StimPlugin" ref="6fd2d8af162ddfa96330adecb9983fa0" args="(const QString &amp;name)" -->
 <div class="memitem">
@@ -223,9 +230,9 @@ Note that in order for plugins you write to appear in the main application, they
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00008">8</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00009">9</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00175">frameNum</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00173">parent</a>, and <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00183">GLWindow::pluginCreated()</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00180">frameNum</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00183">needNotifyStart</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00178">parent</a>, and <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00192">GLWindow::pluginCreated()</a>.</p>
 
 </div>
 </div><p>
@@ -246,9 +253,9 @@ Note that in order for plugins you write to appear in the main application, they
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00016">16</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00018">18</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
 
-<p>References <a class="el" href="../../d6/d8a/StimApp_8h-source.html#l00054">StimApp::instance()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00173">parent</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00190">GLWindow::pluginDeleted()</a>, <a class="el" href="../../d7/dfb/GLWindow_8h-source.html#l00039">GLWindow::runningPlugin()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00036">stop()</a>.</p>
+<p>References <a class="el" href="../../d6/d8a/StimApp_8h-source.html#l00054">StimApp::instance()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00178">parent</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00199">GLWindow::pluginDeleted()</a>, <a class="el" href="../../d7/dfb/GLWindow_8h-source.html#l00039">GLWindow::runningPlugin()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00038">stop()</a>.</p>
 
 </div>
 </div><p>
@@ -272,7 +279,7 @@ Note that in order for plugins you write to appear in the main application, they
 iff 0, this plugin runs as fast as possible (up to monitor refresh rate) 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00064">64</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00069">69</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
 </div>
 </div><p>
@@ -295,11 +302,11 @@ iff 0, this plugin runs as fast as possible (up to monitor refresh rate)
 returns width in pixels of the opengl 2d area 
 <p>
 
-<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00083">83</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00104">104</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00173">parent</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00178">parent</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d5/d8d/CalibPlugin_8cpp-source.html#l00012">CalibPlugin::drawFrame()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00175">getFrameDump()</a>, and <a class="el" href="../../de/d6a/MovingObjects_8cpp-source.html#l00012">MovingObjects::init()</a>.</p>
+<p>Referenced by <a class="el" href="../../d5/d8d/CalibPlugin_8cpp-source.html#l00028">CalibPlugin::drawFrame()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00196">getFrameDump()</a>, and <a class="el" href="../../de/d6a/MovingObjects_8cpp-source.html#l00012">MovingObjects::init()</a>.</p>
 
 </div>
 </div><p>
@@ -322,11 +329,11 @@ returns width in pixels of the opengl 2d area
 returns height in pixels of the opengl 2d area 
 <p>
 
-<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00088">88</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00109">109</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00173">parent</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00178">parent</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d5/d8d/CalibPlugin_8cpp-source.html#l00012">CalibPlugin::drawFrame()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00175">getFrameDump()</a>, and <a class="el" href="../../de/d6a/MovingObjects_8cpp-source.html#l00012">MovingObjects::init()</a>.</p>
+<p>Referenced by <a class="el" href="../../d5/d8d/CalibPlugin_8cpp-source.html#l00028">CalibPlugin::drawFrame()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00196">getFrameDump()</a>, and <a class="el" href="../../de/d6a/MovingObjects_8cpp-source.html#l00012">MovingObjects::init()</a>.</p>
 
 </div>
 </div><p>
@@ -340,21 +347,23 @@ returns height in pixels of the opengl 2d area
           <td class="paramtype">bool&nbsp;</td>
           <td class="paramname"> <em>startUnpaused</em> = <code>false</code>          </td>
           <td>&nbsp;)&nbsp;</td>
-          <td width="100%"></td>
+          <td width="100%"><code> [virtual]</code></td>
         </tr>
       </table>
 </div>
 <div class="memdoc">
 
 <p>
-start the plugin -- marks the plugin as 'running' with the <a class="el" href="../../d8/da9/classGLWindow.html" title="The main Open GL display window.">GLWindow</a> and calls <a class="el" href="../../d0/d7e/classStimPlugin.html#eb19b900498e435bddeb9512a4458694" title="Called as a result of start() when plugin is started.">init()</a>, then emits 'started' signal 
+start the plugin -- marks the plugin as 'running' with the <a class="el" href="../../d8/da9/classGLWindow.html" title="The main Open GL display window.">GLWindow</a> and calls <a class="el" href="../../d0/d7e/classStimPlugin.html#eb19b900498e435bddeb9512a4458694" title="Called as a result of start() when plugin is started.">init()</a>, then emits 'started' signal. If reimplementing, call super. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">54</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
+<p>Reimplemented in <a class="el" href="../../d0/dd6/classCalibPlugin.html#e3aa3ca43f30cf3827aba6b48a4f9a6d">CalibPlugin</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00223">begintime</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00212">customStatusBarString</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00223">endtime</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00176">fps</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00176">fpsAvg</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00176">fpsMax</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00176">fpsMin</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00175">frameNum</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00023">init()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00185">missedFrames</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00187">missedFrameTimes</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00077">name()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00173">parent</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00296">GLWindow::pauseUnpause()</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00196">GLWindow::pluginStarted()</a>, <a class="el" href="../../d0/d7e/classStimPlugin.html#8a2d2e8fcce67025fbaadba61bd53733">started()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00036">stop()</a>.</p>
+<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">64</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d00/ConnectionThread_8cpp-source.html#l00376">ConnectionThread::eventFilter()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00175">getFrameDump()</a>, and <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00373">StimApp::loadStim()</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00232">begintime</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00221">customStatusBarString</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00232">endtime</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00181">fps</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00181">fpsAvg</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00181">fpsMax</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00181">fpsMin</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00180">frameNum</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00025">init()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00194">missedFrames</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00196">missedFrameTimes</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00082">name()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00183">needNotifyStart</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00250">notifySpikeGLAboutStart()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00178">parent</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00309">GLWindow::pauseUnpause()</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00205">GLWindow::pluginStarted()</a>, <a class="el" href="../../d0/d7e/classStimPlugin.html#8a2d2e8fcce67025fbaadba61bd53733">started()</a>, <a class="el" href="../../d9/d78/Util_8cpp-source.html#l00038">Util::stimApp()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00038">stop()</a>.</p>
+
+<p>Referenced by <a class="el" href="../../d3/d00/ConnectionThread_8cpp-source.html#l00376">ConnectionThread::eventFilter()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00196">getFrameDump()</a>, <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00410">StimApp::loadStim()</a>, and <a class="el" href="../../d5/d8d/CalibPlugin_8cpp-source.html#l00020">CalibPlugin::start()</a>.</p>
 
 </div>
 </div><p>
@@ -377,21 +386,23 @@ start the plugin -- marks the plugin as 'running' with the <a class="el" href=".
         <tr>
           <td></td>
           <td>)</td>
-          <td></td><td></td><td width="100%"></td>
+          <td></td><td></td><td width="100%"><code> [virtual]</code></td>
         </tr>
       </table>
 </div>
 <div class="memdoc">
 
 <p>
-stop the plugin -- marks the plugin as 'not running' with the <a class="el" href="../../d8/da9/classGLWindow.html" title="The main Open GL display window.">GLWindow</a>, calls <a class="el" href="../../d0/d7e/classStimPlugin.html#68bdea5dc53d6e6b8e19267c4b458c08" title="Called as a result of stop() when plugin is stopped.">cleanup()</a>, then emits 'stopped' signal 
+stop the plugin -- marks the plugin as 'not running' with the <a class="el" href="../../d8/da9/classGLWindow.html" title="The main Open GL display window.">GLWindow</a>, calls <a class="el" href="../../d0/d7e/classStimPlugin.html#68bdea5dc53d6e6b8e19267c4b458c08" title="Called as a result of stop() when plugin is stopped.">cleanup()</a>, then emits 'stopped' signal. If reimplementig, call super 
 <p>
 
-<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00036">36</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
+<p>Reimplemented in <a class="el" href="../../d0/dd6/classCalibPlugin.html#394361c4ad8d6650d7338a66c9245be5">CalibPlugin</a>.</p>
 
-<p>References <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00024">cleanup()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00223">endtime</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00175">frameNum</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00173">parent</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00204">GLWindow::pluginStopped()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00026">saveData()</a>, and <a class="el" href="../../d0/d7e/classStimPlugin.html#9df353151d3a91d6d1f0de9b2e22018c">stopped()</a>.</p>
+<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00038">38</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d5/d8d/CalibPlugin_8cpp-source.html#l00012">CalibPlugin::drawFrame()</a>, <a class="el" href="../../d3/d00/ConnectionThread_8cpp-source.html#l00376">ConnectionThread::eventFilter()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00175">getFrameDump()</a>, <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00373">StimApp::loadStim()</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00196">GLWindow::pluginStarted()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">start()</a>, <a class="el" href="../../d6/df7/GridPlugin_8cpp-source.html#l00009">GridPlugin::stop()</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00045">GLWindow::~GLWindow()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00016">~StimPlugin()</a>.</p>
+<p>References <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00026">cleanup()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00232">endtime</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00180">frameNum</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00262">notifySpikeGLAboutStop()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00178">parent</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00213">GLWindow::pluginStopped()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00028">saveData()</a>, <a class="el" href="../../d9/d78/Util_8cpp-source.html#l00038">Util::stimApp()</a>, and <a class="el" href="../../d0/d7e/classStimPlugin.html#9df353151d3a91d6d1f0de9b2e22018c">stopped()</a>.</p>
+
+<p>Referenced by <a class="el" href="../../d3/d00/ConnectionThread_8cpp-source.html#l00376">ConnectionThread::eventFilter()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00196">getFrameDump()</a>, <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00410">StimApp::loadStim()</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00205">GLWindow::pluginStarted()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>, <a class="el" href="../../d6/df7/GridPlugin_8cpp-source.html#l00009">GridPlugin::stop()</a>, <a class="el" href="../../d5/d8d/CalibPlugin_8cpp-source.html#l00012">CalibPlugin::stop()</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00049">GLWindow::~GLWindow()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00018">~StimPlugin()</a>.</p>
 
 </div>
 </div><p>
@@ -414,9 +425,9 @@ stop the plugin -- marks the plugin as 'not running' with the <a class="el" href
 just calls QObject::objectName() 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00077">77</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00082">82</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00175">getFrameDump()</a>, <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00373">StimApp::loadStim()</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00196">GLWindow::pluginStarted()</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00204">GLWindow::pluginStopped()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00026">saveData()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">start()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00196">getFrameDump()</a>, <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00410">StimApp::loadStim()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00250">notifySpikeGLAboutStart()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00262">notifySpikeGLAboutStop()</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00205">GLWindow::pluginStarted()</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00213">GLWindow::pluginStopped()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00028">saveData()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>.</p>
 
 </div>
 </div><p>
@@ -441,7 +452,7 @@ returns a string description of the plugin useful for a UI. Reimplement to add a
 
 <p>Reimplemented in <a class="el" href="../../d0/dd6/classCalibPlugin.html#6688f9cb07975c108e623b630eeb3750">CalibPlugin</a>.</p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00079">79</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00084">84</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
 </div>
 </div><p>
@@ -465,11 +476,11 @@ returns a string description of the plugin useful for a UI. Reimplement to add a
 Set the plugin's configuration parameters. ConnectonThread calls this method for example when the client wants to define experiment parameters for a plugin. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00082">82</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00087">87</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00180">mut</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00189">mut</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00373">StimApp::loadStim()</a>.</p>
+<p>Referenced by <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00410">StimApp::loadStim()</a>.</p>
 
 </div>
 </div><p>
@@ -492,9 +503,11 @@ Set the plugin's configuration parameters. ConnectonThread calls this method for
 We return an implicitly shared copy of the parameters. Due to multithreading concerns, implicit sharing is a good thing! 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00084">84</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00089">89</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00180">mut</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00189">mut</a>.</p>
+
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00250">notifySpikeGLAboutStart()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00262">notifySpikeGLAboutStop()</a>.</p>
 
 </div>
 </div><p>
@@ -529,11 +542,11 @@ template&lt;typename T&gt; </div>
 templatized function for reading parameters 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00269">269</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00278">278</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00180">mut</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00189">mut</a>.</p>
 
-<p>Referenced by <a class="el" href="../../de/d6a/MovingObjects_8cpp-source.html#l00012">MovingObjects::init()</a>, <a class="el" href="../../de/d7e/MovingGrating_8cpp-source.html#l00009">MovingGrating::init()</a>, and <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00264">CheckerFlicker::init()</a>.</p>
+<p>Referenced by <a class="el" href="../../de/d6a/MovingObjects_8cpp-source.html#l00012">MovingObjects::init()</a>, <a class="el" href="../../de/d7e/MovingGrating_8cpp-source.html#l00009">MovingGrating::init()</a>, and <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00269">CheckerFlicker::init()</a>.</p>
 
 </div>
 </div><p>
@@ -556,9 +569,9 @@ templatized function for reading parameters
 Returns the average FPS for this plugin over the last 1-2 seconds. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00090">90</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00095">95</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00176">fpsAvg</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00181">fpsAvg</a>.</p>
 
 </div>
 </div><p>
@@ -581,9 +594,9 @@ Returns the average FPS for this plugin over the last 1-2 seconds.
 Returns the latest FPS for this plugin (over the last 2 frames). 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00092">92</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00097">97</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00176">fps</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00181">fps</a>.</p>
 
 </div>
 </div><p>
@@ -606,9 +619,9 @@ Returns the latest FPS for this plugin (over the last 2 frames).
 Returns the smallest FPS value encountered since plugin <a class="el" href="../../d0/d7e/classStimPlugin.html#0e257811d1c4ec2d1a86ff90859a2e77" title="start the plugin -- marks the plugin as &#39;running&#39; with the GLWindow and calls...">start()</a>. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00094">94</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00099">99</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00176">fpsMin</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00181">fpsMin</a>.</p>
 
 </div>
 </div><p>
@@ -631,9 +644,9 @@ Returns the smallest FPS value encountered since plugin <a class="el" href="../.
 Returns the largest FPS value encounteres since plugin <a class="el" href="../../d0/d7e/classStimPlugin.html#0e257811d1c4ec2d1a86ff90859a2e77" title="start the plugin -- marks the plugin as &#39;running&#39; with the GLWindow and calls...">start()</a>. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00096">96</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00101">101</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00176">fpsMax</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00181">fpsMax</a>.</p>
 
 </div>
 </div><p>
@@ -656,9 +669,9 @@ Returns the largest FPS value encounteres since plugin <a class="el" href="../..
 Returns the frame number of the next frame to be rendered. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00098">98</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00103">103</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00175">frameNum</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00180">frameNum</a>.</p>
 
 </div>
 </div><p>
@@ -681,11 +694,11 @@ Returns the frame number of the next frame to be rendered.
 Returns the frame number of the last frame that was rendered (or -1 if no frame has ever been rendered). 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00100">100</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00105">105</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00175">frameNum</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00180">frameNum</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00373">StimApp::loadStim()</a>.</p>
+<p>Referenced by <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00410">StimApp::loadStim()</a>.</p>
 
 </div>
 </div><p>
@@ -708,9 +721,9 @@ Returns the frame number of the last frame that was rendered (or -1 if no frame 
 Returns the status bar string that this plugin would like the UI to display. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00102">102</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00107">107</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00212">customStatusBarString</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00221">customStatusBarString</a>.</p>
 
 </div>
 </div><p>
@@ -733,9 +746,9 @@ Returns the status bar string that this plugin would like the UI to display.
 Returns the number of missed frames that the plugin has encountered thus far. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00104">104</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00109">109</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00185">missedFrames</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00194">missedFrames</a>.</p>
 
 </div>
 </div><p>
@@ -758,9 +771,9 @@ Returns the number of missed frames that the plugin has encountered thus far.
 Returns the time that <a class="el" href="../../d0/d7e/classStimPlugin.html#0e257811d1c4ec2d1a86ff90859a2e77" title="start the plugin -- marks the plugin as &#39;running&#39; with the GLWindow and calls...">start()</a> was called for this plugin. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00107">107</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00112">112</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00223">begintime</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00232">begintime</a>.</p>
 
 </div>
 </div><p>
@@ -784,11 +797,11 @@ Returns the time that <a class="el" href="../../d0/d7e/classStimPlugin.html#0e25
 Save pluign date to a file. 
 <p>
 Save data -- called for you on if plugin stop(true). Returns false on error (usually failure to open output files). Use gui parameter controls whether to use the GUI for reporting/ recovering from errors (or to just silently return false on error). 
-<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00026">26</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00028">28</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00077">name()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00217">outFile</a>, and <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00219">save()</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00082">name()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00226">outFile</a>, and <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00228">save()</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00036">stop()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00038">stop()</a>.</p>
 
 </div>
 </div><p>
@@ -828,9 +841,9 @@ from an experiment. Note that it's best to call this with num increasing by 1 ea
   </table>
 </dl>
 
-<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00175">175</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00196">196</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
 
-<p>References <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00111">afterVSync()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00177">cycleTimeLeft</a>, <a class="el" href="../../d0/d7e/classStimPlugin.html#214a0b65be9baaef474d3ac03e74884a">drawFrame()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00175">frameNum</a>, <a class="el" href="../../d7/d30/osdep_8cpp-source.html#l00325">Util::getHWRefreshRate()</a>, <a class="el" href="../../d7/d30/osdep_8cpp-source.html#l00057">Util::getTime()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00088">height()</a>, <a class="el" href="../../d7/dfb/GLWindow_8h-source.html#l00041">GLWindow::isPaused()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00077">name()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00173">parent</a>, <a class="el" href="../../d7/dfb/GLWindow_8h-source.html#l00039">GLWindow::runningPlugin()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">start()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00036">stop()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00083">width()</a>.</p>
+<p>References <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00132">afterVSync()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00182">cycleTimeLeft</a>, <a class="el" href="../../d0/d7e/classStimPlugin.html#214a0b65be9baaef474d3ac03e74884a">drawFrame()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00180">frameNum</a>, <a class="el" href="../../d7/d30/osdep_8cpp-source.html#l00385">Util::getHWRefreshRate()</a>, <a class="el" href="../../d7/d30/osdep_8cpp-source.html#l00062">Util::getTime()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00109">height()</a>, <a class="el" href="../../d7/dfb/GLWindow_8h-source.html#l00041">GLWindow::isPaused()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00082">name()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00178">parent</a>, <a class="el" href="../../d7/dfb/GLWindow_8h-source.html#l00039">GLWindow::runningPlugin()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00038">stop()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00104">width()</a>.</p>
 
 <p>Referenced by <a class="el" href="../../d3/d00/ConnectionThread_8cpp-source.html#l00376">ConnectionThread::eventFilter()</a>.</p>
 
@@ -855,7 +868,7 @@ from an experiment. Note that it's best to call this with num increasing by 1 ea
 emitted when plugin starts 
 <p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">start()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>.</p>
 
 </div>
 </div><p>
@@ -878,7 +891,7 @@ emitted when plugin starts
 emitted when plugin finishes naturally 
 <p>
 
-<p>Referenced by <a class="el" href="../../d5/d8d/CalibPlugin_8cpp-source.html#l00012">CalibPlugin::drawFrame()</a>.</p>
+<p>Referenced by <a class="el" href="../../d5/d8d/CalibPlugin_8cpp-source.html#l00028">CalibPlugin::drawFrame()</a>.</p>
 
 </div>
 </div><p>
@@ -901,7 +914,7 @@ emitted when plugin finishes naturally
 emitted whenever plugin stops 
 <p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00036">stop()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00038">stop()</a>.</p>
 
 </div>
 </div><p>
@@ -925,9 +938,9 @@ emitted whenever plugin stops
 Process keypresses. Reimplement this in your plugin to process keys: Return true if key processed (accepted) or false otherwise. NB: It's important to return false if you want to ignore the key so other widgets can receive it. If you return true no other widgets are notified of the keypress. 
 <p>Reimplemented in <a class="el" href="../../d6/d30/classMovingObjects.html#a46d97aa4017ecb1e5496eed1e3a77e8">MovingObjects</a>.</p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00140">140</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00145">145</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00255">GLWindow::keyPressEvent()</a>, and <a class="el" href="../../de/d6a/MovingObjects_8cpp-source.html#l00121">MovingObjects::processKey()</a>.</p>
+<p>Referenced by <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00264">GLWindow::keyPressEvent()</a>, and <a class="el" href="../../de/d6a/MovingObjects_8cpp-source.html#l00122">MovingObjects::processKey()</a>.</p>
 
 </div>
 </div><p>
@@ -952,9 +965,9 @@ Called as a result of <a class="el" href="../../d0/d7e/classStimPlugin.html#0e25
 You should reimplement this in your plugin to add initialization code for class variables, etc. It's important to properly initialize all variables that affect your <a class="el" href="../../d0/d7e/classStimPlugin.html#214a0b65be9baaef474d3ac03e74884a" title="The meat of every plugin -- re-implement this function to draw the actual frame....">drawFrame()</a> function so that subsequent runs of the same plugin are identical and not polluted by crufty old state variables. Default implementation does nothing. Return false if you want to indicate init failure for some reason. 
 <p>Reimplemented in <a class="el" href="../../d0/dd6/classCalibPlugin.html#7131e34da35492a67afd6bb2d7cb0154">CalibPlugin</a>, <a class="el" href="../../dc/ddd/classCheckerFlicker.html#f51a9a9ef64e834e4b8e586d08bd270b">CheckerFlicker</a>, <a class="el" href="../../da/da2/classMovingGrating.html#a3de3ea8dca0ef89e19f082f4910ecd8">MovingGrating</a>, and <a class="el" href="../../d6/d30/classMovingObjects.html#2c5953e911473cd34fd0aa2eda20c268">MovingObjects</a>.</p>
 
-<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00023">23</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00025">25</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">start()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>.</p>
 
 </div>
 </div><p>
@@ -979,9 +992,9 @@ Called as a result of <a class="el" href="../../d0/d7e/classStimPlugin.html#958e
 Reimplement to clean up any permanent state that you fear might interfere with other plugins. In general this would only be the OpenGL state that needs to be undone (glEnable/glDisable, etc). Default implementation does nothing. 
 <p>Reimplemented in <a class="el" href="../../d0/dd6/classCalibPlugin.html#cff4a145d91accada991a7a827f510d0">CalibPlugin</a>, <a class="el" href="../../dc/ddd/classCheckerFlicker.html#47ec27732a0d585546c0ddd047015b9b">CheckerFlicker</a>, and <a class="el" href="../../d6/d30/classMovingObjects.html#a9a6d74d470d932e2f76b1641732e8ef">MovingObjects</a>.</p>
 
-<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00024">24</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00026">26</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00036">stop()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00038">stop()</a>.</p>
 
 </div>
 </div><p>
@@ -1006,7 +1019,7 @@ The meat of every plugin -- re-implement this function to draw the actual frame.
 
 <p>Implemented in <a class="el" href="../../d0/dd6/classCalibPlugin.html#49bfd822abdb1bfb44f74a2551ec77e1">CalibPlugin</a>, <a class="el" href="../../dc/ddd/classCheckerFlicker.html#f8317d0e39f366edfaeed0b41802d7af">CheckerFlicker</a>, <a class="el" href="../../da/da2/classMovingGrating.html#07e5cc3bb3603eb54e649c9518f7c468">MovingGrating</a>, and <a class="el" href="../../d6/d30/classMovingObjects.html#ce4c8c33f663290a796844c5d9f82ed9">MovingObjects</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00175">getFrameDump()</a>, and <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00101">GLWindow::paintGL()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00196">getFrameDump()</a>, and <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00110">GLWindow::paintGL()</a>.</p>
 
 </div>
 </div><p>
@@ -1032,9 +1045,59 @@ Called immediately after a vsync (if not paused).
 Reimplement this in your plugin to do some work after the vsync, which may be a good time to do slower computations in preparation for the next frame, etc, since we have the maximal amount of time at this point before the next frame is to be drawn. If isSimulated = true this means we are in <a class="el" href="../../d0/d7e/classStimPlugin.html#4073020c054fd9a80738e228b23760e7" title="Returns the frame number of the last frame that was rendered (or -1 if no frame has...">getFrameNum()</a> call and not actually drawing to screen. 
 <p>Reimplemented in <a class="el" href="../../dc/ddd/classCheckerFlicker.html#8673b790b48a6b481505284c7ccdba36">CheckerFlicker</a>.</p>
 
-<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00111">111</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00132">132</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00175">getFrameDump()</a>, and <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00101">GLWindow::paintGL()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00196">getFrameDump()</a>, and <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00110">GLWindow::paintGL()</a>.</p>
+
+</div>
+</div><p>
+<a class="anchor" name="0b1c4ecfa862531f98a5fd3d78e80920"></a><!-- doxytag: member="StimPlugin::notifySpikeGLAboutStart" ref="0b1c4ecfa862531f98a5fd3d78e80920" args="()" -->
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void StimPlugin::notifySpikeGLAboutStart           </td>
+          <td>(</td>
+          <td class="paramname">          </td>
+          <td>&nbsp;)&nbsp;</td>
+          <td width="100%"><code> [protected]</code></td>
+        </tr>
+      </table>
+</div>
+<div class="memdoc">
+
+<p>
+
+<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00250">250</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
+
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00089">getParams()</a>, <a class="el" href="../../d6/d8a/StimApp_8h-source.html#l00061">StimApp::LeoDAQGLNotifyParams::hostname</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00082">name()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00183">needNotifyStart</a>, <a class="el" href="../../df/d20/StimGL__LeoDAQGL__Integration_8cpp-source.html#l00139">StimGL_LeoDAQGL_Integration::Notify_PluginStart()</a>, <a class="el" href="../../d6/d8a/StimApp_8h-source.html#l00062">StimApp::LeoDAQGLNotifyParams::port</a>, <a class="el" href="../../d9/d78/Util_8cpp-source.html#l00038">Util::stimApp()</a>, and <a class="el" href="../../d6/d8a/StimApp_8h-source.html#l00063">StimApp::LeoDAQGLNotifyParams::timeout_ms</a>.</p>
+
+<p>Referenced by <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00309">GLWindow::pauseUnpause()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>.</p>
+
+</div>
+</div><p>
+<a class="anchor" name="d1af564d84dd406844fdb960f4401d81"></a><!-- doxytag: member="StimPlugin::notifySpikeGLAboutStop" ref="d1af564d84dd406844fdb960f4401d81" args="()" -->
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void StimPlugin::notifySpikeGLAboutStop           </td>
+          <td>(</td>
+          <td class="paramname">          </td>
+          <td>&nbsp;)&nbsp;</td>
+          <td width="100%"><code> [protected]</code></td>
+        </tr>
+      </table>
+</div>
+<div class="memdoc">
+
+<p>
+
+<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00262">262</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
+
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00089">getParams()</a>, <a class="el" href="../../d6/d8a/StimApp_8h-source.html#l00061">StimApp::LeoDAQGLNotifyParams::hostname</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00082">name()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00183">needNotifyStart</a>, <a class="el" href="../../df/d20/StimGL__LeoDAQGL__Integration_8cpp-source.html#l00149">StimGL_LeoDAQGL_Integration::Notify_PluginEnd()</a>, <a class="el" href="../../d6/d8a/StimApp_8h-source.html#l00062">StimApp::LeoDAQGLNotifyParams::port</a>, <a class="el" href="../../d9/d78/Util_8cpp-source.html#l00038">Util::stimApp()</a>, and <a class="el" href="../../d6/d8a/StimApp_8h-source.html#l00063">StimApp::LeoDAQGLNotifyParams::timeout_ms</a>.</p>
+
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00038">stop()</a>.</p>
 
 </div>
 </div><p>
@@ -1059,9 +1122,9 @@ default implementation does nothing, reimplement -- called for you on plugin exi
 
 <p>Reimplemented in <a class="el" href="../../dc/ddd/classCheckerFlicker.html#111efd92138093215cd8d6e2428e0c3a">CheckerFlicker</a>.</p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00219">219</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00228">228</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00026">saveData()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00028">saveData()</a>.</p>
 
 </div>
 </div><p>
@@ -1085,11 +1148,11 @@ default implementation does nothing, reimplement -- called for you on plugin exi
 called by <a class="el" href="../../d8/da9/classGLWindow.html" title="The main Open GL display window.">GLWindow</a> when a frameskip is detected.. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00165">165</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00186">186</a> of file <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00175">frameNum</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00185">missedFrames</a>, and <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00187">missedFrameTimes</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00180">frameNum</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00194">missedFrames</a>, and <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00196">missedFrameTimes</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00101">GLWindow::paintGL()</a>.</p>
+<p>Referenced by <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00110">GLWindow::paintGL()</a>.</p>
 
 </div>
 </div><p>
@@ -1109,7 +1172,7 @@ called by <a class="el" href="../../d8/da9/classGLWindow.html" title="The main O
 
 <p>Reimplemented in <a class="el" href="../../d0/dd6/classCalibPlugin.html#8d6f1e3230ab4e493e598e32b1c69a75">CalibPlugin</a>, <a class="el" href="../../dc/ddd/classCheckerFlicker.html#8d6f1e3230ab4e493e598e32b1c69a75">CheckerFlicker</a>, <a class="el" href="../../da/da2/classMovingGrating.html#8d6f1e3230ab4e493e598e32b1c69a75">MovingGrating</a>, and <a class="el" href="../../d6/d30/classMovingObjects.html#8d6f1e3230ab4e493e598e32b1c69a75">MovingObjects</a>.</p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00055">55</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00060">60</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
 </div>
 </div><p>
@@ -1127,9 +1190,9 @@ called by <a class="el" href="../../d8/da9/classGLWindow.html" title="The main O
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00173">173</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00178">178</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00175">getFrameDump()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00088">height()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">start()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00008">StimPlugin()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00036">stop()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00083">width()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00016">~StimPlugin()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00196">getFrameDump()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00109">height()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00009">StimPlugin()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00038">stop()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00104">width()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00018">~StimPlugin()</a>.</p>
 
 </div>
 </div><p>
@@ -1148,9 +1211,9 @@ called by <a class="el" href="../../d8/da9/classGLWindow.html" title="The main O
 starts at 0 and gets incremented for each frame (each time <a class="el" href="../../d0/d7e/classStimPlugin.html#214a0b65be9baaef474d3ac03e74884a" title="The meat of every plugin -- re-implement this function to draw the actual frame....">drawFrame()</a> is called) 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00175">175</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00180">180</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00695">CheckerFlicker::afterVSync()</a>, <a class="el" href="../../de/d6a/MovingObjects_8cpp-source.html#l00138">MovingObjects::drawFrame()</a>, <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00635">CheckerFlicker::drawFrame()</a>, <a class="el" href="../../d5/d8d/CalibPlugin_8cpp-source.html#l00012">CalibPlugin::drawFrame()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00175">getFrameDump()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00100">getFrameNum()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00098">getNextFrameNum()</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00101">GLWindow::paintGL()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00165">putMissedFrame()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">start()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00008">StimPlugin()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00036">stop()</a>.</p>
+<p>Referenced by <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00701">CheckerFlicker::afterVSync()</a>, <a class="el" href="../../de/d6a/MovingObjects_8cpp-source.html#l00139">MovingObjects::drawFrame()</a>, <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00641">CheckerFlicker::drawFrame()</a>, <a class="el" href="../../d5/d8d/CalibPlugin_8cpp-source.html#l00028">CalibPlugin::drawFrame()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00196">getFrameDump()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00105">getFrameNum()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00103">getNextFrameNum()</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00110">GLWindow::paintGL()</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00309">GLWindow::pauseUnpause()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00186">putMissedFrame()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00009">StimPlugin()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00038">stop()</a>.</p>
 
 </div>
 </div><p>
@@ -1167,9 +1230,9 @@ starts at 0 and gets incremented for each frame (each time <a class="el" href=".
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00176">176</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00181">181</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d5/d8d/CalibPlugin_8cpp-source.html#l00012">CalibPlugin::drawFrame()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00092">getFpsCur()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">start()</a>.</p>
+<p>Referenced by <a class="el" href="../../d5/d8d/CalibPlugin_8cpp-source.html#l00028">CalibPlugin::drawFrame()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00097">getFpsCur()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>.</p>
 
 </div>
 </div><p>
@@ -1186,9 +1249,9 @@ starts at 0 and gets incremented for each frame (each time <a class="el" href=".
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00176">176</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00181">181</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d5/d8d/CalibPlugin_8cpp-source.html#l00012">CalibPlugin::drawFrame()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00090">getFps()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">start()</a>.</p>
+<p>Referenced by <a class="el" href="../../d5/d8d/CalibPlugin_8cpp-source.html#l00028">CalibPlugin::drawFrame()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00095">getFps()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>.</p>
 
 </div>
 </div><p>
@@ -1205,9 +1268,9 @@ starts at 0 and gets incremented for each frame (each time <a class="el" href=".
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00176">176</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00181">181</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00094">getFpsMin()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">start()</a>.</p>
+<p>Referenced by <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00099">getFpsMin()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>.</p>
 
 </div>
 </div><p>
@@ -1224,9 +1287,9 @@ starts at 0 and gets incremented for each frame (each time <a class="el" href=".
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00176">176</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00181">181</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00096">getFpsMax()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">start()</a>.</p>
+<p>Referenced by <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00101">getFpsMax()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>.</p>
 
 </div>
 </div><p>
@@ -1245,9 +1308,30 @@ starts at 0 and gets incremented for each frame (each time <a class="el" href=".
 the number of seconds left in this cycle -- updated by glWindow before calling afterVSync 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00177">177</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00182">182</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00695">CheckerFlicker::afterVSync()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00175">getFrameDump()</a>, and <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00101">GLWindow::paintGL()</a>.</p>
+<p>Referenced by <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00701">CheckerFlicker::afterVSync()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00196">getFrameDump()</a>, and <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00110">GLWindow::paintGL()</a>.</p>
+
+</div>
+</div><p>
+<a class="anchor" name="2cbec86f764f0fa56acc1fa6e22193fc"></a><!-- doxytag: member="StimPlugin::needNotifyStart" ref="2cbec86f764f0fa56acc1fa6e22193fc" args="" -->
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool <a class="el" href="../../d0/d7e/classStimPlugin.html#2cbec86f764f0fa56acc1fa6e22193fc">StimPlugin::needNotifyStart</a><code> [protected]</code>          </td>
+        </tr>
+      </table>
+</div>
+<div class="memdoc">
+
+<p>
+iff true, we will notify LeoDAQGL of plugin start on unpause 
+<p>
+
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00183">183</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00250">notifySpikeGLAboutStart()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00262">notifySpikeGLAboutStop()</a>, <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00309">GLWindow::pauseUnpause()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00009">StimPlugin()</a>.</p>
 
 </div>
 </div><p>
@@ -1266,9 +1350,9 @@ the number of seconds left in this cycle -- updated by glWindow before calling a
 plugin-level mutex -- used in a couple of functions and you may reuse it yourself as well 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00180">180</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00189">189</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00269">getParam()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00084">getParams()</a>, and <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00082">setParams()</a>.</p>
+<p>Referenced by <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00278">getParam()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00089">getParams()</a>, and <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00087">setParams()</a>.</p>
 
 </div>
 </div><p>
@@ -1285,9 +1369,9 @@ plugin-level mutex -- used in a couple of functions and you may reuse it yoursel
 
 <p>
 a list of skipped/missed frames -- the id number is in relative frame # or frameNum (as opposed to abs frame # which is what <a class="el" href="../../d2/daf/namespaceUtil.html#5303bb33f293cba9cd2a9eadcc46e058" title="retrieve the frame count from the GLX_SGI_video_sync ext">getHWFrameCount()</a> would return) 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00185">185</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00194">194</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00104">getNumMissedFrames()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00165">putMissedFrame()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">start()</a>.</p>
+<p>Referenced by <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00109">getNumMissedFrames()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00186">putMissedFrame()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>.</p>
 
 </div>
 </div><p>
@@ -1306,9 +1390,9 @@ a list of skipped/missed frames -- the id number is in relative frame # or frame
 a list of cycle times for skipped/missed frames, in msecs 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00187">187</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00196">196</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00165">putMissedFrame()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">start()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00186">putMissedFrame()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>.</p>
 
 </div>
 </div><p>
@@ -1327,9 +1411,9 @@ a list of cycle times for skipped/missed frames, in msecs
 Generic random number generator provided here as a convenience. 
 <p>
 This generator is of type <a class="el" href="../../d1/da2/classRNG.html#fade229826ef419dde77771f388052f0489626dbe3cf91a7565a3ddffd9b1e15">RNG::Ran1</a> and as such is similar to the ran1() function specified in Numerical Recipes. 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00193">193</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00202">202</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../de/d6a/MovingObjects_8cpp-source.html#l00138">MovingObjects::drawFrame()</a>, <a class="el" href="../../d5/d8d/CalibPlugin_8cpp-source.html#l00012">CalibPlugin::drawFrame()</a>, <a class="el" href="../../de/d6a/MovingObjects_8cpp-source.html#l00012">MovingObjects::init()</a>, and <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00264">CheckerFlicker::init()</a>.</p>
+<p>Referenced by <a class="el" href="../../de/d6a/MovingObjects_8cpp-source.html#l00139">MovingObjects::drawFrame()</a>, <a class="el" href="../../d5/d8d/CalibPlugin_8cpp-source.html#l00028">CalibPlugin::drawFrame()</a>, <a class="el" href="../../de/d6a/MovingObjects_8cpp-source.html#l00012">MovingObjects::init()</a>, and <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00269">CheckerFlicker::init()</a>.</p>
 
 </div>
 </div><p>
@@ -1348,9 +1432,9 @@ This generator is of type <a class="el" href="../../d1/da2/classRNG.html#fade229
 Generic gaussian random number generator provided here as a convenience. 
 <p>
 This generator is of type <a class="el" href="../../d1/da2/classRNG.html#fade229826ef419dde77771f388052f0c281ec1eeae4b47f34ca084f03fed7d1">RNG::Gasdev</a> and as such is similar to the gasdev() function specified in Numerical Recipes. 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00193">193</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00202">202</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00264">CheckerFlicker::init()</a>.</p>
+<p>Referenced by <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00269">CheckerFlicker::init()</a>.</p>
 
 </div>
 </div><p>
@@ -1369,7 +1453,7 @@ This generator is of type <a class="el" href="../../d1/da2/classRNG.html#fade229
 Generic random number generator provided here as a convenience. 
 <p>
 This generator is of type <a class="el" href="../../d1/da2/classRNG.html#fade229826ef419dde77771f388052f0d1d0e6071e3c44598f56a8a46ad7e200">RNG::Ran0</a> and as such is similar to the ran0() function specified in Numerical Recipes. 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00193">193</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00202">202</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
 </div>
 </div><p>
@@ -1388,9 +1472,9 @@ This generator is of type <a class="el" href="../../d1/da2/classRNG.html#fade229
 Write to this variable to optionally inform the application that you want a custom message printed to the status bar. 
 <p>
 Update this periodically to have the <a class="el" href="../../d7/d7c/classConsoleWindow.html" title="This class encapsulates the console window that the user sees in the GUI.">ConsoleWindow</a> status bar include additional plugin-specific information -- may or may not appear right away typically the status bar is refreshed every 250ms by <a class="el" href="../../d0/d28/StimApp_8cpp.html">StimApp.cpp</a> 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00212">212</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00221">221</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00695">CheckerFlicker::afterVSync()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00102">getSBString()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">start()</a>.</p>
+<p>Referenced by <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00701">CheckerFlicker::afterVSync()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00107">getSBString()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>.</p>
 
 </div>
 </div><p>
@@ -1409,9 +1493,9 @@ Update this periodically to have the <a class="el" href="../../d7/d7c/classConso
 the output stream you should use in your "save()" method reimplementation -- already opened for you if your <a class="el" href="../../d0/d7e/classStimPlugin.html#695d55237260c81ab30cb4f12a2e5464" title="default implementation does nothing, reimplement -- called for you on plugin exit...">save()</a> method is being called 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00215">215</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00224">224</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00822">CheckerFlicker::save()</a>.</p>
+<p>Referenced by <a class="el" href="../../d0/d33/CheckerFlicker_8cpp-source.html#l00828">CheckerFlicker::save()</a>.</p>
 
 </div>
 </div><p>
@@ -1430,9 +1514,9 @@ the output stream you should use in your "save()" method reimplementation -- alr
 Write to this file when saving data. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00217">217</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00226">226</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00026">saveData()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00028">saveData()</a>.</p>
 
 </div>
 </div><p>
@@ -1449,9 +1533,9 @@ Write to this file when saving data.
 
 <p>
 used to indicate when <a class="el" href="../../d0/d7e/classStimPlugin.html#0e257811d1c4ec2d1a86ff90859a2e77" title="start the plugin -- marks the plugin as &#39;running&#39; with the GLWindow and calls...">start()</a> and <a class="el" href="../../d0/d7e/classStimPlugin.html#958e569388fc4fb5be4be563a86d2a76" title="stop the plugin -- marks the plugin as &#39;not running&#39; with the GLWindow, calls...">stop()</a> were called for this plugin, used by writeGeneralInfo() as an FYI for the log data file 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00223">223</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00232">232</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00107">getBeginTime()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">start()</a>.</p>
+<p>Referenced by <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00112">getBeginTime()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>.</p>
 
 </div>
 </div><p>
@@ -1468,15 +1552,15 @@ used to indicate when <a class="el" href="../../d0/d7e/classStimPlugin.html#0e25
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00223">223</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
+<p>Definition at line <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00232">232</a> of file <a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">start()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00036">stop()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">start()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00038">stop()</a>.</p>
 
 </div>
 </div><p>
 <hr>The documentation for this class was generated from the following files:<ul>
 <li><a class="el" href="../../d0/d81/StimPlugin_8h-source.html">StimPlugin.h</a><li><a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html">StimPlugin.cpp</a></ul>
-<hr size="1"><address style="text-align: right;"><small>Generated on Wed Jul 9 23:09:12 2008 for StimulateOpenGL_II by&nbsp;
+<hr size="1"><address style="text-align: right;"><small>Generated on Sun Jun 21 17:53:58 2009 for StimulateOpenGL_II by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="../../doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.4 </small></address>
 </body>

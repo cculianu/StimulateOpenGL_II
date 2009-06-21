@@ -49,16 +49,16 @@
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Returns a list of all the plugin names that are currently loaded (but not necessarily running).  <a href="#82ac5001e4d89b62cd6723cbe67c878d"></a><br></td></tr>
 <tr><td colspan="2"><br><h2>Protected Member Functions</h2></td></tr>
-<tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/da9/classGLWindow.html#e8ad8c52e2668dfb3b955f7b1212b51b">pluginCreated</a> (<a class="el" href="../../d0/d7e/classStimPlugin.html">StimPlugin</a> *<a class="el" href="../../d0/d9d/ConnectionThread_8cpp.html#8a87f79b64677743f55350a25b90e50e">plugin</a>)</td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/da9/classGLWindow.html#e8ad8c52e2668dfb3b955f7b1212b51b">pluginCreated</a> (<a class="el" href="../../d0/d7e/classStimPlugin.html">StimPlugin</a> *plugin)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Plugins call this when they want to tell the execution engine that they have been created.  <a href="#e8ad8c52e2668dfb3b955f7b1212b51b"></a><br></td></tr>
-<tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/da9/classGLWindow.html#688ea41730716f4d571c6e8684d39f2e">pluginStarted</a> (<a class="el" href="../../d0/d7e/classStimPlugin.html">StimPlugin</a> *<a class="el" href="../../d0/d9d/ConnectionThread_8cpp.html#8a87f79b64677743f55350a25b90e50e">plugin</a>)</td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/da9/classGLWindow.html#688ea41730716f4d571c6e8684d39f2e">pluginStarted</a> (<a class="el" href="../../d0/d7e/classStimPlugin.html">StimPlugin</a> *plugin)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Plugins call this method when they want to tell the execution engine that they have been started.  <a href="#688ea41730716f4d571c6e8684d39f2e"></a><br></td></tr>
-<tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/da9/classGLWindow.html#bfbd86a2a103b4e31607ab600e60c5fd">pluginStopped</a> (<a class="el" href="../../d0/d7e/classStimPlugin.html">StimPlugin</a> *<a class="el" href="../../d0/d9d/ConnectionThread_8cpp.html#8a87f79b64677743f55350a25b90e50e">plugin</a>)</td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/da9/classGLWindow.html#bfbd86a2a103b4e31607ab600e60c5fd">pluginStopped</a> (<a class="el" href="../../d0/d7e/classStimPlugin.html">StimPlugin</a> *plugin)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Plugins call this method when they want to tell the execution engine that they have been stopped.  <a href="#bfbd86a2a103b4e31607ab600e60c5fd"></a><br></td></tr>
-<tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/da9/classGLWindow.html#dda599ba8758ee94da3532e3006b20f4">pluginDeleted</a> (<a class="el" href="../../d0/d7e/classStimPlugin.html">StimPlugin</a> *<a class="el" href="../../d0/d9d/ConnectionThread_8cpp.html#8a87f79b64677743f55350a25b90e50e">plugin</a>)</td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/da9/classGLWindow.html#dda599ba8758ee94da3532e3006b20f4">pluginDeleted</a> (<a class="el" href="../../d0/d7e/classStimPlugin.html">StimPlugin</a> *plugin)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Plugins call this method to inform the execution engine that they are being deleted and should be dereferenced from any internal data structures.  <a href="#dda599ba8758ee94da3532e3006b20f4"></a><br></td></tr>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/da9/classGLWindow.html#39e39761cd7323806917a217cc7caea5">initializeGL</a> ()</td></tr>
@@ -110,9 +110,9 @@ This class also handles all keyboard hotkeys (see <a class="el" href="../../d8/d
 
 <p>
 
-<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00045">45</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00049">49</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
 
-<p>References <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00036">StimPlugin::stop()</a>.</p>
+<p>References <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00038">StimPlugin::stop()</a>.</p>
 
 </div>
 </div><p>
@@ -146,9 +146,9 @@ This class also handles all keyboard hotkeys (see <a class="el" href="../../d8/d
 Find a plugin by name. Returns a pointer to the plugin if found, or NULL if not found. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00217">217</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00226">226</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d00/ConnectionThread_8cpp-source.html#l00376">ConnectionThread::eventFilter()</a>, and <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00373">StimApp::loadStim()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d00/ConnectionThread_8cpp-source.html#l00376">ConnectionThread::eventFilter()</a>, and <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00410">StimApp::loadStim()</a>.</p>
 
 </div>
 </div><p>
@@ -171,7 +171,7 @@ Find a plugin by name. Returns a pointer to the plugin if found, or NULL if not 
 The currently running plugin, if any. Returns NULL if no plugin is running. 
 <p>Definition at line <a class="el" href="../../d7/dfb/GLWindow_8h-source.html#l00039">39</a> of file <a class="el" href="../../d7/dfb/GLWindow_8h-source.html">GLWindow.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d00/ConnectionThread_8cpp-source.html#l00376">ConnectionThread::eventFilter()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00175">StimPlugin::getFrameDump()</a>, <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00373">StimApp::loadStim()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00016">StimPlugin::~StimPlugin()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d00/ConnectionThread_8cpp-source.html#l00376">ConnectionThread::eventFilter()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00196">StimPlugin::getFrameDump()</a>, <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00410">StimApp::loadStim()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00018">StimPlugin::~StimPlugin()</a>.</p>
 
 </div>
 </div><p>
@@ -196,7 +196,7 @@ Returns true if plugin execution is in the paused state, false otherwise.
 
 <p>Definition at line <a class="el" href="../../d7/dfb/GLWindow_8h-source.html#l00041">41</a> of file <a class="el" href="../../d7/dfb/GLWindow_8h-source.html">GLWindow.h</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00175">StimPlugin::getFrameDump()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00196">StimPlugin::getFrameDump()</a>.</p>
 
 </div>
 </div><p>
@@ -219,7 +219,7 @@ Returns true if plugin execution is in the paused state, false otherwise.
 Returns a list of all the plugin names that are currently loaded (but not necessarily running). 
 <p>
 
-<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00303">303</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00318">318</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
 
 </div>
 </div><p>
@@ -242,9 +242,11 @@ Returns a list of all the plugin names that are currently loaded (but not necess
 Toggles the paused/unpaused state of the plugin execution engine. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00296">296</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00309">309</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">StimPlugin::start()</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00180">StimPlugin::frameNum</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00183">StimPlugin::needNotifyStart</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00250">StimPlugin::notifySpikeGLAboutStart()</a>.</p>
+
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">StimPlugin::start()</a>.</p>
 
 </div>
 </div><p>
@@ -268,9 +270,9 @@ Toggles the paused/unpaused state of the plugin execution engine.
 Plugins call this when they want to tell the execution engine that they have been created. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00183">183</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00192">192</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00008">StimPlugin::StimPlugin()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00009">StimPlugin::StimPlugin()</a>.</p>
 
 </div>
 </div><p>
@@ -294,11 +296,11 @@ Plugins call this when they want to tell the execution engine that they have bee
 Plugins call this method when they want to tell the execution engine that they have been started. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00196">196</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00205">205</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00077">StimPlugin::name()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00036">StimPlugin::stop()</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00082">StimPlugin::name()</a>, and <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00038">StimPlugin::stop()</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00054">StimPlugin::start()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00064">StimPlugin::start()</a>.</p>
 
 </div>
 </div><p>
@@ -322,11 +324,11 @@ Plugins call this method when they want to tell the execution engine that they h
 Plugins call this method when they want to tell the execution engine that they have been stopped. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00204">204</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00213">213</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
 
-<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00077">StimPlugin::name()</a>, and <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00018">WINDOW_TITLE</a>.</p>
+<p>References <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00082">StimPlugin::name()</a>, and <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00022">WINDOW_TITLE</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00036">StimPlugin::stop()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00038">StimPlugin::stop()</a>.</p>
 
 </div>
 </div><p>
@@ -350,9 +352,9 @@ Plugins call this method when they want to tell the execution engine that they h
 Plugins call this method to inform the execution engine that they are being deleted and should be dereferenced from any internal data structures. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00190">190</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00199">199</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
 
-<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00016">StimPlugin::~StimPlugin()</a>.</p>
+<p>Referenced by <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00018">StimPlugin::~StimPlugin()</a>.</p>
 
 </div>
 </div><p>
@@ -375,7 +377,7 @@ Plugins call this method to inform the execution engine that they are being dele
 Sets up the rendering context, clears the screen, sets/unsets various opengl parameters. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00070">70</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00079">79</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
 
 </div>
 </div><p>
@@ -408,7 +410,7 @@ Sets up the rendering context, clears the screen, sets/unsets various opengl par
 Sets up the viewport and projection etc.:. 
 <p>
 
-<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00088">88</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00097">97</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
 
 </div>
 </div><p>
@@ -431,9 +433,9 @@ Sets up the viewport and projection etc.:.
 Called once per vblank to draw each frame. 
 <p>
 Updates some statistics, then calls the currently active plugin's <a class="el" href="../../d0/d7e/classStimPlugin.html#214a0b65be9baaef474d3ac03e74884a" title="The meat of every plugin -- re-implement this function to draw the actual frame....">StimPlugin::drawFrame()</a> virtual function. Note that if no plugin is running or if plugin execution is paused the plugin's drawFrame() function is not called. 
-<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00101">101</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00110">110</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
 
-<p>References <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00111">StimPlugin::afterVSync()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00093">StimPlugin::computeFPS()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00177">StimPlugin::cycleTimeLeft</a>, <a class="el" href="../../d0/d7e/classStimPlugin.html#214a0b65be9baaef474d3ac03e74884a">StimPlugin::drawFrame()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00175">StimPlugin::frameNum</a>, <a class="el" href="../../d7/d30/osdep_8cpp-source.html#l00297">Util::getHWFrameCount()</a>, <a class="el" href="../../d7/d30/osdep_8cpp-source.html#l00325">Util::getHWRefreshRate()</a>, <a class="el" href="../../d7/d30/osdep_8cpp-source.html#l00237">Util::getNProcessors()</a>, <a class="el" href="../../d7/d30/osdep_8cpp-source.html#l00057">Util::getTime()</a>, <a class="el" href="../../d7/d30/osdep_8cpp-source.html#l00230">Util::hasAccurateHWFrameCount()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00165">StimPlugin::putMissedFrame()</a>, <a class="el" href="../../d6/d8a/StimApp_8h-source.html#l00091">StimApp::refreshRate()</a>, and <a class="el" href="../../d9/d78/Util_8cpp-source.html#l00034">Util::stimApp()</a>.</p>
+<p>References <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00132">StimPlugin::afterVSync()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00114">StimPlugin::computeFPS()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00182">StimPlugin::cycleTimeLeft</a>, <a class="el" href="../../d0/d7e/classStimPlugin.html#214a0b65be9baaef474d3ac03e74884a">StimPlugin::drawFrame()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00180">StimPlugin::frameNum</a>, <a class="el" href="../../d7/d30/osdep_8cpp-source.html#l00357">Util::getHWFrameCount()</a>, <a class="el" href="../../d7/d30/osdep_8cpp-source.html#l00385">Util::getHWRefreshRate()</a>, <a class="el" href="../../d7/d30/osdep_8cpp-source.html#l00293">Util::getNProcessors()</a>, <a class="el" href="../../d7/d30/osdep_8cpp-source.html#l00062">Util::getTime()</a>, <a class="el" href="../../d7/d30/osdep_8cpp-source.html#l00286">Util::hasAccurateHWFrameCount()</a>, <a class="el" href="../../d3/d26/StimPlugin_8cpp-source.html#l00186">StimPlugin::putMissedFrame()</a>, <a class="el" href="../../d6/d8a/StimApp_8h-source.html#l00099">StimApp::refreshRate()</a>, and <a class="el" href="../../d9/d78/Util_8cpp-source.html#l00038">Util::stimApp()</a>.</p>
 
 </div>
 </div><p>
@@ -457,9 +459,9 @@ Updates some statistics, then calls the currently active plugin's <a class="el" 
 override close events -- prevent window from being closed! 
 <p>
 
-<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00047">47</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00056">56</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
 
-<p>References <a class="el" href="../../d9/d78/Util_8cpp-source.html#l00034">Util::stimApp()</a>.</p>
+<p>References <a class="el" href="../../d9/d78/Util_8cpp-source.html#l00038">Util::stimApp()</a>.</p>
 
 </div>
 </div><p>
@@ -483,7 +485,7 @@ override close events -- prevent window from being closed!
 overrides QWidget method -- prevent window resize 
 <p>
 
-<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00058">58</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00067">67</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
 
 </div>
 </div><p>
@@ -507,9 +509,9 @@ overrides QWidget method -- prevent window resize
 overrides QWidget methoed -- catch keypresses -- all keyboard handling happens in this class 
 <p>
 
-<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00255">255</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
+<p>Definition at line <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html#l00264">264</a> of file <a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a>.</p>
 
-<p>References <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00520">StimApp::alignGLWindow()</a>, <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00508">StimApp::hideUnhideConsole()</a>, <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00373">StimApp::loadStim()</a>, <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00503">StimApp::pauseUnpause()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00140">StimPlugin::processKey()</a>, <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00183">StimApp::setDebugMode()</a>, <a class="el" href="../../d9/d78/Util_8cpp-source.html#l00034">Util::stimApp()</a>, and <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00423">StimApp::unloadStim()</a>.</p>
+<p>References <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00565">StimApp::hideUnhideConsole()</a>, <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00560">StimApp::pauseUnpause()</a>, <a class="el" href="../../d0/d81/StimPlugin_8h-source.html#l00145">StimPlugin::processKey()</a>, <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00209">StimApp::setDebugMode()</a>, and <a class="el" href="../../d9/d78/Util_8cpp-source.html#l00038">Util::stimApp()</a>.</p>
 
 </div>
 </div><p>
@@ -550,7 +552,7 @@ overrides QWidget methoed -- catch keypresses -- all keyboard handling happens i
 </div><p>
 <hr>The documentation for this class was generated from the following files:<ul>
 <li><a class="el" href="../../d7/dfb/GLWindow_8h-source.html">GLWindow.h</a><li><a class="el" href="../../d4/d51/GLWindow_8cpp-source.html">GLWindow.cpp</a></ul>
-<hr size="1"><address style="text-align: right;"><small>Generated on Wed Jul 9 23:09:12 2008 for StimulateOpenGL_II by&nbsp;
+<hr size="1"><address style="text-align: right;"><small>Generated on Sun Jun 21 17:53:58 2009 for StimulateOpenGL_II by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="../../doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.4 </small></address>
 </body>

@@ -15,7 +15,7 @@
   </ul>
 </div>
 <div class="nav">
-<a class="el" href="../../dir_3ad7fe0462283ca58d4c668aa8aad7f4.html">src</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_1d1d503050a097160b3532f1d92f2b4c.html">StimulateOpenGL</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_252a3a386671771f6faf69f7c87f76bc.html">StimulateOpenGL_II</a></div>
+<a class="el" href="../../dir_14c46e22c23b31d069aa66eceb578538.html">projects</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_c7621532e76c5a52eb0dadf12b659c78.html">Leonardo</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_1ef02126803d67bc0459919069fcb0d8.html">StimulateOpenGL</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_19a3d25e4f3966778db7bf473054d0ec.html">StimulateOpenGL_II</a></div>
 <h1>CalibPlugin.h</h1><a href="../../d1/d3a/CalibPlugin_8h.html">Go to the documentation of this file.</a><div class="fragment"><pre class="fragment"><a name="l00001"></a>00001 <span class="preprocessor">#ifndef CalibPlugin_H</span>
 <a name="l00002"></a>00002 <span class="preprocessor"></span><span class="preprocessor">#define CalibPlugin_H</span>
 <a name="l00003"></a>00003 <span class="preprocessor"></span><span class="preprocessor">#include "<a class="code" href="../../d8/d9c/StimPlugin_8h.html">StimPlugin.h</a>"</span>
@@ -31,18 +31,21 @@
 <a name="l00029"></a>00029     
 <a name="l00030"></a><a class="code" href="../../d0/dd6/classCalibPlugin.html#6688f9cb07975c108e623b630eeb3750">00030</a>     QString <a class="code" href="../../d0/dd6/classCalibPlugin.html#6688f9cb07975c108e623b630eeb3750" title="returns a string description of the plugin useful for a UI. Reimplement to add a...">description</a>()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> <span class="stringliteral">"Calibrates the refresh rate by drawing frames on the screen as fast as possible with vsync enabled."</span>; }
 <a name="l00031"></a>00031 
-<a name="l00032"></a>00032 <span class="keyword">protected</span>:
-<a name="l00034"></a>00034     <span class="keywordtype">void</span> <a class="code" href="../../d0/dd6/classCalibPlugin.html#49bfd822abdb1bfb44f74a2551ec77e1" title="Draws a random background color to the screen.">drawFrame</a>();
-<a name="l00036"></a>00036     <span class="keywordtype">bool</span> <a class="code" href="../../d0/dd6/classCalibPlugin.html#7131e34da35492a67afd6bb2d7cb0154" title="Reimplemented from super.">init</a>();
-<a name="l00038"></a>00038     <span class="keywordtype">void</span> <a class="code" href="../../d0/dd6/classCalibPlugin.html#cff4a145d91accada991a7a827f510d0" title="Reimplemented from super.">cleanup</a>();
-<a name="l00039"></a>00039 signals:
-<a name="l00041"></a>00041      <span class="keywordtype">void</span> <a class="code" href="../../d0/dd6/classCalibPlugin.html#6ff8447d3c897f27547eb84150418f6e" title="Emitted once the plugin has finished calibrating refresh rate. StimApp::caribratedRefresh()...">refreshRateCalibrated</a>(<span class="keywordtype">unsigned</span>);
-<a name="l00042"></a>00042 <span class="keyword">private</span>:
-<a name="l00043"></a>00043      <span class="keywordtype">bool</span> wasDebugMode;
-<a name="l00044"></a>00044 };
-<a name="l00045"></a>00045 
-<a name="l00046"></a>00046 <span class="preprocessor">#endif</span>
-</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Wed Jul 9 23:09:12 2008 for StimulateOpenGL_II by&nbsp;
+<a name="l00033"></a>00033     <span class="keywordtype">void</span> <a class="code" href="../../d0/dd6/classCalibPlugin.html#e3aa3ca43f30cf3827aba6b48a4f9a6d" title="Reimplemented from super to suppress LeoDAQGL notify.">start</a>(<span class="keywordtype">bool</span> startUnpaused = <span class="keyword">false</span>);
+<a name="l00035"></a>00035     <span class="keywordtype">void</span> <a class="code" href="../../d0/dd6/classCalibPlugin.html#394361c4ad8d6650d7338a66c9245be5" title="Reimplemented from super to suppress LeoDAQGL notify.">stop</a>(<span class="keywordtype">bool</span> doSave = <span class="keyword">false</span>, <span class="keywordtype">bool</span> use_gui = <span class="keyword">false</span>);
+<a name="l00036"></a>00036 
+<a name="l00037"></a>00037 <span class="keyword">protected</span>:
+<a name="l00039"></a>00039     <span class="keywordtype">void</span> <a class="code" href="../../d0/dd6/classCalibPlugin.html#49bfd822abdb1bfb44f74a2551ec77e1" title="Draws a random background color to the screen.">drawFrame</a>();
+<a name="l00041"></a>00041     <span class="keywordtype">bool</span> <a class="code" href="../../d0/dd6/classCalibPlugin.html#7131e34da35492a67afd6bb2d7cb0154" title="Reimplemented from super.">init</a>();
+<a name="l00043"></a>00043     <span class="keywordtype">void</span> <a class="code" href="../../d0/dd6/classCalibPlugin.html#cff4a145d91accada991a7a827f510d0" title="Reimplemented from super.">cleanup</a>();
+<a name="l00044"></a>00044 signals:
+<a name="l00046"></a>00046      <span class="keywordtype">void</span> <a class="code" href="../../d0/dd6/classCalibPlugin.html#6ff8447d3c897f27547eb84150418f6e" title="Emitted once the plugin has finished calibrating refresh rate. StimApp::caribratedRefresh()...">refreshRateCalibrated</a>(<span class="keywordtype">unsigned</span>);
+<a name="l00047"></a>00047 <span class="keyword">private</span>:
+<a name="l00048"></a>00048      <span class="keywordtype">bool</span> wasDebugMode;
+<a name="l00049"></a>00049 };
+<a name="l00050"></a>00050 
+<a name="l00051"></a>00051 <span class="preprocessor">#endif</span>
+</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Sun Jun 21 17:53:57 2009 for StimulateOpenGL_II by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="../../doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.4 </small></address>
 </body>

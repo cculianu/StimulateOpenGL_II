@@ -15,7 +15,7 @@
   </ul>
 </div>
 <div class="nav">
-<a class="el" href="../../dir_3ad7fe0462283ca58d4c668aa8aad7f4.html">src</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_1d1d503050a097160b3532f1d92f2b4c.html">StimulateOpenGL</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_252a3a386671771f6faf69f7c87f76bc.html">StimulateOpenGL_II</a></div>
+<a class="el" href="../../dir_14c46e22c23b31d069aa66eceb578538.html">projects</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_c7621532e76c5a52eb0dadf12b659c78.html">Leonardo</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_1ef02126803d67bc0459919069fcb0d8.html">StimulateOpenGL</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_19a3d25e4f3966778db7bf473054d0ec.html">StimulateOpenGL_II</a></div>
 <h1>StimApp.cpp File Reference</h1><code>#include &lt;QTextEdit&gt;</code><br>
 <code>#include &lt;QTcpServer&gt;</code><br>
 <code>#include &lt;QMessageBox&gt;</code><br>
@@ -44,18 +44,55 @@
 <code>#include &lt;QPainter&gt;</code><br>
 <code>#include &lt;QDir&gt;</code><br>
 <code>#include &lt;QDesktopWidget&gt;</code><br>
+<code>#include &quot;<a class="el" href="../../d6/dbc/StimGL__LeoDAQGL__Integration_8h-source.html">StimGL_LeoDAQGL_Integration.h</a>&quot;</code><br>
+<code>#include &quot;<a class="el" href="../../d6/d8e/ui__LeoDAQGLIntegration_8h-source.html">ui_LeoDAQGLIntegration.h</a>&quot;</code><br>
 
 <p>
 <a href="../../d9/d9a/StimApp_8cpp-source.html">Go to the source code of this file.</a><table border="0" cellpadding="0" cellspacing="0">
 <tr><td></td></tr>
+<tr><td colspan="2"><br><h2>Namespaces</h2></td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">namespace &nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/d56/namespaceanonymous__namespace_02StimApp_8cpp_03.html">anonymous_namespace{StimApp.cpp}</a></td></tr>
+
 <tr><td colspan="2"><br><h2>Classes</h2></td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">struct &nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d79/structanonymous__namespace_02StimApp_8cpp_03_1_1Init.html">anonymous_namespace{StimApp.cpp}::Init</a></td></tr>
+
+<tr><td class="memItemLeft" nowrap align="right" valign="top">class &nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dd1/classanonymous__namespace_02StimApp_8cpp_03_1_1LogLineEvent.html">anonymous_namespace{StimApp.cpp}::LogLineEvent</a></td></tr>
+
+<tr><td class="memItemLeft" nowrap align="right" valign="top">class &nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/df7/classanonymous__namespace_02StimApp_8cpp_03_1_1StatusMsgEvent.html">anonymous_namespace{StimApp.cpp}::StatusMsgEvent</a></td></tr>
+
 <tr><td class="memItemLeft" nowrap align="right" valign="top">struct &nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d36/structReentrancyPreventer.html">ReentrancyPreventer</a></td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">A helper class that helps prevent reentrancy into certain functions.  <a href="../../d3/d36/structReentrancyPreventer.html#_details">More...</a><br></td></tr>
+<tr><td colspan="2"><br><h2>Defines</h2></td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">#define&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d28/StimApp_8cpp.html#cd285a8f66b6a123f49120a6c8412395">DEFAULT_WIN_SIZE</a>&nbsp;&nbsp;&nbsp;QSize(800,600)</td></tr>
+
 <tr><td colspan="2"><br><h2>Functions</h2></td></tr>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d28/StimApp_8cpp.html#0ccf159c921d46bfc372d6bea6bd6ab7">Q_DECLARE_METATYPE</a> (unsigned)</td></tr>
 
+<tr><td colspan="2"><br><h2>Variables</h2></td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">Init *volatile&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/d56/namespaceanonymous__namespace_02StimApp_8cpp_03.html#83931f77d897a1919a217db8e01d4c6c">anonymous_namespace{StimApp.cpp}::init</a> = 0</td></tr>
+
 </table>
+<hr><h2>Define Documentation</h2>
+<a class="anchor" name="cd285a8f66b6a123f49120a6c8412395"></a><!-- doxytag: member="StimApp.cpp::DEFAULT_WIN_SIZE" ref="cd285a8f66b6a123f49120a6c8412395" args="" -->
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define DEFAULT_WIN_SIZE&nbsp;&nbsp;&nbsp;QSize(800,600)          </td>
+        </tr>
+      </table>
+</div>
+<div class="memdoc">
+
+<p>
+
+<p>Definition at line <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00032">32</a> of file <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html">StimApp.cpp</a>.</p>
+
+<p>Referenced by <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00410">StimApp::loadStim()</a>.</p>
+
+</div>
+</div><p>
 <hr><h2>Function Documentation</h2>
 <a class="anchor" name="0ccf159c921d46bfc372d6bea6bd6ab7"></a><!-- doxytag: member="StimApp.cpp::Q_DECLARE_METATYPE" ref="0ccf159c921d46bfc372d6bea6bd6ab7" args="(unsigned)" -->
 <div class="memitem">
@@ -77,78 +114,7 @@
 
 </div>
 </div><p>
-<hr><h2>Variable Documentation</h2>
-<a class="anchor" name="824cb7f78107b86b9ddc2dcbd285f66b"></a><!-- doxytag: member="StimApp.cpp::color" ref="824cb7f78107b86b9ddc2dcbd285f66b" args="" -->
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">QColor <a class="el" href="../../d0/d28/StimApp_8cpp.html#824cb7f78107b86b9ddc2dcbd285f66b">color</a>          </td>
-        </tr>
-      </table>
-</div>
-<div class="memdoc">
-
-<p>
-
-<p>Definition at line <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00049">49</a> of file <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html">StimApp.cpp</a>.</p>
-
-</div>
-</div><p>
-<a class="anchor" name="7eaf039e27259097d5cf0d8b07ab1d96"></a><!-- doxytag: member="StimApp.cpp::msg" ref="7eaf039e27259097d5cf0d8b07ab1d96" args="" -->
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">QString <a class="el" href="../../d0/d28/StimApp_8cpp.html#7eaf039e27259097d5cf0d8b07ab1d96">msg</a>          </td>
-        </tr>
-      </table>
-</div>
-<div class="memdoc">
-
-<p>
-
-<p>Definition at line <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00058">58</a> of file <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html">StimApp.cpp</a>.</p>
-
-</div>
-</div><p>
-<a class="anchor" name="288b834f8b483958be715bc77558bf46"></a><!-- doxytag: member="StimApp.cpp::str" ref="288b834f8b483958be715bc77558bf46" args="" -->
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">QString <a class="el" href="../../d8/d9c/StimPlugin_8h.html#9aafe348c8be48d4af48c7e106a2f842">str</a>          </td>
-        </tr>
-      </table>
-</div>
-<div class="memdoc">
-
-<p>
-
-<p>Definition at line <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00048">48</a> of file <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html">StimApp.cpp</a>.</p>
-
-<p>Referenced by <a class="el" href="../../df/daf/StimParams_8cpp-source.html#l00047">StimParams::fromFile()</a>, and <a class="el" href="../../d9/d78/Util_8cpp-source.html#l00110">Util::Status::Status()</a>.</p>
-
-</div>
-</div><p>
-<a class="anchor" name="493b57f443cc38b3d3df9c1e584d9d82"></a><!-- doxytag: member="StimApp.cpp::timeout" ref="493b57f443cc38b3d3df9c1e584d9d82" args="" -->
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int <a class="el" href="../../d0/d28/StimApp_8cpp.html#493b57f443cc38b3d3df9c1e584d9d82">timeout</a>          </td>
-        </tr>
-      </table>
-</div>
-<div class="memdoc">
-
-<p>
-
-<p>Definition at line <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html#l00059">59</a> of file <a class="el" href="../../d9/d9a/StimApp_8cpp-source.html">StimApp.cpp</a>.</p>
-
-</div>
-</div><p>
-<hr size="1"><address style="text-align: right;"><small>Generated on Wed Jul 9 23:09:12 2008 for StimulateOpenGL_II by&nbsp;
+<hr size="1"><address style="text-align: right;"><small>Generated on Sun Jun 21 17:53:58 2009 for StimulateOpenGL_II by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="../../doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.4 </small></address>
 </body>

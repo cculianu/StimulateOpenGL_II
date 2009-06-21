@@ -15,7 +15,7 @@
   </ul>
 </div>
 <div class="nav">
-<a class="el" href="../../dir_3ad7fe0462283ca58d4c668aa8aad7f4.html">src</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_1d1d503050a097160b3532f1d92f2b4c.html">StimulateOpenGL</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_252a3a386671771f6faf69f7c87f76bc.html">StimulateOpenGL_II</a></div>
+<a class="el" href="../../dir_14c46e22c23b31d069aa66eceb578538.html">projects</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_c7621532e76c5a52eb0dadf12b659c78.html">Leonardo</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_1ef02126803d67bc0459919069fcb0d8.html">StimulateOpenGL</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_19a3d25e4f3966778db7bf473054d0ec.html">StimulateOpenGL_II</a></div>
 <h1>ZigguratGauss.h</h1><a href="../../de/dba/ZigguratGauss_8h.html">Go to the documentation of this file.</a><div class="fragment"><pre class="fragment"><a name="l00001"></a>00001 <span class="preprocessor">#ifndef ZigguratGauss_H</span>
 <a name="l00002"></a>00002 <span class="preprocessor"></span><span class="preprocessor">#define ZigguratGauss_H</span>
 <a name="l00003"></a>00003 <span class="preprocessor"></span><span class="preprocessor">#include &lt;math.h&gt;</span>
@@ -31,8 +31,8 @@
 <a name="l00027"></a>00027     <span class="keyword">extern</span> <span class="keyword">const</span> <span class="keywordtype">double</span> <a class="code" href="../../da/d0e/namespaceZigguratGauss.html#9ac2f7a7591f8acfbddd3c2d1504248c">ytab</a>[];
 <a name="l00028"></a>00028     <span class="keyword">extern</span> <span class="keyword">const</span> uint32_t <a class="code" href="../../da/d0e/namespaceZigguratGauss.html#2c037d111e08ed73b1294eaed85249d4">ktab</a>[];
 <a name="l00029"></a>00029     <span class="keyword">extern</span> <span class="keyword">const</span> <span class="keywordtype">double</span> <a class="code" href="../../da/d0e/namespaceZigguratGauss.html#a2475007f521833da917eed462d634b2">wtab</a>[];
-<a name="l00030"></a>00030     <span class="comment">/* position of right-most step */</span>
-<a name="l00031"></a>00031     <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">double</span> PARAM_R = 3.44428647676;
+<a name="l00030"></a><a class="code" href="../../da/d0e/namespaceZigguratGauss.html#def65c2f46fde400762651c00a9d189a">00030</a>     <span class="comment">/* position of right-most step */</span>
+<a name="l00031"></a>00031     <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">double</span> <a class="code" href="../../da/d0e/namespaceZigguratGauss.html#def65c2f46fde400762651c00a9d189a">PARAM_R</a> = 3.44428647676;
 <a name="l00032"></a>00032 
 <a name="l00035"></a><a class="code" href="../../da/d0e/namespaceZigguratGauss.html#caa4783cd1c4c178cdb78744fece2a03">00035</a>     <span class="keyword">template</span> &lt;<span class="keyword">typename</span> GenFunctorT&gt; 
 <a name="l00036"></a>00036     <span class="keywordtype">double</span> <a class="code" href="../../da/d0e/namespaceZigguratGauss.html#caa4783cd1c4c178cdb78744fece2a03">generate</a>(GenFunctorT &amp; genFunctor, <span class="keywordtype">double</span> sigma)
@@ -55,8 +55,8 @@
 <a name="l00053"></a>00053                 y1 = <a class="code" href="../../da/d0e/namespaceZigguratGauss.html#9ac2f7a7591f8acfbddd3c2d1504248c">ytab</a>[i+1];
 <a name="l00054"></a>00054                 y = y1+(y0-y1)*genFunctor();
 <a name="l00055"></a>00055             } <span class="keywordflow">else</span> {
-<a name="l00056"></a>00056                 x = PARAM_R - log(1.0-genFunctor())/PARAM_R;
-<a name="l00057"></a>00057                 y = exp(-PARAM_R*(x-0.5*PARAM_R))*genFunctor();
+<a name="l00056"></a>00056                 x = <a class="code" href="../../da/d0e/namespaceZigguratGauss.html#def65c2f46fde400762651c00a9d189a">PARAM_R</a> - log(1.0-genFunctor())/<a class="code" href="../../da/d0e/namespaceZigguratGauss.html#def65c2f46fde400762651c00a9d189a">PARAM_R</a>;
+<a name="l00057"></a>00057                 y = exp(-<a class="code" href="../../da/d0e/namespaceZigguratGauss.html#def65c2f46fde400762651c00a9d189a">PARAM_R</a>*(x-0.5*<a class="code" href="../../da/d0e/namespaceZigguratGauss.html#def65c2f46fde400762651c00a9d189a">PARAM_R</a>))*genFunctor();
 <a name="l00058"></a>00058             }
 <a name="l00059"></a>00059             <span class="keywordflow">if</span> (y &lt; exp(-0.5*x*x))  <span class="keywordflow">break</span>;
 <a name="l00060"></a>00060         }
@@ -65,7 +65,7 @@
 <a name="l00063"></a>00063 };
 <a name="l00064"></a>00064 
 <a name="l00065"></a>00065 <span class="preprocessor">#endif</span>
-</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Wed Jul 9 23:09:12 2008 for StimulateOpenGL_II by&nbsp;
+</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Sun Jun 21 17:53:58 2009 for StimulateOpenGL_II by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="../../doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.4 </small></address>
 </body>

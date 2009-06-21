@@ -15,7 +15,7 @@
   </ul>
 </div>
 <div class="nav">
-<a class="el" href="../../dir_3ad7fe0462283ca58d4c668aa8aad7f4.html">src</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_1d1d503050a097160b3532f1d92f2b4c.html">StimulateOpenGL</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_252a3a386671771f6faf69f7c87f76bc.html">StimulateOpenGL_II</a></div>
+<a class="el" href="../../dir_14c46e22c23b31d069aa66eceb578538.html">projects</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_c7621532e76c5a52eb0dadf12b659c78.html">Leonardo</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_1ef02126803d67bc0459919069fcb0d8.html">StimulateOpenGL</a>&nbsp;&raquo&nbsp;<a class="el" href="../../dir_19a3d25e4f3966778db7bf473054d0ec.html">StimulateOpenGL_II</a></div>
 <h1>ConnectionThread.cpp</h1><a href="../../d0/d9d/ConnectionThread_8cpp.html">Go to the documentation of this file.</a><div class="fragment"><pre class="fragment"><a name="l00001"></a>00001 <span class="preprocessor">#include "<a class="code" href="../../db/d73/ConnectionThread_8h.html">ConnectionThread.h</a>"</span>
 <a name="l00002"></a>00002 <span class="preprocessor">#include "<a class="code" href="../../d1/dc8/Util_8h.html">Util.h</a>"</span>
 <a name="l00003"></a>00003 <span class="preprocessor">#include "<a class="code" href="../../da/daa/StimApp_8h.html">StimApp.h</a>"</span>
@@ -30,82 +30,82 @@
 <a name="l00012"></a>00012 <span class="preprocessor">#include &lt;QVariant&gt;</span>
 <a name="l00013"></a>00013 <span class="preprocessor">#include &lt;QByteArray&gt;</span>
 <a name="l00014"></a>00014 <span class="preprocessor">#include &lt;QDateTime&gt;</span>
-<a name="l00015"></a>00015 <span class="keyword">namespace </span>{
-<a name="l00016"></a><a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8">00016</a>     <span class="keyword">enum</span> <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8">EventTypes</a> {
-<a name="l00017"></a><a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b81eaee1f9d0b48419813139d049a55d38">00017</a>         <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b81eaee1f9d0b48419813139d049a55d38">StartPluginEventType</a> = QEvent::User+32,
-<a name="l00018"></a><a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8be0993b84b699fb078bec3eddf3b5be3">00018</a>         <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8be0993b84b699fb078bec3eddf3b5be3">StopPluginEventType</a>,
-<a name="l00019"></a><a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8d2a83a077e0f9f38276c994812e67412">00019</a>         <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8d2a83a077e0f9f38276c994812e67412">GetHWFrameCountEventType</a>,
-<a name="l00020"></a><a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b85ef88b6a2a2cbbbc8f74b56e19e6acbd">00020</a>         <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b85ef88b6a2a2cbbbc8f74b56e19e6acbd">GetFrameEventType</a>,
-<a name="l00021"></a><a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8da10a17c95d45f26eff881518171befc">00021</a>         <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8da10a17c95d45f26eff881518171befc">IsConsoleHiddenEventType</a>,
-<a name="l00022"></a><a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b87a0f2962ac462e19647f1f21573dbe51">00022</a>         <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b87a0f2962ac462e19647f1f21573dbe51">ConsoleHideEventType</a>,
-<a name="l00023"></a><a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8b06606f5289d2957898b2815076f4565">00023</a>         <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8b06606f5289d2957898b2815076f4565">ConsoleUnHideEventType</a>
+<a name="l00015"></a><a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html">00015</a> <span class="keyword">namespace </span>{
+<a name="l00016"></a><a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124">00016</a>     <span class="keyword">enum</span> <a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124">EventTypes</a> {
+<a name="l00017"></a><a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124deaadc50aab97df3248861244e4f50fb">00017</a>         <a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124deaadc50aab97df3248861244e4f50fb">StartPluginEventType</a> = QEvent::User+32,
+<a name="l00018"></a><a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b20133561242b06e5494db93a74f959ddffabb84655">00018</a>         <a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b20133561242b06e5494db93a74f959ddffabb84655">StopPluginEventType</a>,
+<a name="l00019"></a><a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b201335612470a9c3feaa285ce7d1f3fb6a879771b3">00019</a>         <a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b201335612470a9c3feaa285ce7d1f3fb6a879771b3">GetHWFrameCountEventType</a>,
+<a name="l00020"></a><a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124bb902d8e40c95efa23344c81b1bdd8d6">00020</a>         <a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124bb902d8e40c95efa23344c81b1bdd8d6">GetFrameEventType</a>,
+<a name="l00021"></a><a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124058180fcd6af8952da4dff71bbe5358e">00021</a>         <a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124058180fcd6af8952da4dff71bbe5358e">IsConsoleHiddenEventType</a>,
+<a name="l00022"></a><a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124eb1cd4e81f3bf023ed635cc804c3db9f">00022</a>         <a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124eb1cd4e81f3bf023ed635cc804c3db9f">ConsoleHideEventType</a>,
+<a name="l00023"></a><a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b20133561243b7f291cfd84f81ee3613a9cf7182b0a">00023</a>         <a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b20133561243b7f291cfd84f81ee3613a9cf7182b0a">ConsoleUnHideEventType</a>
 <a name="l00024"></a>00024     };
 <a name="l00025"></a>00025 
-<a name="l00026"></a>00026     <span class="keyword">struct </span>StartStopPluginEvent : <span class="keyword">public</span> QEvent
+<a name="l00026"></a><a class="code" href="../../d2/dd8/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1StartStopPluginEvent.html">00026</a>     <span class="keyword">struct </span><a class="code" href="../../d2/dd8/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1StartStopPluginEvent.html">StartStopPluginEvent</a> : <span class="keyword">public</span> QEvent
 <a name="l00027"></a>00027     {
-<a name="l00030"></a>00030         StartStopPluginEvent(<span class="keyword">const</span> QString &amp;<a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8a87f79b64677743f55350a25b90e50e">plugin</a>, <span class="keywordtype">bool</span> startUnpaused)
-<a name="l00031"></a>00031             : QEvent(static_cast&lt;QEvent::Type&gt;(<a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b81eaee1f9d0b48419813139d049a55d38">StartPluginEventType</a>)),  <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8a87f79b64677743f55350a25b90e50e">plugin</a>(plugin), <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8b3ab54ed3e81c69863d65e4e6c424a0">flag</a>(startUnpaused)  {}
+<a name="l00030"></a><a class="code" href="../../d2/dd8/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1StartStopPluginEvent.html#3f78675cf27e1a5f9be0590b66e8ede6">00030</a>         <a class="code" href="../../d2/dd8/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1StartStopPluginEvent.html">StartStopPluginEvent</a>(<span class="keyword">const</span> QString &amp;plugin, <span class="keywordtype">bool</span> startUnpaused)
+<a name="l00031"></a>00031             : QEvent(static_cast&lt;QEvent::Type&gt;(<a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124deaadc50aab97df3248861244e4f50fb">StartPluginEventType</a>)),  plugin(plugin), flag(startUnpaused)  {}
 <a name="l00032"></a>00032         
-<a name="l00035"></a>00035         StartStopPluginEvent(<span class="keywordtype">bool</span> doSave) 
-<a name="l00036"></a>00036             : QEvent(static_cast&lt;QEvent::Type&gt;(<a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8be0993b84b699fb078bec3eddf3b5be3">StopPluginEventType</a>)), <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8b3ab54ed3e81c69863d65e4e6c424a0">flag</a>(doSave) {}
+<a name="l00035"></a><a class="code" href="../../d2/dd8/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1StartStopPluginEvent.html#a7a9f85443a013ed43a42cc796fb07e6">00035</a>         <a class="code" href="../../d2/dd8/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1StartStopPluginEvent.html">StartStopPluginEvent</a>(<span class="keywordtype">bool</span> doSave) 
+<a name="l00036"></a>00036             : QEvent(static_cast&lt;QEvent::Type&gt;(<a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b20133561242b06e5494db93a74f959ddffabb84655">StopPluginEventType</a>)), flag(doSave) {}
 <a name="l00037"></a>00037         
-<a name="l00038"></a><a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8a87f79b64677743f55350a25b90e50e">00038</a>         QString plugin;
-<a name="l00039"></a><a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8b3ab54ed3e81c69863d65e4e6c424a0">00039</a>         <span class="keywordtype">bool</span> <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8b3ab54ed3e81c69863d65e4e6c424a0">flag</a>;    
+<a name="l00038"></a><a class="code" href="../../d2/dd8/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1StartStopPluginEvent.html#7b70f8a35a43bcdb996225e114260408">00038</a>         QString plugin;
+<a name="l00039"></a><a class="code" href="../../d2/dd8/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1StartStopPluginEvent.html#0dfc570ff74e27c74f88572d00887705">00039</a>         <span class="keywordtype">bool</span> flag;    
 <a name="l00040"></a>00040     };
 <a name="l00041"></a>00041     
-<a name="l00042"></a>00042     <span class="keyword">struct </span>GetSetData
+<a name="l00042"></a><a class="code" href="../../dc/d08/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetData.html">00042</a>     <span class="keyword">struct </span><a class="code" href="../../dc/d08/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetData.html">GetSetData</a>
 <a name="l00043"></a>00043     {
-<a name="l00044"></a><a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#3a4cf6bd65615c1698196454b6da16ed">00044</a>         QSemaphore <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#3a4cf6bd65615c1698196454b6da16ed">replySem</a>, <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8a73ffdb2b0a19e32cbcf50d42d56a2d">deleteOkSem</a>;
-<a name="l00045"></a><a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#06408c5048a66a2396b7a5590a5a5062">00045</a>         QVariant <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#06408c5048a66a2396b7a5590a5a5062">req</a>;
-<a name="l00046"></a><a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8fb55a0adf28c697598abefeaea0e769">00046</a>         QVariant <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8fb55a0adf28c697598abefeaea0e769">datum</a>;
+<a name="l00044"></a><a class="code" href="../../dc/d08/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetData.html#e40bd19478ff035c6310c0bea3a59542">00044</a>         QSemaphore replySem, deleteOkSem;
+<a name="l00045"></a><a class="code" href="../../dc/d08/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetData.html#5cd2dfe3e9adb89232680c6134e6c400">00045</a>         QVariant req;
+<a name="l00046"></a><a class="code" href="../../dc/d08/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetData.html#6411fd14e270a4873190cd904b17c1e1">00046</a>         QVariant datum;
 <a name="l00047"></a>00047 
-<a name="l00048"></a>00048         <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt; <span class="keywordtype">void</span> setReply(<span class="keyword">const</span> T &amp; t) {
-<a name="l00049"></a>00049             <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8fb55a0adf28c697598abefeaea0e769">datum</a>.setValue(t);
-<a name="l00050"></a>00050             <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#3a4cf6bd65615c1698196454b6da16ed">replySem</a>.release();
-<a name="l00051"></a>00051             <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8a73ffdb2b0a19e32cbcf50d42d56a2d">deleteOkSem</a>.acquire();
+<a name="l00048"></a><a class="code" href="../../dc/d08/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetData.html#bdba810f756c222b39da16f640087075">00048</a>         <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt; <span class="keywordtype">void</span> setReply(<span class="keyword">const</span> T &amp; t) {
+<a name="l00049"></a>00049             datum.setValue(t);
+<a name="l00050"></a>00050             replySem.release();
+<a name="l00051"></a>00051             deleteOkSem.acquire();
 <a name="l00052"></a>00052         }
-<a name="l00053"></a>00053         <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt; T getReply() {
+<a name="l00053"></a><a class="code" href="../../dc/d08/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetData.html#8cb5ad317c45fba6bbc025579cfc9173">00053</a>         <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt; T getReply() {
 <a name="l00054"></a>00054             T ret;
-<a name="l00055"></a>00055             <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#3a4cf6bd65615c1698196454b6da16ed">replySem</a>.acquire();
-<a name="l00056"></a>00056             ret = <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8fb55a0adf28c697598abefeaea0e769">datum</a>.value&lt;T&gt;();
-<a name="l00057"></a>00057             <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#8a73ffdb2b0a19e32cbcf50d42d56a2d">deleteOkSem</a>.release();
+<a name="l00055"></a>00055             replySem.acquire();
+<a name="l00056"></a>00056             ret = datum.value&lt;T&gt;();
+<a name="l00057"></a>00057             deleteOkSem.release();
 <a name="l00058"></a>00058             <span class="keywordflow">return</span> ret;
 <a name="l00059"></a>00059         }
 <a name="l00060"></a>00060 
 <a name="l00061"></a>00061     };
 <a name="l00062"></a>00062 
-<a name="l00063"></a>00063     <span class="keyword">struct </span>GetSetEvent : <span class="keyword">public</span> QEvent
+<a name="l00063"></a><a class="code" href="../../db/ddf/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetEvent.html">00063</a>     <span class="keyword">struct </span><a class="code" href="../../db/ddf/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetEvent.html">GetSetEvent</a> : <span class="keyword">public</span> QEvent
 <a name="l00064"></a>00064     {
-<a name="l00065"></a>00065         GetSetEvent(<span class="keywordtype">int</span> t) : QEvent(static_cast&lt;QEvent::Type&gt;(t)) {<a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#7b9ca536b8e83a725c00b2eb890d0037">d</a> = <span class="keyword">new</span> GetSetData; <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#b07c4c2ffe897cc0e6681dff132204d0">deleteData</a> = <span class="keyword">false</span>; }
-<a name="l00066"></a>00066         ~GetSetEvent() { <span class="keywordflow">if</span> (<a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#b07c4c2ffe897cc0e6681dff132204d0">deleteData</a>) <span class="keyword">delete</span> <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#7b9ca536b8e83a725c00b2eb890d0037">d</a>; <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#7b9ca536b8e83a725c00b2eb890d0037">d</a> = 0; }
+<a name="l00065"></a><a class="code" href="../../db/ddf/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetEvent.html#5fc9d1de4261dfcb576d98645e7ee118">00065</a>         <a class="code" href="../../db/ddf/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetEvent.html">GetSetEvent</a>(<span class="keywordtype">int</span> t) : QEvent(static_cast&lt;QEvent::Type&gt;(t)) {d = <span class="keyword">new</span> <a class="code" href="../../dc/d08/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetData.html">GetSetData</a>; deleteData = <span class="keyword">false</span>; }
+<a name="l00066"></a><a class="code" href="../../db/ddf/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetEvent.html#e5818a90212fc2c9e8863134e1a2a97f">00066</a>         ~<a class="code" href="../../db/ddf/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetEvent.html">GetSetEvent</a>() { <span class="keywordflow">if</span> (deleteData) <span class="keyword">delete</span> d; d = 0; }
 <a name="l00067"></a>00067 
-<a name="l00068"></a><a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#7b9ca536b8e83a725c00b2eb890d0037">00068</a>         GetSetData *<a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#7b9ca536b8e83a725c00b2eb890d0037">d</a>;
-<a name="l00069"></a><a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#b07c4c2ffe897cc0e6681dff132204d0">00069</a>         <span class="keywordtype">bool</span> <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#b07c4c2ffe897cc0e6681dff132204d0">deleteData</a>;
+<a name="l00068"></a><a class="code" href="../../db/ddf/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetEvent.html#ee8637237f20020f08fdb1ce101c8db8">00068</a>         <a class="code" href="../../dc/d08/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetData.html">GetSetData</a> *d;
+<a name="l00069"></a><a class="code" href="../../db/ddf/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetEvent.html#b10929fb9129d8e3448d8b579fda1738">00069</a>         <span class="keywordtype">bool</span> deleteData;
 <a name="l00070"></a>00070     };
 <a name="l00071"></a>00071 
-<a name="l00072"></a>00072     <span class="keyword">struct </span>GetHWFrameCountEvent : <span class="keyword">public</span> GetSetEvent
+<a name="l00072"></a><a class="code" href="../../de/dd8/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetHWFrameCountEvent.html">00072</a>     <span class="keyword">struct </span><a class="code" href="../../de/dd8/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetHWFrameCountEvent.html">GetHWFrameCountEvent</a> : <span class="keyword">public</span> <a class="code" href="../../db/ddf/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetEvent.html">GetSetEvent</a>
 <a name="l00073"></a>00073     {
-<a name="l00074"></a>00074         GetHWFrameCountEvent() : GetSetEvent(<a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8d2a83a077e0f9f38276c994812e67412">GetHWFrameCountEventType</a>) {}
+<a name="l00074"></a><a class="code" href="../../de/dd8/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetHWFrameCountEvent.html#1f91fabfdb3a943ae342b49977179ea1">00074</a>         <a class="code" href="../../de/dd8/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetHWFrameCountEvent.html">GetHWFrameCountEvent</a>() : <a class="code" href="../../db/ddf/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetEvent.html">GetSetEvent</a>(<a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b201335612470a9c3feaa285ce7d1f3fb6a879771b3">GetHWFrameCountEventType</a>) {}
 <a name="l00075"></a>00075     };
 <a name="l00076"></a>00076 
-<a name="l00077"></a>00077     <span class="keyword">struct </span>GetFrameEvent : <span class="keyword">public</span> GetSetEvent
+<a name="l00077"></a><a class="code" href="../../d7/d0d/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetFrameEvent.html">00077</a>     <span class="keyword">struct </span><a class="code" href="../../d7/d0d/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetFrameEvent.html">GetFrameEvent</a> : <span class="keyword">public</span> <a class="code" href="../../db/ddf/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetEvent.html">GetSetEvent</a>
 <a name="l00078"></a>00078     {
-<a name="l00079"></a>00079         GetFrameEvent(<span class="keywordtype">unsigned</span> framenum, <span class="keywordtype">int</span> datatype) : GetSetEvent(<a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b85ef88b6a2a2cbbbc8f74b56e19e6acbd">GetFrameEventType</a>) { <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#7b9ca536b8e83a725c00b2eb890d0037">d</a>-&gt;req.setValue(framenum); <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#7b9ca536b8e83a725c00b2eb890d0037">d</a>-&gt;datum.setValue(datatype); }
+<a name="l00079"></a><a class="code" href="../../d7/d0d/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetFrameEvent.html#a30a09df6f2cc090fef9b3bc624ab08e">00079</a>         <a class="code" href="../../d7/d0d/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetFrameEvent.html">GetFrameEvent</a>(<span class="keywordtype">unsigned</span> framenum, <span class="keywordtype">int</span> datatype) : <a class="code" href="../../db/ddf/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetEvent.html">GetSetEvent</a>(<a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124bb902d8e40c95efa23344c81b1bdd8d6">GetFrameEventType</a>) { d-&gt;req.setValue(framenum); d-&gt;datum.setValue(datatype); }
 <a name="l00080"></a>00080     };
 <a name="l00081"></a>00081 
-<a name="l00082"></a>00082     <span class="keyword">struct </span>IsConsoleHiddenEvent : <span class="keyword">public</span> GetSetEvent
+<a name="l00082"></a><a class="code" href="../../d0/dab/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1IsConsoleHiddenEvent.html">00082</a>     <span class="keyword">struct </span><a class="code" href="../../d0/dab/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1IsConsoleHiddenEvent.html">IsConsoleHiddenEvent</a> : <span class="keyword">public</span> <a class="code" href="../../db/ddf/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetEvent.html">GetSetEvent</a>
 <a name="l00083"></a>00083     {
-<a name="l00084"></a>00084         IsConsoleHiddenEvent() : GetSetEvent(<a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8da10a17c95d45f26eff881518171befc">IsConsoleHiddenEventType</a>) {}
+<a name="l00084"></a><a class="code" href="../../d0/dab/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1IsConsoleHiddenEvent.html#0675dee8221995b7edeea071cc9a195b">00084</a>         <a class="code" href="../../d0/dab/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1IsConsoleHiddenEvent.html">IsConsoleHiddenEvent</a>() : <a class="code" href="../../db/ddf/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1GetSetEvent.html">GetSetEvent</a>(<a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124058180fcd6af8952da4dff71bbe5358e">IsConsoleHiddenEventType</a>) {}
 <a name="l00085"></a>00085     };
 <a name="l00086"></a>00086 
-<a name="l00087"></a>00087     <span class="keyword">struct </span>ConsoleHideEvent : <span class="keyword">public</span> QEvent
+<a name="l00087"></a><a class="code" href="../../d7/d25/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1ConsoleHideEvent.html">00087</a>     <span class="keyword">struct </span><a class="code" href="../../d7/d25/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1ConsoleHideEvent.html">ConsoleHideEvent</a> : <span class="keyword">public</span> QEvent
 <a name="l00088"></a>00088     {
-<a name="l00089"></a>00089         ConsoleHideEvent() : QEvent(static_cast&lt;QEvent::Type&gt;(<a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b87a0f2962ac462e19647f1f21573dbe51">ConsoleHideEventType</a>)) {}
+<a name="l00089"></a><a class="code" href="../../d7/d25/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1ConsoleHideEvent.html#034ed9edc92e46adcff546e3936884bd">00089</a>         <a class="code" href="../../d7/d25/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1ConsoleHideEvent.html">ConsoleHideEvent</a>() : QEvent(static_cast&lt;QEvent::Type&gt;(<a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124eb1cd4e81f3bf023ed635cc804c3db9f">ConsoleHideEventType</a>)) {}
 <a name="l00090"></a>00090     };
 <a name="l00091"></a>00091 
-<a name="l00092"></a>00092     <span class="keyword">struct </span>ConsoleUnHideEvent : <span class="keyword">public</span> QEvent
+<a name="l00092"></a><a class="code" href="../../de/ddc/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1ConsoleUnHideEvent.html">00092</a>     <span class="keyword">struct </span><a class="code" href="../../de/ddc/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1ConsoleUnHideEvent.html">ConsoleUnHideEvent</a> : <span class="keyword">public</span> QEvent
 <a name="l00093"></a>00093     {
-<a name="l00094"></a>00094         ConsoleUnHideEvent() : QEvent(static_cast&lt;QEvent::Type&gt;(<a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8b06606f5289d2957898b2815076f4565">ConsoleUnHideEventType</a>)) {}
+<a name="l00094"></a><a class="code" href="../../de/ddc/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1ConsoleUnHideEvent.html#f65517ae338ba038a18a95484c18a40f">00094</a>         <a class="code" href="../../de/ddc/structanonymous__namespace_02ConnectionThread_8cpp_03_1_1ConsoleUnHideEvent.html">ConsoleUnHideEvent</a>() : QEvent(static_cast&lt;QEvent::Type&gt;(<a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b20133561243b7f291cfd84f81ee3613a9cf7182b0a">ConsoleUnHideEventType</a>)) {}
 <a name="l00095"></a>00095     };
 <a name="l00096"></a>00096 }
 <a name="l00097"></a>00097 
@@ -188,7 +188,7 @@
 <a name="l00174"></a>00174         }
 <a name="l00175"></a>00175     } <span class="keywordflow">else</span> <span class="keywordflow">if</span> (cmd == <span class="stringliteral">"GETHWFRAMENUM"</span>) {
 <a name="l00176"></a>00176         GetHWFrameCountEvent *e = <span class="keyword">new</span> GetHWFrameCountEvent();
-<a name="l00177"></a>00177         GetSetData *<a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#7b9ca536b8e83a725c00b2eb890d0037">d</a> = e-&gt;d;
+<a name="l00177"></a>00177         GetSetData *d = e-&gt;d;
 <a name="l00178"></a>00178         <a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>()-&gt;postEvent(<span class="keyword">this</span>, e);
 <a name="l00179"></a>00179         <span class="keywordtype">unsigned</span> hwfc = d-&gt;getReply&lt;<span class="keywordtype">unsigned</span>&gt;();
 <a name="l00180"></a>00180         <span class="keyword">delete</span> d;
@@ -391,7 +391,7 @@
 <a name="l00378"></a>00378     <span class="keywordtype">int</span> type = <span class="keyword">static_cast&lt;</span><span class="keywordtype">int</span><span class="keyword">&gt;</span>(<span class="keyword">event</span>-&gt;type());
 <a name="l00379"></a>00379     <span class="keywordflow">if</span> (watched == <span class="keyword">this</span>) {
 <a name="l00380"></a>00380         <span class="keywordflow">switch</span> (type) {
-<a name="l00381"></a>00381         <span class="keywordflow">case</span> <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b81eaee1f9d0b48419813139d049a55d38">StartPluginEventType</a>: {
+<a name="l00381"></a>00381         <span class="keywordflow">case</span> <a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124deaadc50aab97df3248861244e4f50fb">StartPluginEventType</a>: {
 <a name="l00382"></a>00382             <span class="comment">// Start a plugin received</span>
 <a name="l00383"></a>00383             StartStopPluginEvent *e = <span class="keyword">dynamic_cast&lt;</span>StartStopPluginEvent *<span class="keyword">&gt;</span>(event);
 <a name="l00384"></a>00384             <span class="keywordflow">if</span> (e) {
@@ -401,7 +401,7 @@
 <a name="l00388"></a>00388         }
 <a name="l00389"></a>00389             <span class="keywordflow">return</span> <span class="keyword">true</span>;
 <a name="l00390"></a>00390 
-<a name="l00391"></a>00391         <span class="keywordflow">case</span> <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8be0993b84b699fb078bec3eddf3b5be3">StopPluginEventType</a>: {
+<a name="l00391"></a>00391         <span class="keywordflow">case</span> <a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b20133561242b06e5494db93a74f959ddffabb84655">StopPluginEventType</a>: {
 <a name="l00392"></a>00392             <span class="comment">// Stop a plugin received</span>
 <a name="l00393"></a>00393             StartStopPluginEvent *e = <span class="keyword">dynamic_cast&lt;</span>StartStopPluginEvent *<span class="keyword">&gt;</span>(event);
 <a name="l00394"></a>00394             <span class="keywordflow">if</span> (e) {
@@ -411,14 +411,14 @@
 <a name="l00398"></a>00398         }
 <a name="l00399"></a>00399             <span class="keywordflow">return</span> <span class="keyword">true</span>;
 <a name="l00400"></a>00400 
-<a name="l00401"></a>00401         <span class="keywordflow">case</span> <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8d2a83a077e0f9f38276c994812e67412">GetHWFrameCountEventType</a>: {
+<a name="l00401"></a>00401         <span class="keywordflow">case</span> <a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b201335612470a9c3feaa285ce7d1f3fb6a879771b3">GetHWFrameCountEventType</a>: {
 <a name="l00402"></a>00402             GetSetEvent *e = <span class="keyword">dynamic_cast&lt;</span>GetSetEvent *<span class="keyword">&gt;</span>(event);
 <a name="l00403"></a>00403             <span class="keywordflow">if</span> (e) {
 <a name="l00404"></a>00404                 e-&gt;d-&gt;setReply(<a class="code" href="../../d2/daf/namespaceUtil.html#5303bb33f293cba9cd2a9eadcc46e058" title="retrieve the frame count from the GLX_SGI_video_sync ext">getHWFrameCount</a>());
 <a name="l00405"></a>00405             }
 <a name="l00406"></a>00406         }
 <a name="l00407"></a>00407             <span class="keywordflow">return</span> <span class="keyword">true</span>;
-<a name="l00408"></a>00408         <span class="keywordflow">case</span> <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b85ef88b6a2a2cbbbc8f74b56e19e6acbd">GetFrameEventType</a>: {
+<a name="l00408"></a>00408         <span class="keywordflow">case</span> <a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124bb902d8e40c95efa23344c81b1bdd8d6">GetFrameEventType</a>: {
 <a name="l00409"></a>00409             GetSetEvent *e = <span class="keyword">dynamic_cast&lt;</span>GetSetEvent *<span class="keyword">&gt;</span>(event);
 <a name="l00410"></a>00410             <span class="keywordflow">if</span> (e) {
 <a name="l00411"></a>00411                 <span class="keywordtype">unsigned</span> num = e-&gt;d-&gt;req.toUInt();
@@ -432,7 +432,7 @@
 <a name="l00419"></a>00419         }
 <a name="l00420"></a>00420             <span class="keywordflow">return</span> <span class="keyword">true</span>;
 <a name="l00421"></a>00421 
-<a name="l00422"></a>00422         <span class="keywordflow">case</span> <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8da10a17c95d45f26eff881518171befc">IsConsoleHiddenEventType</a>: {
+<a name="l00422"></a>00422         <span class="keywordflow">case</span> <a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124058180fcd6af8952da4dff71bbe5358e">IsConsoleHiddenEventType</a>: {
 <a name="l00423"></a>00423             GetSetEvent *e = <span class="keyword">dynamic_cast&lt;</span>GetSetEvent *<span class="keyword">&gt;</span>(event);
 <a name="l00424"></a>00424             <span class="keywordflow">if</span> (e &amp;&amp; <a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>() &amp;&amp; <a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>()-&gt;<a class="code" href="../../d5/d08/classStimApp.html#e467263c5a61b28b5246d6e85e2d1d25" title="Returns a pointer to the application-wide ConsoleWindow instance.">console</a>()) {
 <a name="l00425"></a>00425                 e-&gt;d-&gt;setReply(<a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>()-&gt;console()-&gt;isHidden());
@@ -440,12 +440,12 @@
 <a name="l00427"></a>00427         }
 <a name="l00428"></a>00428             <span class="keywordflow">return</span> <span class="keyword">true</span>;
 <a name="l00429"></a>00429 
-<a name="l00430"></a>00430         <span class="keywordflow">case</span> <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b87a0f2962ac462e19647f1f21573dbe51">ConsoleHideEventType</a>: 
+<a name="l00430"></a>00430         <span class="keywordflow">case</span> <a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b2013356124eb1cd4e81f3bf023ed635cc804c3db9f">ConsoleHideEventType</a>: 
 <a name="l00431"></a>00431             <span class="keywordflow">if</span> (<a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>() &amp;&amp; <a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>()-&gt;console() &amp;&amp; !<a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>()-&gt;console()-&gt;isHidden())
 <a name="l00432"></a>00432                 <a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>()-&gt;<a class="code" href="../../d5/d08/classStimApp.html#e467263c5a61b28b5246d6e85e2d1d25" title="Returns a pointer to the application-wide ConsoleWindow instance.">console</a>()-&gt;hide();
 <a name="l00433"></a>00433             <span class="keywordflow">return</span> <span class="keyword">true</span>;
 <a name="l00434"></a>00434 
-<a name="l00435"></a>00435         <span class="keywordflow">case</span> <a class="code" href="../../d0/d9d/ConnectionThread_8cpp.html#914d2da0ec9f0e22cd5e400bc1f968b8b06606f5289d2957898b2815076f4565">ConsoleUnHideEventType</a>: 
+<a name="l00435"></a>00435         <span class="keywordflow">case</span> <a class="code" href="../../d5/dbd/namespaceanonymous__namespace_02ConnectionThread_8cpp_03.html#49094a9478d0728656ec8b20133561243b7f291cfd84f81ee3613a9cf7182b0a">ConsoleUnHideEventType</a>: 
 <a name="l00436"></a>00436             <span class="keywordflow">if</span> (<a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>() &amp;&amp; <a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>()-&gt;console() &amp;&amp; <a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>()-&gt;console()-&gt;isHidden())
 <a name="l00437"></a>00437                 <a class="code" href="../../d2/daf/namespaceUtil.html#c0a2da61553e34ad735a51325f29ae37" title="Returns a pointer to the StimApp singleton instance.">stimApp</a>()-&gt;<a class="code" href="../../d5/d08/classStimApp.html#e467263c5a61b28b5246d6e85e2d1d25" title="Returns a pointer to the application-wide ConsoleWindow instance.">console</a>()-&gt;show();
 <a name="l00438"></a>00438             <span class="keywordflow">return</span> <span class="keyword">true</span>;
@@ -455,7 +455,7 @@
 <a name="l00442"></a>00442     <span class="keywordflow">return</span> QThread::eventFilter(watched, event);
 <a name="l00443"></a>00443 }
 <a name="l00444"></a>00444     
-</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Wed Jul 9 23:09:12 2008 for StimulateOpenGL_II by&nbsp;
+</pre></div><hr size="1"><address style="text-align: right;"><small>Generated on Sun Jun 21 17:53:57 2009 for StimulateOpenGL_II by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="../../doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.5.4 </small></address>
 </body>
