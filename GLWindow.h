@@ -26,7 +26,7 @@ class GLWindow : public QGLWidget
      friend class StimPlugin;
      friend class StimApp;
 
-     GLWindow(unsigned width = 800, unsigned height = 600);
+     GLWindow(unsigned width = 800, unsigned height = 600, bool frameless = false);
 
 public:
      ~GLWindow();

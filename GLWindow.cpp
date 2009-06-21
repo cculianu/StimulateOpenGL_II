@@ -21,9 +21,15 @@
 
 #define WINDOW_TITLE "StimulateOpenGL II - GLWindow"
 
-GLWindow::GLWindow(unsigned w, unsigned h)
-    : QGLWidget((QWidget *)0), running(0), paused(false), tooFastWarned(false), lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.)
+GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
+    : QGLWidget((QWidget *)0), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.)
 {
+    // force us to have out own display context on ms windows -- hopefully this fixes the double-frame bug in 'A' mode
+    Qt::WindowFlags wf = windowFlags();
+    wf |= Qt::MSWindowsOwnDC;
+    if (frameless) wf |= Qt::FramelessWindowHint;
+    setWindowFlags(wf);
+
     QSize s(w, h);
     setMaximumSize(s);
     setMinimumSize(s);
@@ -46,7 +52,12 @@ GLWindow::GLWindow(unsigned w, unsigned h)
     setWindowTitle(WINDOW_TITLE);
 }
 
-GLWindow::~GLWindow() { if (running) running->stop(); }
+GLWindow::~GLWindow() { 
+    if (running) running->stop(); 
+    // be sure to remove all plugins while we are still a valid GLWindow instance, to avoid a crash bug
+    while (pluginsList.count())
+        delete pluginsList.front(); // StimPlugin * should auto-remove itself from list so list will shrink..
+}
 
 void GLWindow::closeEvent(QCloseEvent *evt)
 {
@@ -83,7 +94,7 @@ void GLWindow::initializeGL()
     glDisable( GL_DITHER );
     glDrawBuffer( GL_BACK_LEFT );
 
-    glClearColor( 0.5, 0.5, 0.5, 0.0 ); //set the clearing color to be gray
+    glClearColor( 0.5, 0.5, 0.5, 1.0 ); //set the clearing color to be gray
     glShadeModel( GL_FLAT );
     glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
 }
@@ -270,7 +281,8 @@ void GLWindow::keyPressEvent(QKeyEvent *event)
         break;
     case 'L':
     case 'l':
-        stimApp()->loadStim();
+        //stimApp()->loadStim();
+        QTimer::singleShot(1, stimApp(), SLOT(loadStim())); // ends up possibly deleting this object, so we don't want to run this from this event handler, thus we'll enqueue it.
         break;
     case 'd':
     case 'D':
@@ -288,7 +300,8 @@ void GLWindow::keyPressEvent(QKeyEvent *event)
         break;
     case 'a':
     case 'A':
-        stimApp()->alignGLWindow();
+        //stimApp()->alignGLWindow();
+        QTimer::singleShot(1, stimApp(), SLOT(alignGLWindow())); // ends up deleting this object, so we don't want to run this from this event handler, thus we'll enqueue it.
         break;
 
     case Qt::Key_Escape: 

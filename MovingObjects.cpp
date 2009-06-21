@@ -35,8 +35,9 @@ bool MovingObjects::init()
 	// units for target info; 0=pixels, 1=degrees (1=> convert to pixels via mon_*_cm info)
 	if(!getParam( "objUnits" , objUnits))	     objUnits = 0;
 	if(!getParam( "objcolor" , objcolor))	     objcolor = 0;
-	if(!getParam( "bgcolor" , bgcolor))	     bgcolor = 1;
-	glClearColor(bgcolor,bgcolor,bgcolor,0.0 );
+	if(!getParam( "bgcolor" , bgcolor))	     bgcolor = 1.;
+	glClearColor(bgcolor,bgcolor,bgcolor,1.0);
+	glColor4f(bgcolor,bgcolor,bgcolor,1.0);
 
 	// use these for setting angular size and speed
 	if(!getParam( "mon_x_cm" , mon_x_cm))	     mon_x_cm = 24.2f;
@@ -74,12 +75,12 @@ bool MovingObjects::init()
 	// set up blending to allow individual RGB target motion frame control
 	// blending factor depends on bgcolor...
 	//NOTE: this may only be correct for bgcolor = [0 or 1].
-	if (quad_fps) {
-		glEnable(GL_BLEND);
-		if (bgcolor >  0.5)
-			glBlendFunc(GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR);
-		else glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
-	}
+	/*if (quad_fps) {
+            glEnable(GL_BLEND);
+            if (bgcolor >  0.5)
+                glBlendFunc(GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR);
+            else glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
+        }*/
         initDisplayLists();
         return true;
 }
@@ -114,7 +115,7 @@ void MovingObjects::cleanupDisplayLists()
 
 void MovingObjects::cleanup()
 {
-    glDisable(GL_BLEND);
+    //glDisable(GL_BLEND);
     cleanupDisplayLists();
 }
 
@@ -142,6 +143,8 @@ void MovingObjects::drawFrame()
 	// set bg
 	//glColor3f(bgcolor,bgcolor,bgcolor);
 	//glRecti(0,0,mon_x_pix,mon_y_pix);
+        // for some reason glClearColor() goes way, FIXME -- for now workaround is to re-set it each frame, which is OK since this plugin is lightweight! 
+        glClearColor(bgcolor, bgcolor, bgcolor, 1.0);
 	glClear( GL_COLOR_BUFFER_BIT ); 
 
 	// local target jitter
@@ -150,15 +153,22 @@ void MovingObjects::drawFrame()
 		jittery = (ran1Gen()*jittermag - jittermag/2);
 	}
 	else jitterx = jittery = 0;
+        
+        if (quad_fps) {
+            glEnable(GL_BLEND);
+            if (bgcolor >  0.5)
+                glBlendFunc(GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR);
+            else glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
+        }
 
 	for (int k=0; k<(quad_fps ? 3:1); k++) {
             if( moveFlag ){
 			
                 // adjust for wall bounce
-                if ((x + vx + jitterx > mon_x_pix) |  (x + vx + jitterx < 0)) {
+                if ((x + vx + jitterx > mon_x_pix) ||  (x + vx + jitterx < 0)) {
                     vx = -vx;
                 }
-                if ((y + vy + jittery > mon_y_pix) | (y + vy + jittery < 0)) {
+                if ((y + vy + jittery > mon_y_pix) || (y + vy + jittery < 0)) {
                     vy = -vy; 
                 }
                 // initialize position iff k==0 and frameNum is a multiple of tframes
@@ -211,7 +221,6 @@ void MovingObjects::drawFrame()
             // draw stim if out of delay period
             if ((int(frameNum)%tframes - delay) >= 0) {
                 if (quad_fps)
-                    //glColor4f((k == 2 ? objcolor:bgcolor), (k == 1 ? objcolor:bgcolor), (k == 0 ? objcolor:bgcolor),0.5); 
                     glColor3f((k == 2 ? objcolor:bgcolor), (k == 1 ? objcolor:bgcolor), (k == 0 ? objcolor:bgcolor)); 
                 else  glColor3f(objcolor,objcolor,objcolor);
                 glMatrixMode(GL_MODELVIEW);
@@ -238,4 +247,12 @@ void MovingObjects::drawFrame()
 		glColor4f(ftrackbox_c, ftrackbox_c, ftrackbox_c, 1);
 		glRecti(ftrackbox_x, ftrackbox_y, ftrackbox_x+ftrackbox_w, ftrackbox_y+ftrackbox_w);
 	}
+        
+        if (quad_fps) {
+            if (bgcolor >  0.5)
+                glBlendFunc(GL_DST_COLOR,GL_ONE);
+            else glBlendFunc(GL_SRC_COLOR,GL_ONE);
+            glDisable(GL_BLEND);
+        }
+
 }

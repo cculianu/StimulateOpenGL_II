@@ -29,6 +29,8 @@
 #include "StimGL_LeoDAQGL_Integration.h"
 #include "ui_LeoDAQGLIntegration.h"
 
+#define DEFAULT_WIN_SIZE QSize(800,600)
+
 Q_DECLARE_METATYPE(unsigned);
 
 namespace {
@@ -66,7 +68,7 @@ namespace {
 StimApp * StimApp::singleton = 0;
 
 StimApp::StimApp(int & argc, char ** argv)
-    : QApplication(argc, argv, true), debug(false), initializing(true), server(0), nLinesInLog(0), nLinesInLogMax(1000)
+    : QApplication(argc, argv, true), consoleWindow(0), glWindow(0), glWinHasFrame(true), debug(false), initializing(true), server(0), nLinesInLog(0), nLinesInLogMax(1000), glWinSize(DEFAULT_WIN_SIZE) /* default plugin size */
 {
     if (singleton) {
         QMessageBox::critical(0, "Invariant Violation", "Only 1 instance of StimApp allowed per application!");
@@ -87,13 +89,11 @@ StimApp::StimApp(int & argc, char ** argv)
 
     Log() << "Application started";
 
-    glWindow = new GLWindow(800, 600);    
     consoleWindow->installEventFilter(this);
     consoleWindow->textEdit()->installEventFilter(this);
 
-    glWindow->move(0,0);
-    
-    glWindow->show();
+    createGLWindow(false);
+
     getHWFrameCount(); // forces error message to print once if frame count func is not found
     consoleWindow->setWindowTitle("StimulateOpenGL II");
     consoleWindow->resize(800, 300);
@@ -107,6 +107,7 @@ StimApp::StimApp(int & argc, char ** argv)
     if (getNProcessors() > 2)
         setProcessAffinityMask(0x2|0x4); // set it to core 2 and core 3
     
+
     setRTPriority();
     setVSyncMode();
 
@@ -127,6 +128,16 @@ StimApp::StimApp(int & argc, char ** argv)
     Connect(timer, SIGNAL(timeout()), this, SLOT(updateStatusBar()));
     timer->setSingleShot(false);
     timer->start(247); // update status bar every 247ms.. i like this non-round-numbre.. ;)
+}
+
+void StimApp::createGLWindow(bool initPlugs)
+{
+    glWindow = new GLWindow(glWinSize.width(), glWinSize.height(), !glWinHasFrame);
+    glWindow->move(0,0);
+    
+    glWindow->show();
+
+    if (initPlugs) glWindow->initPlugins();
 }
 
 #ifndef Q_OS_WIN
@@ -440,6 +451,26 @@ void StimApp::loadStim()
         }
         tsparams.flush();
         params.fromString(paramsBuf);
+
+        {
+            // custom window size handling: mon_x_pix and mon_y_pix
+            QSize desiredSize(DEFAULT_WIN_SIZE);
+            if (params.contains("mon_x_pix")) 
+                desiredSize.setWidth(params["mon_x_pix"].toUInt());
+            if (params.contains("mon_y_pix")) 
+                desiredSize.setHeight(params["mon_y_pix"].toUInt());
+            
+            if (desiredSize != glWinSize && !desiredSize.isEmpty()) {
+                Log() << "GLWindow size changed to: " << desiredSize.width() << "x" << desiredSize.height();
+                QString pname = p->name();
+                // need to (re)create the gl window with the desired size!
+                delete glWindow;
+                glWinSize = desiredSize;
+                createGLWindow();
+                p = pfound = glWindow->pluginFind(pname);
+            }
+        }
+
         QFileInfo fi(lastFile);
         Log() << fi.fileName() << " loaded";
         p->setParams(params);       
@@ -547,6 +578,7 @@ void StimApp::hideUnhideConsole()
 
 void StimApp::alignGLWindow()
 {
+    /*
     if (glWindow) {
         if (!savedGeometry.isEmpty()) {
             glWindow->restoreGeometry(savedGeometry);
@@ -564,6 +596,15 @@ void StimApp::alignGLWindow()
             savedGeometry = glWindow->saveGeometry();
             glWindow->move(screenRect.x()-xdelta, screenRect.y()-ydelta);
             Log() << "Aligned GL window to monitor 0,0";
+        }
+        }*/
+    if (glWindow) {
+        if (glWindow->runningPlugin()) {
+            Warning() << "Align of GLWindow not possible while a plugin is loaded.  Please unload the current Stim Plugin then try to align again.";
+        } else {
+            delete glWindow;
+            glWinHasFrame = !glWinHasFrame;
+            createGLWindow();
         }
     }
 }

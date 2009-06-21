@@ -29,7 +29,7 @@
 #include <QColor>
 #include <QMutex>
 #include <QMutexLocker>
-#include <QByteArray>
+#include <QSize>
 #include "Util.h"
 class QTextEdit;
 class ConsoleWindow;
@@ -149,12 +149,12 @@ private:
     void saveSettings();
     void initPlugins();
     void createAppIcon();
+    void createGLWindow(bool initPlugins = true);
 
     mutable QMutex mut; ///< used to lock outDir param for now
     ConsoleWindow *consoleWindow;
     GLWindow *glWindow;
-    QByteArray savedGeometry; //< saved window geometry for glWindow above
-    bool debug;
+    bool glWinHasFrame, debug;
     QString lastFile;
     volatile bool initializing;
     QColor defaultLogColor;
@@ -165,6 +165,7 @@ private:
 #endif
     static StimApp *singleton;
     unsigned nLinesInLog, nLinesInLogMax;
+    QSize glWinSize;
 };
 
 #endif
