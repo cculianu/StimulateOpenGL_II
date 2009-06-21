@@ -22,14 +22,8 @@
 #define WINDOW_TITLE "StimulateOpenGL II - GLWindow"
 
 GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
-    : QGLWidget((QWidget *)0), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.)
+: QGLWidget((QWidget *)0,0,static_cast<Qt::WindowFlags>(Qt::MSWindowsOwnDC|(frameless ? Qt::FramelessWindowHint : 0))), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.)
 {
-    // force us to have out own display context on ms windows -- hopefully this fixes the double-frame bug in 'A' mode
-    Qt::WindowFlags wf = windowFlags();
-    wf |= Qt::MSWindowsOwnDC;
-    if (frameless) wf |= Qt::FramelessWindowHint;
-    setWindowFlags(wf);
-
     QSize s(w, h);
     setMaximumSize(s);
     setMinimumSize(s);
@@ -305,7 +299,9 @@ void GLWindow::keyPressEvent(QKeyEvent *event)
         break;
 
     case Qt::Key_Escape: 
-        stimApp()->unloadStim();
+        //stimApp()->unloadStim();
+        QTimer::singleShot(1, stimApp(), SLOT(unloadStim())); // may end up possibly deleting this object?
+
         break;
     }
 }
