@@ -118,11 +118,14 @@ StimApp::StimApp(int & argc, char ** argv)
 
     createAppIcon();
 
-#ifdef Q_OS_WIN
-    initializing = false;
-    Log() << "Application initialized";    
-#else
-    calibrateRefresh();
+#ifndef Q_OS_WIN
+    if (getenv("NOCALIB")) {
+#endif
+        initializing = false;
+        Log() << "Application initialized";    
+#ifndef Q_OS_WIN
+    } else
+        calibrateRefresh();
 #endif
 
     QTimer *timer = new QTimer(this);
