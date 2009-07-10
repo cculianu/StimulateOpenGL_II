@@ -593,6 +593,7 @@ void StimApp::alignGLWindow()
             delete glWindow;
             glWinHasFrame = !glWinHasFrame;
             createGLWindow();
+            glWindow->aMode = !glWinHasFrame; // 'A' mode if we lack a frame
             glWindow->move(screenRect.x(), screenRect.y());
             glWindow->show();
         }

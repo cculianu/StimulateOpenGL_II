@@ -1,3 +1,4 @@
+#define GL_GLEXT_PROTOTYPES
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
@@ -11,8 +12,12 @@
 #endif
 #ifdef Q_WS_MACX
 #  include <gl.h>
+#  include <glext.h>
 #else
 #  include <GL/gl.h>
+#  ifndef Q_OS_WIN
+#    include <GL/glext.h>
+#  endif
 #endif
 #include <math.h>
 #include <QTimer>
@@ -22,7 +27,7 @@
 #define WINDOW_TITLE "StimulateOpenGL II - GLWindow"
 
 GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
-: QGLWidget((QWidget *)0,0,static_cast<Qt::WindowFlags>(Qt::MSWindowsOwnDC|(frameless ? Qt::FramelessWindowHint : 0))), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.)
+    : QGLWidget((QWidget *)0,0,static_cast<Qt::WindowFlags>(Qt::MSWindowsOwnDC|(frameless ? Qt::FramelessWindowHint : 0))), aMode(false), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.)
 {
     QSize s(w, h);
     setMaximumSize(s);
@@ -103,7 +108,6 @@ void GLWindow::resizeGL(int w, int h)
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity();
     gluOrtho2D( 0.0, (GLdouble)w, 0.0, (GLdouble) h );
-
 }
 
 // draw each frame
@@ -174,7 +178,11 @@ void GLWindow::paintGL()
     tLastLastFrame = tLastFrame;
     tLastFrame = tThisFrame;
 
-    swapBuffers();// should wait for vsync...   
+    if (paused && aMode) {
+        // don't swap buffers here to avoid frame ghosts in 'A' Mode on Windows.. We get frame ghosts in Windows in 'A' mode when paused because we didn't draw a new frame if paused, and so swapping the buffers causes previous frames to appear onscreen
+    } else {
+        swapBuffers();// should wait for vsync...   
+    }
 
 #ifdef Q_OS_WIN
     //timer->start(timerpd);     

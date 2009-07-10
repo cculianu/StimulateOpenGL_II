@@ -43,6 +43,10 @@ public:
      /// Returns a list of all the plugin names that are currently loaded (but not necessarily running).
      QList<QString> plugins() const;
 
+
+     /// Iff true, then the GLWindow is in 'a' mode, that is, fullscreen
+     volatile bool aMode;
+
 public slots:
     /// Toggles the paused/unpaused state of the plugin execution engine.
     void pauseUnpause();
@@ -92,6 +96,8 @@ private:
      bool paused, tooFastWarned;
      unsigned lastHWFC; ///< last hardware frame count, only iff platform has an accurate hwfc
      double tThisFrame, tLastFrame, tLastLastFrame;
+
+     
 };
 
 #endif
