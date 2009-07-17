@@ -413,6 +413,7 @@ volatile int ReentrancyPreventer::ct = 0;
 
 void StimApp::loadStim()
 {
+    unloadStim();
     ReentrancyPreventer rp; if (!rp) return;
 
     QString lf;
