@@ -159,6 +159,8 @@ void GLWindow::paintGL()
         Warning() << "Dropped frame " << getHWFrameCount();
     }
                
+    bool doBufSwap = !aMode;
+
     if (!paused) {
         // NB: don't clear here, let the plugin do clearing as an optimization
         // glClear( GL_COLOR_BUFFER_BIT );
@@ -172,16 +174,18 @@ void GLWindow::paintGL()
             running->drawFrame();
             // NB: running ptr may be made null if drawFrame() called stop()
             if (running) ++running->frameNum;
+            doBufSwap = true;
         }
     }
 
     tLastLastFrame = tLastFrame;
     tLastFrame = tThisFrame;
 
-    if (paused && aMode) {
-        // don't swap buffers here to avoid frame ghosts in 'A' Mode on Windows.. We get frame ghosts in Windows in 'A' mode when paused because we didn't draw a new frame if paused, and so swapping the buffers causes previous frames to appear onscreen
-    } else {
+    if (doBufSwap) {// doBufSwap is normally true either if we don't have aMode or if we have a plugin and it is running and not paused
+        
         swapBuffers();// should wait for vsync...   
+    } else {
+        // don't swap buffers here to avoid frame ghosts in 'A' Mode on Windows.. We get frame ghosts in Windows in 'A' mode when paused or not running because we didn't draw a new frame if paused, and so swapping the buffers causes previous frames to appear onscreen
     }
 
 #ifdef Q_OS_WIN
@@ -320,7 +324,7 @@ void GLWindow::pauseUnpause()
     paused = !paused;
     Log() << (paused ? "Paused" : "Unpaused");
     if (!paused && !running->frameNum && running->needNotifyStart) 
-        running->notifySpikeGLAboutStart();    
+        running->notifySpikeGLAboutStart();  
 }
 
 QList<QString> GLWindow::plugins() const
