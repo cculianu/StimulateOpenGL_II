@@ -175,6 +175,9 @@ void GLWindow::paintGL()
             // NB: running ptr may be made null if drawFrame() called stop()
             if (running) ++running->frameNum;
             doBufSwap = true;
+        }  else {
+            glClear( GL_COLOR_BUFFER_BIT );
+            doBufSwap = true;
         }
     }
 

@@ -496,7 +496,7 @@ void StimApp::unloadStim()
             if (p != glWindow->runningPlugin())
                 QMessageBox::information(0, "Already unloaded", 
                                          "Plugin already unloaded in the meantime!");
-            else if (p->getFrameNum() > -1) {
+            else if (/*p->getFrameNum() > -1*/true) {
                 bool doSave = 0; //QMessageBox::question(0, "Save data?", QString("Save data for '") + p->name() + "'?", QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes;
                 if (p != glWindow->runningPlugin()) {
                     QMessageBox::information(0, "Already unloaded", 
