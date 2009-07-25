@@ -179,6 +179,9 @@ void GLWindow::paintGL()
             glClear( GL_COLOR_BUFFER_BIT );
             doBufSwap = true;
         }
+    } else if (running && running->getFrameNum() < 0) {
+        glClear( GL_COLOR_BUFFER_BIT );
+        doBufSwap = true;
     }
 
     tLastLastFrame = tLastFrame;
