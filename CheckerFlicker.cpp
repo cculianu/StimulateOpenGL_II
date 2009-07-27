@@ -641,7 +641,12 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
 
 void CheckerFlicker::drawFrame()
 {
-    if (!initted) return;
+        if (!initted) {
+            glClearColor(meanintensity, meanintensity, meanintensity, 1.0);
+            glClear( GL_COLOR_BUFFER_BIT );
+            return;
+        }
+
 	int framestate = (frameNum%2 == 0);
 
         // using framebuffer objects.. the fastest but not as portable 
@@ -661,7 +666,7 @@ void CheckerFlicker::drawFrame()
             //glBlendColor(0., 0., 0., contrast);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         } else {
-            glClearColor(meanintensity, meanintensity, meanintensity, 0.);
+            glClearColor(meanintensity, meanintensity, meanintensity, 1.);
             glClear(GL_COLOR_BUFFER_BIT);
         }
         
