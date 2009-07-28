@@ -175,11 +175,12 @@ void GLWindow::paintGL()
             // NB: running ptr may be made null if drawFrame() called stop()
             if (running) ++running->frameNum;
             doBufSwap = true;
-        }  else {
-            glClear( GL_COLOR_BUFFER_BIT );
-            doBufSwap = true;
         }
-    } else if (running && running->getFrameNum() < 0) {
+    }
+    if (!running /* if we aren't running, always clear!*/
+        || (running && running->getFrameNum() < 0) ) /* paused, before we drew anything */
+    { 
+        glClearColor(.5,.5,.5,1.0);
         glClear( GL_COLOR_BUFFER_BIT );
         doBufSwap = true;
     }
