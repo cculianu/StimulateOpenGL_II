@@ -47,7 +47,6 @@ class CheckerFlicker : public StimPlugin
     unsigned fbo;       ///< iff nonzero, the number of framebuffer objects to use for prerendering -- this is faster than `prerender' but not always supported?
     int ifmt, fmt, type; ///< for glTexImage2D() call..
     int nConsecSkips;
-    bool initted;
     // Note only one of display_lists, prerender, or fbo may be active above
 
     GLuint *fbos, *texs; ///< array of fbo object id's and the texture ids iff fbo is nonzero

@@ -383,7 +383,7 @@ bool CheckerFlicker::init()
         Log() << "Pregenerating gaussian color table of size " << colortable << ".. (please be patient)";
         Status() << "Generating gaussian color table ...";
         stimApp()->console()->update(); // ensure message is printed
-        stimApp()->processEvents(QEventLoop::ExcludeUserInputEvents); // ensure message is printed
+        //stimApp()->processEvents(QEventLoop::ExcludeUserInputEvents); // ensure message is printed
         genGaussColors();
         Log() << "Generated " << gaussColors.size() << " colors in " << tim.elapsed()/1000.0 << " secs";
         
@@ -393,6 +393,7 @@ bool CheckerFlicker::init()
             Error() << "*FBO MODE IS REQUIRED FOR THIS PLUGIN TO WORK*";
             return false;
         }        
+        frameNum = 0; // reset frame num!
         initted = true;
 	return true;
 }
@@ -645,9 +646,9 @@ void CheckerFlicker::drawFrame()
             glClearColor(meanintensity, meanintensity, meanintensity, 1.0);
             glClear( GL_COLOR_BUFFER_BIT );
             return;
-        }
+        } 
 
-	int framestate = (frameNum%2 == 0);
+	const float framestate = ((frameNum%2) == 0) ? 1.f : 0.f;
 
         // using framebuffer objects.. the fastest but not as portable 
         // method
@@ -687,14 +688,10 @@ void CheckerFlicker::drawFrame()
 
 	// draw frame tracking flicker box at bottom of grid
 	// but not for full-field stim
-	if ((framestate) && (Nx > 1) && (Ny > 1)){
+	if ((framestate > 0.f) && (Nx > 1) && (Ny > 1)){
 		glColor3f(framestate, framestate, framestate);
 		glRecti(bx, by, bx+bw, by+bw);
 	}
-
-	//if(framestate) pulse = true; // set an event marker on every second frame
-        //	else pulse = false;
-
 }
 
 

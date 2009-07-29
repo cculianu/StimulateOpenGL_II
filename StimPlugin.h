@@ -177,6 +177,7 @@ protected:
 
     GLWindow *parent;
 
+    volatile bool initted;
     unsigned frameNum; ///< starts at 0 and gets incremented for each frame (each time drawFrame() is called)
     double fps, fpsAvg, fpsMin, fpsMax;
     double cycleTimeLeft; ///< the number of seconds left in this cycle -- updated by glWindow before calling afterVSync

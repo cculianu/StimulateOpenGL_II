@@ -10,6 +10,7 @@ StimPlugin::StimPlugin(const QString &name)
     : QObject(StimApp::instance()->glWin()), parent(StimApp::instance()->glWin()), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0)
 {
     needNotifyStart = true;
+    initted = false;
     frameNum = 0x7fffffff;
     setObjectName(name);
     parent->pluginCreated(this);    
@@ -59,10 +60,12 @@ void StimPlugin::stop(bool doSave, bool useGui)
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     frameNum = 0;
+    initted = false;
 }
 
 void StimPlugin::start(bool startUnpaused)
 {
+    initted = false;
     parent->pluginStarted(this);
 
     // Notify LeoDAQGL via a socket.. if possible..
@@ -94,7 +97,7 @@ void StimPlugin::start(bool startUnpaused)
     if (!missedFrameTimes.capacity()) missedFrameTimes.reserve(4096);
     customStatusBarString = "";
     if ( !startUnpaused ) parent->pauseUnpause();
-    if (!init()) { 
+    if (!(initted = init())) { 
         stop(); 
         Error() << "Plugin " << name() << " failed to initialize."; 
         return; 

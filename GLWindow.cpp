@@ -165,7 +165,7 @@ void GLWindow::paintGL()
         // NB: don't clear here, let the plugin do clearing as an optimization
         // glClear( GL_COLOR_BUFFER_BIT );
 
-        if (running) {
+        if (running && running->initted) {
             if (tooSlow) 
                 // indicate the frame was skipped
                 running->putMissedFrame(static_cast<unsigned>((tThisFrame-tLastFrame)*1e3));
