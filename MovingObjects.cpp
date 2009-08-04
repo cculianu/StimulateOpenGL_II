@@ -19,7 +19,7 @@ bool MovingObjects::init()
 
 	// set default parameters
 	// basic target attributes
-        if (!getParam("objType", objType))           objType = "box"; // possible types are box and circle
+    if (!getParam("objType", objType))           objType = "box"; // possible types are box and circle
 	if(!getParam( "objLen" , objLen))            objLen = 8; // diameter
 	if(!getParam( "objVelx" , objVelx))          objVelx = 4;
 	if(!getParam( "objVely" , objVely))	     objVely = 4;
@@ -64,7 +64,6 @@ bool MovingObjects::init()
 	if(!getParam( "ftrackbox_x" , ftrackbox_x))  ftrackbox_x = 0;
 	if(!getParam( "ftrackbox_y" , ftrackbox_y))  ftrackbox_y = 10;
 	if(!getParam( "ftrackbox_w" , ftrackbox_w))  ftrackbox_w = 40;
-	if(!getParam( "ftrackbox_c" , ftrackbox_c))  ftrackbox_c = ceil(1 - bgcolor);
 
 	// this increases the frame rate by encoding each RGB as 3 separate frames
 	// generallty used w/ DLP projector w/ removed color wheel, in which case
@@ -243,11 +242,11 @@ void MovingObjects::drawFrame()
 		}
 
 	// draw frame tracking flicker box at bottom of grid
-	if (framestate) {
-		glColor4f(ftrackbox_c, ftrackbox_c, ftrackbox_c, 1);
-		glRecti(ftrackbox_x, ftrackbox_y, ftrackbox_x+ftrackbox_w, ftrackbox_y+ftrackbox_w);
-	}
-        
+	if (framestate)
+		glColor4f(1, 1, 1, 1);
+	else glColor4f(0, 0, 0, 1);
+ 	glRecti(ftrackbox_x, ftrackbox_y, ftrackbox_x+ftrackbox_w, ftrackbox_y+ftrackbox_w);
+       
         if (quad_fps) {
             if (bgcolor >  0.5)
                 glBlendFunc(GL_DST_COLOR,GL_ONE);

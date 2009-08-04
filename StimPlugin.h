@@ -175,6 +175,13 @@ protected:
     /// and not actually drawing to screen. 
     virtual void afterVSync(bool isSimulated = false);
 
+	/// \brief Called during plugin start to ask the plugin how much of a delay it needs before it is considered initialized.
+	///
+	/// Reimplent this in your plugin if you wish to introduce a pre-delay before a plugin is considered 'initialized'
+	/// CheckerFlicker makes use of this because it is buggy if run right after init (frame doubling bug in A mode).
+	/// Return the delay you wish for your plugin, in milliseconds.  Default implementation returns 0.
+	virtual unsigned initDelay(void);
+
     GLWindow *parent;
 
     volatile bool initted;
@@ -247,6 +254,10 @@ private:
     /// file.  This is called for you immediately after your save() method, 
     /// so don't call it yourself (not that you can anyway, it's private).
     void writeGeneralInfo();
+
+private slots:
+	/// Sets initted = true, calls LeoDAQGL notify
+	void initDone();
 
 };
 

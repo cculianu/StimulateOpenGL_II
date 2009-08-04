@@ -4,6 +4,7 @@
 #include <QMessageBox>
 #include <QDir>
 #include <QGLContext>
+#include <QTimer>
 #include "StimGL_LeoDAQGL_Integration.h"
 
 StimPlugin::StimPlugin(const QString &name)
@@ -66,17 +67,8 @@ void StimPlugin::stop(bool doSave, bool useGui)
 void StimPlugin::start(bool startUnpaused)
 {
     initted = false;
-    parent->pluginStarted(this);
 
-    // Notify LeoDAQGL via a socket.. if possible..
-    needNotifyStart = false;
-    if (stimApp()->leoDAQGLNotifyParams.enabled) {
-        if (startUnpaused) {
-            notifySpikeGLAboutStart();
-        } else {
-            needNotifyStart = true;
-        }
-    }
+    parent->pluginStarted(this);
 
     emit started();
     
@@ -97,10 +89,32 @@ void StimPlugin::start(bool startUnpaused)
     if (!missedFrameTimes.capacity()) missedFrameTimes.reserve(4096);
     customStatusBarString = "";
     if ( !startUnpaused ) parent->pauseUnpause();
-    if (!(initted = init())) { 
+    if (!(init())) { 
         stop(); 
         Error() << "Plugin " << name() << " failed to initialize."; 
         return; 
+    }
+	
+	if (initDelay()) {
+		needNotifyStart = false; // suppress temporarily until initDone() runs
+		QTimer::singleShot(initDelay(), this, SLOT(initDone()));
+	} else {
+		initDone(); 
+	}
+}
+
+void StimPlugin::initDone()
+{
+	initted = true;
+
+    // Notify LeoDAQGL via a socket.. if possible..
+    needNotifyStart = false;
+    if (stimApp()->leoDAQGLNotifyParams.enabled) {
+        if (!parent->isPaused()) {
+            notifySpikeGLAboutStart();
+        } else {
+            needNotifyStart = true;
+        }
     }
 }
 
@@ -273,3 +287,5 @@ void StimPlugin::notifySpikeGLAboutStop()
                                                         p.timeout_ms);
         needNotifyStart = true;
 }
+
+unsigned StimPlugin::initDelay(void) { return 0; }

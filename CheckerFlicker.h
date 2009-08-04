@@ -19,6 +19,8 @@ class FrameCreator;
 */
 class CheckerFlicker : public StimPlugin
 {
+	Q_OBJECT
+
     friend class FrameCreator;
 
     std::vector<FrameCreator *> fcs;
@@ -39,7 +41,9 @@ class CheckerFlicker : public StimPlugin
     int originalSeed;	///< seed for random number generator at initialization
     int Nblinks;	///< number of blinks (i.e. how often each frame is repeated)
     int blinkCt;
-	int bx, by, bw; ///< photo diode box X Y and width
+	int	ftrackbox_x;
+	int ftrackbox_y;
+	int ftrackbox_w;
     int Nx;		///< number of stixels in x direction
     int Ny;		///< number of stixels in y direction
     int xpixels, ypixels;
@@ -62,6 +66,7 @@ class CheckerFlicker : public StimPlugin
     double lastAvgTexSubImgProcTime;
     volatile int lastFramegen;
 	volatile unsigned frameGenAvg_usec;
+	unsigned origThreadAffinityMask;
 
     inline void putNum() { oldnums.push_back(num);  }
     inline unsigned takeNum() { 
@@ -106,6 +111,7 @@ protected:
     /// Informs FrameCreator threads to generate more frames and pops off 1 Frame from a FrameCreator queue and loads it onto the video board using FBO
     void afterVSync(bool isSimulated = false);
     bool init();
+	unsigned initDelay(void); ///< reimplemented from superclass -- returns an init delay of 500ms
     void cleanup(); 
     void save();
 };

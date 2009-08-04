@@ -4,6 +4,7 @@
 #include <QMutex>
 #include <deque>
 #include <QThread>
+#include <QTimer.h>
 #ifdef Q_OS_WIN
 #define __SSE2__
 #include <windows.h>
@@ -234,7 +235,7 @@ private:
 
 
 CheckerFlicker::CheckerFlicker()
-    : StimPlugin("CheckerFlicker"), w(width()), h(height()), fbo(0), fbos(0), texs(0)
+    : StimPlugin("CheckerFlicker"), w(width()), h(height()), fbo(0), fbos(0), texs(0), origThreadAffinityMask(0)
 {
 }
 
@@ -284,9 +285,10 @@ bool CheckerFlicker::init()
 		else contrast = 0.3f;
 	}
 
-	if ( !getParam("bx", bx) ) bx = 0;
-	if ( !getParam("by", by) ) by = 10;
-	if ( !getParam("bw", bw) ) bw = 45;
+	// frametrack box info
+	if(!getParam( "ftrackbox_x" , ftrackbox_x))  ftrackbox_x = 0;
+	if(!getParam( "ftrackbox_y" , ftrackbox_y))  ftrackbox_y = 10;
+	if(!getParam( "ftrackbox_w" , ftrackbox_w))  ftrackbox_w = 40;
 
 	if( !getParam("lmargin", lmargin) ) lmargin = 0;
 	if( !getParam("rmargin", rmargin) ) rmargin = 0;
@@ -374,15 +376,17 @@ bool CheckerFlicker::init()
             return false;
         }
 
-		if (getNProcessors() > 2) {
-			setCurrentThreadAffinityMask(1); // make it run on first cpu
-			Log() << "Set affinity mask of main thread to: " << 1;
+		unsigned nProcs;
+		if ((nProcs=getNProcessors()) > 2) {
+			const unsigned mask = 0x1<<(nProcs-3);
+			origThreadAffinityMask = setCurrentThreadAffinityMask(mask); // make it run on second cpu
+			Log() << "Set affinity mask of main thread to: " << mask;
 		}
 
         QTime tim; tim.start();
         Log() << "Pregenerating gaussian color table of size " << colortable << ".. (please be patient)";
         Status() << "Generating gaussian color table ...";
-        stimApp()->console()->update(); // ensure message is printed
+//        stimApp()->console()->update(); // ensure message is printed
         //stimApp()->processEvents(QEventLoop::ExcludeUserInputEvents); // ensure message is printed
         genGaussColors();
         Log() << "Generated " << gaussColors.size() << " colors in " << tim.elapsed()/1000.0 << " secs";
@@ -394,7 +398,11 @@ bool CheckerFlicker::init()
             return false;
         }        
         frameNum = 0; // reset frame num!
-        initted = true;
+
+#ifdef Q_OS_WIN
+		Sleep(500); // sleep for 500ms to ensure init is ok
+#endif
+
 	return true;
 }
 
@@ -549,8 +557,8 @@ void CheckerFlicker::cleanup()
 {
     cleanupFBO();
     setNums();    
-	if (getNProcessors() > 2) {
-		setCurrentThreadAffinityMask((1<<getNProcessors())-1); // make it runnable on all CPUs again
+	if (origThreadAffinityMask) {
+		setCurrentThreadAffinityMask(origThreadAffinityMask); // make it runnable as it was before plugin was run
 	}
 }
 
@@ -572,7 +580,7 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
     double t0 = getTime();
 
     Frame *f = new Frame(Nx, Ny, 4);
-    __m128i *quads = (__m128i *)f->texels;
+    __m128i *quads = (__m128i *)f->texels; (void)quads;
     unsigned *dwords = (unsigned *)f->texels;
     bool dolocking = fcs.size() > 1;
 
@@ -666,6 +674,7 @@ void CheckerFlicker::drawFrame()
             glClear(GL_COLOR_BUFFER_BIT);
             //glBlendColor(0., 0., 0., contrast);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glDisable(GL_BLEND);
         } else {
             glClearColor(meanintensity, meanintensity, meanintensity, 1.);
             glClear(GL_COLOR_BUFFER_BIT);
@@ -687,11 +696,10 @@ void CheckerFlicker::drawFrame()
 
 
 	// draw frame tracking flicker box at bottom of grid
-	// but not for full-field stim
-	if ((framestate > 0.f) && (Nx > 1) && (Ny > 1)){
-		glColor3f(framestate, framestate, framestate);
-		glRecti(bx, by, bx+bw, by+bw);
-	}
+	if (framestate)
+		glColor4f(1, 1, 1, 1);
+	else glColor4f(0, 0, 0, 1);
+	glRecti(ftrackbox_x, ftrackbox_y, ftrackbox_x+ftrackbox_w, ftrackbox_y+ftrackbox_w);
 }
 
 
@@ -811,8 +819,9 @@ void FrameCreator::run()
     std::vector<unsigned> entropyMem; 
     entropyMem.reserve(cf.Nx*cf.Ny*(cf.quad_fps?3:1)+16);
 
-	if (getNProcessors() > 2) {
-		unsigned mask = 1<<(cf.fcs.size()%getNProcessors());
+	unsigned nProcs;
+	if ((nProcs=getNProcessors()) > 2) {
+		const unsigned mask = (0x1<<(nProcs-3))<<(cf.fcs.size()%nProcs);
 		setCurrentThreadAffinityMask(mask); // pin it to one core
 		Log() << "Set thread affinity mask to: " << mask;
 	}
@@ -851,4 +860,9 @@ void CheckerFlicker::save()
               << "last_frame_gen_time_ms = " << lastFramegen << "\n"
               << "lastAvgTexSubImgProcTime_secs = " << lastAvgTexSubImgProcTime << "\n";
 
+}
+
+unsigned CheckerFlicker::initDelay(void)
+{
+	return 500;
 }

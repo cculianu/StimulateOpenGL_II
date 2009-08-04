@@ -66,7 +66,6 @@ private:
 	int	ftrackbox_x;
 	int ftrackbox_y;
 	int ftrackbox_w;
-	float ftrackbox_c;
 	bool quad_fps;
         bool moveFlag, jitterFlag;
         QString objType; ///< new config param -- can be 'box' or 'disk'/'circle'

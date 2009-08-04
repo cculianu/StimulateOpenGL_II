@@ -191,18 +191,19 @@ void GLWindow::paintGL()
     if (doBufSwap) {// doBufSwap is normally true either if we don't have aMode or if we have a plugin and it is running and not paused
         
         swapBuffers();// should wait for vsync...   
+
     } else {
         // don't swap buffers here to avoid frame ghosts in 'A' Mode on Windows.. We get frame ghosts in Windows in 'A' mode when paused or not running because we didn't draw a new frame if paused, and so swapping the buffers causes previous frames to appear onscreen
     }
 
 #ifdef Q_OS_WIN
-    //timer->start(timerpd);     
-    update();
+	    //timer->start(timerpd);
+	    update();
 #else
-    timer->start(0);     
+	    timer->start(0);
 #endif
 
-    if (running && !paused) {
+    if (running && running->initted && !paused) {
         running->cycleTimeLeft -= getTime()-tThisFrame;
         running->afterVSync();
     }
