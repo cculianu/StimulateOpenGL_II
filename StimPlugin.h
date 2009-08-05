@@ -203,6 +203,8 @@ protected:
     double cycleTimeLeft; ///< the number of seconds left in this cycle -- updated by glWindow before calling afterVSync
     bool needNotifyStart; ///< iff true, we will notify LeoDAQGL of plugin start on unpause
 	int ftrackbox_x, ftrackbox_y, ftrackbox_w;
+	bool quad_fps, dual_fps; // these two are mutually exclusive
+
     void notifySpikeGLAboutStart();
     void notifySpikeGLAboutStop();
 

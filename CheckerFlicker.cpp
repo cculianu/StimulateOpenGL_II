@@ -279,7 +279,8 @@ bool CheckerFlicker::init()
 	if( !getParam("stixelwidth", stixelWidth) ) stixelWidth = 10;
 	if( !getParam("stixelheight", stixelHeight) ) stixelHeight = 10;
 	if( !getParam("blackwhite", blackwhite) ) blackwhite = true;
-        if( !getParam("quad_fps", quad_fps) ) quad_fps = true;
+	if(!getParam( "quad_fps" , quad_fps) && !dual_fps) quad_fps = true; ///< defaults to quad_fps = true if nothing specified in config file
+
 	if( !getParam("meanintensity", meanintensity) ) meanintensity = 0.5;
 	if( !getParam("contrast", contrast) ){
 		if( blackwhite ) contrast = 1;
@@ -602,6 +603,12 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
         if (dolocking) rngmut.lock();
         gen_rand_array((w128_t *)f->texels, MAX(f->nqqw, N));
         if (dolocking) rngmut.unlock();
+        if (dual_fps) { // for this mode we need to eliminate the green channels (and alpha can be set to whatever), so we use an SSE2 instruction
+			// need to 0 out every other byte
+            const __m128i mask = _mm_set_epi32(0, 0, 0, 0);
+			for (unsigned long i = 0; i < f->nqqw; ++i) 
+                quads[i] = _mm_unpacklo_epi8(quads[i], mask); // this makes quads[i] be b0,0,b1,0,b2,0..b7,0  
+        } 
 /*        if (quad_fps) {
             const __m128i mask = _mm_set_epi32(0, 0, 0, 0);
             for (unsigned long i = 0; i < f->nqqw; ++i)
@@ -614,7 +621,7 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
 		*/
     } else {
 #if 1
-        const unsigned entr_arr_sz = (quad_fps ? f->nqqw*4*3 : f->nqqw*4);
+		const unsigned entr_arr_sz = (quad_fps ? f->nqqw*4*3 : (dual_fps ? f->nqqw*4*2 : f->nqqw*4));
         entvec.resize(MAX(entr_arr_sz+8, (N+3)*4));
         const unsigned ndwords = f->nqqw*4;
         unsigned * entr = reinterpret_cast<unsigned *>((reinterpret_cast<unsigned long>(&entvec[0])+0x10UL)&~0xfUL); // align to 16-byte boundary
@@ -628,7 +635,12 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
                 dwords[i] = getColor(entr[0])|getColor(entr[1])<<8|getColor(entr[2])<<16;
                 entr+=3;
             }
-        } else {
+		} else if (dual_fps) {
+            for (unsigned i = 0; i < ndwords; ++i) {
+                dwords[i] = getColor(entr[0])|/*0|*/getColor(entr[1])<<16;
+                entr+=2;
+            }
+        } else {  // single fps
             for (unsigned i = 0; i < ndwords; ++i) {
                 unsigned char cc = getColor(*entr++);
                 dwords[i] = cc|cc<<8|cc<<16|cc<<24;
@@ -822,7 +834,7 @@ FrameCreator::~FrameCreator()
 void FrameCreator::run()
 {
     std::vector<unsigned> entropyMem; 
-    entropyMem.reserve(cf.Nx*cf.Ny*(cf.quad_fps?3:1)+16);
+	entropyMem.reserve(cf.Nx*cf.Ny*(cf.quad_fps?3:(cf.dual_fps ? 2 : 1))+16);
 
 	unsigned nProcs;
 	if ((nProcs=getNProcessors()) > 2) {
@@ -857,6 +869,7 @@ void CheckerFlicker::save()
               << "bmargin = " << bmargin << "\n"
               << "tmargin = " << tmargin << "\n"
               << "quad_fps = " << (quad_fps ? "true" : "false") << "\n"
+              << "dual_fps = " << (dual_fps ? "true" : "false") << "\n"
               << "fbo = " << fbo << "\n"
               << "colortable = " << (gaussColorMask+1) << "\n"
               << "cores = " << nCoresMax << "\n"

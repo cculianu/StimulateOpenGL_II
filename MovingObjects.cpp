@@ -12,7 +12,6 @@ MovingObjects::~MovingObjects()
 bool MovingObjects::init()
 {
         moveFlag = true;
-        jitterFlag = false;
         quad = 0;
 
 	// set up pixel color blending to enable 480Hz monitor mode
@@ -64,7 +63,7 @@ bool MovingObjects::init()
 	// generallty used w/ DLP projector w/ removed color wheel, in which case
 	// native FPS increases by 4x (since color wheel has 4-segments/frame, RGB-W)
 	// (make sure W set to all black or all white on projector)
-	if(!getParam( "quad_fps" , quad_fps)) quad_fps = true;
+	if(!getParam( "quad_fps" , quad_fps) && !dual_fps) quad_fps = true; ///< defaults to quad_fps = true if nothing specified in config file
 
 	// set up blending to allow individual RGB target motion frame control
 	// blending factor depends on bgcolor...
@@ -121,12 +120,6 @@ bool MovingObjects::processKey(int key)
     case 'M':
         moveFlag = !moveFlag;
         return true;
-    case 'j':
-    case 'J':
-        jitterFlag = !jitterFlag;
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-        return true;
     }
     return StimPlugin::processKey(key);
 }
@@ -145,16 +138,18 @@ void MovingObjects::drawFrame()
 		jitterx = (ran1Gen()*jittermag - jittermag/2);
 		jittery = (ran1Gen()*jittermag - jittermag/2);
 	}
-	else jitterx = jittery = 0;
+	else 
+		jitterx = jittery = 0;
         
-        if (quad_fps) {
+    if (quad_fps || dual_fps) {
             glEnable(GL_BLEND);
             if (bgcolor >  0.5)
                 glBlendFunc(GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR);
             else glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
-        }
+    }
 
-	for (int k=0; k<(quad_fps ? 3:1); k++) {
+	const int niters = quad_fps ? 3 : (dual_fps ? 2 : 1);
+	for (int k=0; k < niters; k++) {
             if( moveFlag ){
 			
                 // adjust for wall bounce
@@ -213,9 +208,28 @@ void MovingObjects::drawFrame()
             //y = trajdata[frameNum+tframes] + jittery;
             // draw stim if out of delay period
             if ((int(frameNum)%tframes - delay) >= 0) {
-                if (quad_fps)
-                    glColor3f((k == 2 ? objcolor:bgcolor), (k == 1 ? objcolor:bgcolor), (k == 0 ? objcolor:bgcolor)); 
-                else  glColor3f(objcolor,objcolor,objcolor);
+				float r,g,b;
+
+				if (quad_fps) {
+					b = g = r = bgcolor;
+					switch(k) {
+						// bgr order of frames
+						case 0: b = objcolor; break;
+						case 1: g = objcolor; break;
+						case 2: r = objcolor; break;
+					}
+				} else if (dual_fps) {
+					b = g = r = bgcolor;
+					switch(k) {
+						// bgr order of frames
+						case 0: b = objcolor; break;
+						case 1: r = objcolor; break;
+					}
+				} else 
+					b = g = r = objcolor;
+
+				glColor3f(r,g,b);
+
                 glMatrixMode(GL_MODELVIEW);
                 glPushMatrix();
                 glTranslatef(x, y, 1);
@@ -225,23 +239,13 @@ void MovingObjects::drawFrame()
 				frameVars->push(double(frameNum), double(x), double(y));
             }
 
-            //if (k==2) { //display 120Hz object next to 480Hz object for motion smoothness comparison
-            //	glColor3f(objcolor,objcolor,objcolor);
-            //	glRecti( (int)x+4*objLen, (int)y, (int)x+5*objLen, (int)y+objLen );
-            //}
 	}
-
-	// global jitter to whole image
-	if( jitterFlag ){
-		//glRotatef( 10.0, 0.0, 0.0, 1.0 );
-		glTranslatef( (int)(ran1Gen()*4 - 4/2), (int)(ran1Gen()*4 - 4/2), 0 );
-		}
-      
-        if (quad_fps) {
-            if (bgcolor >  0.5)
-                glBlendFunc(GL_DST_COLOR,GL_ONE);
-            else glBlendFunc(GL_SRC_COLOR,GL_ONE);
-            glDisable(GL_BLEND);
-        }
+   
+    if (quad_fps || dual_fps) {
+		if (bgcolor >  0.5)
+			glBlendFunc(GL_DST_COLOR,GL_ONE);
+        else glBlendFunc(GL_SRC_COLOR,GL_ONE);
+			glDisable(GL_BLEND);
+    }
 
 }

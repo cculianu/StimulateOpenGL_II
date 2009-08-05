@@ -96,6 +96,14 @@ void StimPlugin::start(bool startUnpaused)
 	if(!getParam("ftrackbox_x" , ftrackbox_x) || ftrackbox_x < 0)  ftrackbox_x = 0;
 	if(!getParam("ftrackbox_y" , ftrackbox_y) || ftrackbox_y < 0)  ftrackbox_y = 10;
 	if(!getParam("ftrackbox_w" , ftrackbox_w) || ftrackbox_w < 0)  ftrackbox_w = 40;
+	if (!getParam("dual_fps", dual_fps)) dual_fps = 0;
+	if (!getParam("quad_fps", quad_fps)) quad_fps = 0;
+
+	if (dual_fps && quad_fps) {
+		stop();
+		Error() << "Plugin " << name() << " params specified *both* quad_fps and dual_fps -- they are mutually exclusive!";
+		return;
+	}
 
     if ( !startUnpaused ) parent->pauseUnpause();
     if (!(init())) { 

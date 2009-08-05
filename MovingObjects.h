@@ -63,8 +63,7 @@ private:
 	QString traj_data_path;
 	int jittermag;
 	bool jitterlocal;
-	bool quad_fps;
-        bool moveFlag, jitterFlag;
+    bool moveFlag, jitterFlag;
         QString objType; ///< new config param -- can be 'box' or 'disk'/'circle'
         GLuint objDL; ///< display list for the moving object
         GLUquadric *quad; ///< valid iff objType == circle or objType == sphere
