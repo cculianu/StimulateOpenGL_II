@@ -30,7 +30,10 @@ void FrameVariables::setVariableNames(const QStringList &fields)
 }
 void FrameVariables::push(double varval0...) ///< all vars must be doubles, and they must be the same number of parameters as the variableNames() list length!
 {
-	if (!n_fields) return;
+	if (!n_fields) {
+		Error() << "INTERNAL ERROR: FrameVariables::push() called with no variable names (column names) specified!  Did you forget to call FrameVars::setVariableNames?";
+		return;
+	}
 
 	if (!f.isOpen()) {
 		if (!f.open(QIODevice::WriteOnly|QIODevice::Text|QIODevice::Truncate)) {
