@@ -109,6 +109,15 @@
 %                or false otherwise.  The program's paused state
 %                may be modified with the Pause and Unpause calls.
 %
+%    boolval = IsInitialized(myobj)
+%
+%                Determine if the running plugin (if any) is currently in 
+%                the 'initialized' or 'uninitialized' state.  Returns a
+%                true value if the plugin has finished initializing. When a
+%                plugin is first started, it remains in the uninitialized
+%                state until initialization finishes (usually under 1
+%                second after it is started). 
+%
 %    myobj = Pause(myobj)
 %
 %                Pause the StimulateOpenGL II program.  Pausing only really
@@ -166,6 +175,23 @@
 %                defined.  Therefore, plugin parameters (if any) should be
 %                set before the desired plugin is to be started.
 %
+%    cell_array_of_strings = GetFrameVarNames(myobj)
+%                
+%                Retrieves the names of the frame vars.  Returns an Mx1 cell array
+%                of strings.  Each string represents the name of a frame
+%                var field as returned from GetFrameVars.  
+%                See GetFrameVars.m to retrieve the frame vars themselves.
+%
+%    stats = GetFrameVars(myobj)
+%                
+%                Get frame vars command.  Returns an MxN array of doubles
+%                which are the frame vars for the last plugin that ran
+%                successfully.  Each row represents one frame (or 1 of 3
+%                grayplanes in quad-frame mode).  The frame var columns of
+%                the row can be identified by looking at the results
+%                returns from the GetFrameVarNames.m method.  As of the
+%                time of this writing, only two plugins support frame vars:
+%                MovingObject and MovingGrating.
 %
 %    imgdata = DumpFrame(myobj, frameNumber)
 %

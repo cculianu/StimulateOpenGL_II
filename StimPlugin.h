@@ -31,7 +31,7 @@
 #include <QByteArray>
 #include <QMutex>
 #include <QMutexLocker>
-
+#include "FrameVariables.h"
 
 /**
    \brief Abstract class  -- inherit from this class to create a plugin.  
@@ -108,6 +108,10 @@ public:
     /// Returns the number of missed frames that the plugin has encountered thus far
     unsigned getNumMissedFrames() const { return missedFrames.size(); }
 
+	/// \brief Inform calling code if this plugin is initializing or not
+	/// If true, the plugin is ready, if false, need to wait
+	bool isInitialized() const { return initted; }
+
     /// Returns the time that start() was called for this plugin
     QDateTime getBeginTime() const { return begintime; }
     
@@ -130,6 +134,9 @@ public:
     /// @param num the frame number to generate/dump
     /// @param data_type the OpenGL data type of the generated data.  Note that the default is good for most users so no need to change it unless you know what you are doing.
     QByteArray getFrameDump(unsigned num, GLenum data_type = GL_UNSIGNED_BYTE);
+
+	/// Frame Variables -- use this object in your pushFrameVars() method!
+	FrameVariables *frameVars;
 
 signals:
     void started(); ///< emitted when plugin starts
@@ -165,6 +172,12 @@ protected:
     /// The meat of every plugin -- re-implement this function to draw the actual frame.  Class variable frameNum holds the frame number.
     virtual void drawFrame() = 0;
 
+	/// Normally no need to re-implement.  Just draws the frame track box for the PD sensor. Only drawn if the box has dimensions (see ftrackbox_[xyw])
+	virtual void drawFTBox();
+
+	/// Convenience method that just calls drawFrame() and drawFTBox() for you, in that order
+	inline void renderFrame() { drawFrame(); drawFTBox(); }
+
     /// \brief Called immediately after a vsync (if not paused).  
     ///
     /// Reimplement this in your plugin to do some work  after the vsync, 
@@ -189,7 +202,7 @@ protected:
     double fps, fpsAvg, fpsMin, fpsMax;
     double cycleTimeLeft; ///< the number of seconds left in this cycle -- updated by glWindow before calling afterVSync
     bool needNotifyStart; ///< iff true, we will notify LeoDAQGL of plugin start on unpause
-
+	int ftrackbox_x, ftrackbox_y, ftrackbox_w;
     void notifySpikeGLAboutStart();
     void notifySpikeGLAboutStop();
 

@@ -23,9 +23,6 @@ class MovingGrating : public GridPlugin
     float angle;
     float totalTranslation;
     float xscale,yscale;
- 	int	ftrackbox_x;
-	int ftrackbox_y;
-	int ftrackbox_w;
 	friend class GLWindow;
 
 protected:

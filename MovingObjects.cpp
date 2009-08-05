@@ -60,11 +60,6 @@ bool MovingObjects::init()
 	if(!getParam( "jitterlocal" , jitterlocal))  jitterlocal = false;
 	if(!getParam( "jittermag" , jittermag))	     jittermag = 2;
 
-	// frametrack box info
-	if(!getParam( "ftrackbox_x" , ftrackbox_x))  ftrackbox_x = 0;
-	if(!getParam( "ftrackbox_y" , ftrackbox_y))  ftrackbox_y = 10;
-	if(!getParam( "ftrackbox_w" , ftrackbox_w))  ftrackbox_w = 40;
-
 	// this increases the frame rate by encoding each RGB as 3 separate frames
 	// generallty used w/ DLP projector w/ removed color wheel, in which case
 	// native FPS increases by 4x (since color wheel has 4-segments/frame, RGB-W)
@@ -80,8 +75,9 @@ bool MovingObjects::init()
                 glBlendFunc(GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR);
             else glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
         }*/
-        initDisplayLists();
-        return true;
+     initDisplayLists();
+	 frameVars->setVariableNames(QString("frameNum x y").split(QString(" ")));
+     return true;
 }
 
 void MovingObjects::initDisplayLists()
@@ -137,8 +133,6 @@ bool MovingObjects::processKey(int key)
 
 void MovingObjects::drawFrame()
 {
-	int framestate = (frameNum%2 == 0);
-	
 	// set bg
 	//glColor3f(bgcolor,bgcolor,bgcolor);
 	//glRecti(0,0,mon_x_pix,mon_y_pix);
@@ -227,6 +221,8 @@ void MovingObjects::drawFrame()
                 glTranslatef(x, y, 1);
                 glCallList(objDL);
                 glPopMatrix();
+				// nb: push() needs to take all doubles as args!
+				frameVars->push(double(frameNum), double(x), double(y));
             }
 
             //if (k==2) { //display 120Hz object next to 480Hz object for motion smoothness comparison
@@ -240,13 +236,7 @@ void MovingObjects::drawFrame()
 		//glRotatef( 10.0, 0.0, 0.0, 1.0 );
 		glTranslatef( (int)(ran1Gen()*4 - 4/2), (int)(ran1Gen()*4 - 4/2), 0 );
 		}
-
-	// draw frame tracking flicker box at bottom of grid
-	if (framestate)
-		glColor4f(1, 1, 1, 1);
-	else glColor4f(0, 0, 0, 1);
- 	glRecti(ftrackbox_x, ftrackbox_y, ftrackbox_x+ftrackbox_w, ftrackbox_y+ftrackbox_w);
-       
+      
         if (quad_fps) {
             if (bgcolor >  0.5)
                 glBlendFunc(GL_DST_COLOR,GL_ONE);

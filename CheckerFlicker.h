@@ -41,9 +41,6 @@ class CheckerFlicker : public StimPlugin
     int originalSeed;	///< seed for random number generator at initialization
     int Nblinks;	///< number of blinks (i.e. how often each frame is repeated)
     int blinkCt;
-	int	ftrackbox_x;
-	int ftrackbox_y;
-	int ftrackbox_w;
     int Nx;		///< number of stixels in x direction
     int Ny;		///< number of stixels in y direction
     int xpixels, ypixels;
@@ -51,9 +48,11 @@ class CheckerFlicker : public StimPlugin
     unsigned fbo;       ///< iff nonzero, the number of framebuffer objects to use for prerendering -- this is faster than `prerender' but not always supported?
     int ifmt, fmt, type; ///< for glTexImage2D() call..
     int nConsecSkips;
+	unsigned rand_displacement_x, rand_displacement_y; ///< if either are nonzero, each frame is displaced by this amont in pixels (not stixels!) randomly in x or y direction
     // Note only one of display_lists, prerender, or fbo may be active above
 
     GLuint *fbos, *texs; ///< array of fbo object id's and the texture ids iff fbo is nonzero
+	Vec2i *disps; ///< frame displacements per fbo object
 
     friend class GLWindow;
     unsigned gaussColorMask; ///< this will always be a power of 2 minus 1

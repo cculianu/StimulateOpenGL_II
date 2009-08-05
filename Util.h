@@ -156,7 +156,18 @@ private:
     QTextStream s;
 };
 
-}
+
+struct Vec2 {
+	double x,y;
+	Vec2(double x = 0, double y = 0) : x(x), y(y) {}
+};
+
+struct Vec2i {
+	int x, y;
+	Vec2i(int x = 0, int y = 0) : x(x), y(y) {}
+};
+
+} // end namespace Util
 
 using namespace Util;
 

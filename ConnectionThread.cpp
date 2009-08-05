@@ -226,6 +226,24 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
         }
         ts.flush();
         return ret;
+	} else if (cmd == "GETFRAMEVARS") { 
+			QVector<double> data;
+			int nrows, ncols;
+			FrameVariables::readAllFromLast(data, &nrows, &ncols);
+			sock.write(QString().sprintf("MATRIX %d %d\n", nrows, ncols).toUtf8());
+			if (data.size()) sock.write(QByteArray::fromRawData(reinterpret_cast<char *>(&data[0]),data.size()*sizeof(double)));
+			return "";
+	} else if (cmd == "GETFRAMEVARNAMES") {
+			QString ret = "";
+			QTextStream ts(&ret);
+			QStringList hdr = FrameVariables::readHeaderFromLast();
+					
+			int i = 0;
+			for (QStringList::iterator it = hdr.begin(); it != hdr.end(); ++it, ++i) {
+					ts << *it << "\n";
+			}
+			ts.flush();
+			return ret;		
     } else if (cmd == "GETSTATS") {
         QString theStr("");
         QTextStream strm(&theStr, QIODevice::WriteOnly/*|QIODevice::Text*/);
@@ -245,6 +263,7 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
         strm.setRealNumberNotation(QTextStream::FixedNotation);
         strm << "runningPlugin = " << (p ? p->name() : "") << "\n"
              << "isPaused = " << (stimApp()->glWin()->isPaused() ? "1" : "0") << "\n"
+			 << "isInitialized = " << (p ? (p->isInitialized() ? 1 : 0) : 0) << "\n" 
              << "isConsoleWindowHidden = " << (isConsoleHidden ? "1" : "0") << "\n"
              << "statusBarString = " << (p ? p->getSBString() : "") << "\n"
              << "currentTime = " << QDateTime::currentDateTime().toString() << "\n"
@@ -321,6 +340,12 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
         return "";
     } else if (cmd == "ISPAUSED") {
         return QString::number(stimApp()->glWin()->isPaused());
+    } else if (cmd == "ISINITIALIZED") {
+        StimPlugin *p = stimApp()->glWin()->runningPlugin();
+        if (p) {
+			return QString::number(p->isInitialized());
+        }
+        return "0";
     } else if (cmd == "PAUSE") {
         if (!stimApp()->glWin()->isPaused())
             stimApp()->glWin()->pauseUnpause();

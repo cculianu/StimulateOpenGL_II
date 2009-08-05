@@ -189,6 +189,7 @@ struct Frame
     // presently not used..
     int ifmt, fmt, type; ///< for gltexsubimage..
     unsigned int seed; ///< the rng seed used for this frame
+	Vec2i displacement; ///< frame displacement in pixels in the x and y direction
 };
 
 Frame::Frame(unsigned w, unsigned h, unsigned es): mem(0), texels(0), w(w), h(h), tx_size(es), ifmt(0), fmt(0), type(0), seed(0)
@@ -285,11 +286,6 @@ bool CheckerFlicker::init()
 		else contrast = 0.3f;
 	}
 
-	// frametrack box info
-	if(!getParam( "ftrackbox_x" , ftrackbox_x))  ftrackbox_x = 0;
-	if(!getParam( "ftrackbox_y" , ftrackbox_y))  ftrackbox_y = 10;
-	if(!getParam( "ftrackbox_w" , ftrackbox_w))  ftrackbox_w = 40;
-
 	if( !getParam("lmargin", lmargin) ) lmargin = 0;
 	if( !getParam("rmargin", rmargin) ) rmargin = 0;
 	if( !getParam("bmargin", bmargin) ) bmargin = 0;
@@ -316,19 +312,13 @@ bool CheckerFlicker::init()
 	if( stixelHeight < 0 ) stixelHeight *= -1;
 	if( stixelWidth < 1 ) stixelWidth = 1;
 	if( stixelHeight < 1 ) stixelHeight = 1;
-	if( lmargin < 0 ) lmargin = 0;
-	if( rmargin < 0 ) rmargin = 0;
-	if( bmargin < 0 ) bmargin = 0;
-	if( tmargin < 0 ) tmargin = 0;
-	if( lmargin+rmargin >= xdim ){ lmargin = 0; rmargin = 0; }
-	if( bmargin+tmargin >= ydim ){ bmargin = 0; tmargin = 0; }
 	if( !getParam( "seed", originalSeed) ) originalSeed = 10000;
 
 	ran1Gen.reseed(originalSeed); // NB: it doesn't matter anymore if seed is negative or positive -- all negative seeds end up being positie anyway and the generator no longer needs a negative seed to indicate "reseed".  That was ugly.  See RanGen.h for how to use the class.. 
-        gasGen.reseed(originalSeed); // Need to reseed this too.. 
-        // our SFMT random number generator gets seeded too
-        init_gen_rand(originalSeed);
-        gen_rand_all();
+    gasGen.reseed(originalSeed); // Need to reseed this too.. 
+    // our SFMT random number generator gets seeded too
+    init_gen_rand(originalSeed);
+    gen_rand_all();
 
 	if( !getParam( "Nblinks", Nblinks) ) Nblinks = 1;
         blinkCt = 0;
@@ -337,6 +327,16 @@ bool CheckerFlicker::init()
 
         lastAvgTexSubImgProcTime = 0.0045;
 
+	if (!getParam("rand_displacement_x", rand_displacement_x)) rand_displacement_x = 0;
+	if (!getParam("rand_displacement_y", rand_displacement_y)) rand_displacement_y = 0;
+
+	if (rand_displacement_x && (!lmargin && !rmargin)) {
+		Warning() << "rand_displacement_x set to: " << rand_displacement_x << " -- Recommend setting lmargin and rmargin to " << -int(rand_displacement_x);
+	}
+	if (rand_displacement_y && (!tmargin && !bmargin)) {
+		Warning() << "rand_displacement_y set to: " << rand_displacement_y << " -- Recommend setting tmargin and bmargin to " << -int(rand_displacement_y);
+	}
+		
 	// determine the right number of tiles in x and y direction to fill screen        
         do {
             xpixels = xdim-(lmargin+rmargin);
@@ -431,6 +431,9 @@ bool CheckerFlicker::initFBO()
             memset(fbos, 0, sizeof(GLuint) * fbo);
             texs = new GLuint[fbo];
             memset(texs, 0, sizeof(GLuint) * fbo);
+			disps = new Vec2i[fbo];
+			memset(disps, 0, sizeof(Vec2i) * fbo);
+
             glGenFramebuffersEXT(fbo, fbos);
             if ( !checkFBStatus() ) {
                 Error() << "Error after glGenFramebuffersEXT call.";
@@ -509,6 +512,7 @@ bool CheckerFlicker::initFBO()
                 fc->haveMore.acquire();
                 Frame * f = fc->popOne();
                 glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, Nx, Ny, fmt, type, f->texels);
+				disps[i] = f->displacement;
                 delete f;
                 glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
                 glPopAttrib();
@@ -544,8 +548,10 @@ void CheckerFlicker::cleanupFBO()
             glDeleteTextures(fbo, texs);
         delete [] fbos;
         delete [] texs;
+		delete [] disps;
         fbos = 0;
         texs = 0;
+		disps = 0;
         Debug() << "Freed " << fbo << " framebuffer objects.";
         // Make sure rendering to the window is on, just in case
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
@@ -583,6 +589,14 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
     __m128i *quads = (__m128i *)f->texels; (void)quads;
     unsigned *dwords = (unsigned *)f->texels;
     bool dolocking = fcs.size() > 1;
+
+	// Random Frame displacement -- NEW!  Added by Calin 8/04/2009
+	if (rand_displacement_x || rand_displacement_y) {
+		if (dolocking) rngmut.lock();
+		if (rand_displacement_x) f->displacement.x = ((ran1Gen.next()*2.0)-1.0)*int(rand_displacement_x);
+		if (rand_displacement_y) f->displacement.y = ((ran1Gen.next()*2.0)-1.0)*int(rand_displacement_y);
+		if (dolocking) rngmut.unlock();
+	}
 
     if (blackwhite) {
         if (dolocking) rngmut.lock();
@@ -656,8 +670,6 @@ void CheckerFlicker::drawFrame()
             return;
         } 
 
-	const float framestate = ((frameNum%2) == 0) ? 1.f : 0.f;
-
         // using framebuffer objects.. the fastest but not as portable 
         // method
         if (!blinkCt) takeNum();
@@ -679,7 +691,7 @@ void CheckerFlicker::drawFrame()
             glClearColor(meanintensity, meanintensity, meanintensity, 1.);
             glClear(GL_COLOR_BUFFER_BIT);
         }
-        
+        glTranslatef(disps[num].x, disps[num].y, 0); // displace frame
         glBegin(GL_QUADS);
           if (blackwhite) glColor4f(0., 0., 0., contrast);
           glTexCoord2i(0, 0);   glVertex2i(lmargin, bmargin);
@@ -687,19 +699,10 @@ void CheckerFlicker::drawFrame()
           glTexCoord2i(Nx, Ny);   glVertex2i(w-rmargin, h-tmargin);
           glTexCoord2i(0, Ny);   glVertex2i(lmargin, h-tmargin);
         glEnd();
+        glTranslatef(-disps[num].x, -disps[num].y, 0); // translate back
 
-
-        if (blackwhite) glDisable(GL_BLEND);
         glDisable(GL_TEXTURE_RECTANGLE_ARB);
         glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
-
-
-
-	// draw frame tracking flicker box at bottom of grid
-	if (framestate)
-		glColor4f(1, 1, 1, 1);
-	else glColor4f(0, 0, 0, 1);
-	glRecti(ftrackbox_x, ftrackbox_y, ftrackbox_x+ftrackbox_w, ftrackbox_y+ftrackbox_w);
 }
 
 
@@ -722,6 +725,7 @@ void CheckerFlicker::afterVSync(bool isSimulated)
         ++n;
         glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[idx]);
         glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, Nx, Ny, fmt, type, f->texels);
+		disps[idx] = f->displacement; // save displacement as well
         glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
         delete f;        
         return;
@@ -754,6 +758,7 @@ void CheckerFlicker::afterVSync(bool isSimulated)
                 fc->createMore.release();
             glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[idx]);
             glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, Nx, Ny, fmt, type, f->texels);
+			disps[idx] = f->displacement;
             glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
             delete f;
             ++n;

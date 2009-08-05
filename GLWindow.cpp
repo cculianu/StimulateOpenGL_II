@@ -159,7 +159,7 @@ void GLWindow::paintGL()
         Warning() << "Dropped frame " << getHWFrameCount();
     }
                
-    bool doBufSwap = !aMode;
+    bool doBufSwap = false;
 
     if (!paused) {
         // NB: don't clear here, let the plugin do clearing as an optimization
@@ -172,8 +172,9 @@ void GLWindow::paintGL()
             running->cycleTimeLeft = 1.0/getHWRefreshRate();
             running->computeFPS();            
             running->drawFrame();
+			running->drawFTBox();
             // NB: running ptr may be made null if drawFrame() called stop()
-            if (running) ++running->frameNum;
+			if (running) ++running->frameNum;
             doBufSwap = true;
         }
     }

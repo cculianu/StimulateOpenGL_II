@@ -14,14 +14,8 @@ bool MovingGrating::init()
 	if( !getParam("speed",  speed) ) returnvalue = false;
 	if( !getParam("angle", angle) ) returnvalue = false;
 	
-	// frametrack box info
-	if(!getParam( "ftrackbox_x" , ftrackbox_x))  ftrackbox_x = 0;
-	if(!getParam( "ftrackbox_y" , ftrackbox_y))  ftrackbox_y = 10;
-	if(!getParam( "ftrackbox_w" , ftrackbox_w))  ftrackbox_w = 40;
-
-
-        xscale = width()/800.0;
-        yscale = height()/600.0;
+    xscale = width()/800.0;
+    yscale = height()/600.0;
 
 	totalTranslation = 0;
 
@@ -30,18 +24,18 @@ bool MovingGrating::init()
 	else 
             Error() <<  "Some parameter values could not be read";
         
+	frameVars->setVariableNames(QString("frameNum phase").split(" "));
+
 	return returnvalue;    
 }
 
 void MovingGrating::drawFrame()
-{
- 	int framestate = (frameNum%2 == 0);
-       
+{     
 	glClear( GL_COLOR_BUFFER_BIT );
 
-        glPushMatrix();
+	glPushMatrix();
         
-        glScalef(xscale, yscale, 1.f);
+    glScalef(xscale, yscale, 1.f);
 
 	//glRotatef( 2.0, 0.0, 0.0, 1.0 );
 	if( totalTranslation > period ){
@@ -60,12 +54,8 @@ void MovingGrating::drawFrame()
 	drawGrid();
 
 	glRotatef( -angle, 0.0, 0.0, 1.0 );
- 
-	// draw frame tracking flicker box at bottom of grid
-	if (framestate) 
-		glColor4f(1, 1, 1, 1);
-	else glColor4f(0, 0, 0, 1);
- 	glRecti(ftrackbox_x, ftrackbox_y, ftrackbox_x+ftrackbox_w, ftrackbox_y+ftrackbox_w);
-       
-        glPopMatrix();
+        
+	glPopMatrix();
+
+	frameVars->push(double(frameNum), double(totalTranslation)/double(period));
 }

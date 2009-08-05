@@ -63,9 +63,6 @@ private:
 	QString traj_data_path;
 	int jittermag;
 	bool jitterlocal;
-	int	ftrackbox_x;
-	int ftrackbox_y;
-	int ftrackbox_w;
 	bool quad_fps;
         bool moveFlag, jitterFlag;
         QString objType; ///< new config param -- can be 'box' or 'disk'/'circle'

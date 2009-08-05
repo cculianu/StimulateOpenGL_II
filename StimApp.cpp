@@ -427,7 +427,9 @@ void StimApp::loadStim()
         }
         QTextStream ts(&f);
         QString line;
-        line = ts.readLine().trimmed();
+		do {
+			line = ts.readLine().trimmed();
+		} while (!line.length() && !ts.atEnd());
         Debug() << "stim plugin: " << line;
         StimPlugin *pfound = glWindow->pluginFind(line), *p = glWindow->runningPlugin();
         if (!pfound) {
