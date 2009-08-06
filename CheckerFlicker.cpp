@@ -922,6 +922,8 @@ void CheckerFlicker::save()
               << "rmargin = " << rmargin << "\n"
               << "bmargin = " << bmargin << "\n"
               << "tmargin = " << tmargin << "\n"
+			  << "rand_displacement_x" << rand_displacement_x << "\n"
+			  << "rand_displacement_y" << rand_displacement_y << "\n"
 			  << "fps_mode = " << (fps_mode == FPS_Single ? "single" : (fps_mode == FPS_Dual ? "dual" : "triple")) << "\n"
               << "fbo = " << fbo << "\n"
               << "colortable = " << (gaussColorMask+1) << "\n"
