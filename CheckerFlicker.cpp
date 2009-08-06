@@ -273,15 +273,19 @@ bool CheckerFlicker::init()
 {
     glGetError(); // clear error flag
 
-        const int xdim = w, ydim = h;
+	QString tmp;
+	if ((getParam("blackwhite", tmp) && (tmp="blackwhite").length()) || (getParam("meanintensity", tmp) && (tmp="meanintensity").length())) {
+		// reject deprecated params!
+		Error() << "Checkerflicker param `" << tmp << "' is deprecated!  Please rename this param or get rid of it (check the docs!)";
+		return false;
+	}
+	const int xdim = w, ydim = h;
 	// find parameters
 	// if not found, either set to default value or generate warning message and abort (=return false)
 	if( !getParam("stixelwidth", stixelWidth) ) stixelWidth = 10;
 	if( !getParam("stixelheight", stixelHeight) ) stixelHeight = 10;
 	if( !getParam("blackwhite", blackwhite) ) blackwhite = true;
-	if(!getParam( "quad_fps" , quad_fps) && !dual_fps) quad_fps = true; ///< defaults to quad_fps = true if nothing specified in config file
 
-	if( !getParam("meanintensity", meanintensity) ) meanintensity = 0.5;
 	if( !getParam("contrast", contrast) ){
 		if( blackwhite ) contrast = 1;
 		else contrast = 0.3f;
@@ -372,8 +376,8 @@ bool CheckerFlicker::init()
         initted = false;
 		frameGenAvg_usec;
 
-        if (meanintensity < 0. || meanintensity > 1. || contrast < 0. || contrast > 1.) {
-            Error() << "Either one of: `meanintensity' or `contrast' is out of range.  They must be in the range [0,1]";
+        if (bgcolor < 0. || bgcolor > 1. || contrast < 0. || contrast > 1.) {
+            Error() << "Either one of: `bgcolor' or `contrast' is out of range.  They must be in the range [0,1]";
             return false;
         }
 
@@ -573,7 +577,7 @@ void CheckerFlicker::genGaussColors()
 {
     gaussColors.resize(gaussColorMask+1); // reserve data for color table -- gaussColorMask should be <=16MB..
     for (unsigned i = 0; i < gaussColors.size(); ++i) {
-        double d = ((gasGen()*(meanintensity*contrast)) + meanintensity);
+        double d = ((gasGen()*(bgcolor*contrast)) + bgcolor);
         if (d < 0. || d > 1.) { --i; continue; } // keep retrying until we get a value in range
         gaussColors[i] = static_cast<GLubyte>( d * 256.);
         //qDebug("%hhu", gaussColors[i]);
@@ -603,7 +607,7 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
         if (dolocking) rngmut.lock();
         gen_rand_array((w128_t *)f->texels, MAX(f->nqqw, N));
         if (dolocking) rngmut.unlock();
-        if (dual_fps) { // for this mode we need to eliminate the green channels (and alpha can be set to whatever), so we use an SSE2 instruction
+        if (fps_mode == FPS_Dual) { // for this mode we need to eliminate the green channels (and alpha can be set to whatever), so we use an SSE2 instruction
 			// need to 0 out every other byte
             const __m128i mask = _mm_set_epi32(0, 0, 0, 0);
 			for (unsigned long i = 0; i < f->nqqw; ++i) 
@@ -621,7 +625,7 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
 		*/
     } else {
 #if 1
-		const unsigned entr_arr_sz = (quad_fps ? f->nqqw*4*3 : (dual_fps ? f->nqqw*4*2 : f->nqqw*4));
+		const unsigned entr_arr_sz = f->nqqw*4*(((int)fps_mode)+1);
         entvec.resize(MAX(entr_arr_sz+8, (N+3)*4));
         const unsigned ndwords = f->nqqw*4;
         unsigned * entr = reinterpret_cast<unsigned *>((reinterpret_cast<unsigned long>(&entvec[0])+0x10UL)&~0xfUL); // align to 16-byte boundary
@@ -630,12 +634,12 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
         if (dolocking) rngmut.unlock();
         
         // f->seed = whatever here..
-        if (quad_fps) {
+        if (fps_mode == FPS_Triple) {
             for (unsigned i = 0; i < ndwords; ++i) {
                 dwords[i] = getColor(entr[0])|getColor(entr[1])<<8|getColor(entr[2])<<16;
                 entr+=3;
             }
-		} else if (dual_fps) {
+		} else if (fps_mode == FPS_Dual) {
             for (unsigned i = 0; i < ndwords; ++i) {
                 dwords[i] = getColor(entr[0])|/*0|*/getColor(entr[1])<<16;
                 entr+=2;
@@ -648,9 +652,9 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
         }
 #endif
 #if 0 /* Uses Ziggurat Gaussians.. still not as fast as above method */
-#       define CLR static_cast<unsigned char>((ZigguratGauss::generate(gen_rand32, contrast) + meanintensity)*(unsigned char)0xff)
+#       define CLR static_cast<unsigned char>((ZigguratGauss::generate(gen_rand32, contrast) + bgcolor)*(unsigned char)0xff)
         unsigned ndwords = f->nqqw*4;
-        const double factor = contrast*meanintensity;
+        const double factor = contrast*bgcolor;
         if (dolocking) rngmut.lock();
         // f->seed = whatever here..
         if (quad_fps) {
@@ -677,7 +681,6 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
 void CheckerFlicker::drawFrame()
 {
         if (!initted) {
-            glClearColor(meanintensity, meanintensity, meanintensity, 1.0);
             glClear( GL_COLOR_BUFFER_BIT );
             return;
         } 
@@ -693,14 +696,17 @@ void CheckerFlicker::drawFrame()
         glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         if (blackwhite) {
             glEnable(GL_BLEND);
-            glClearColor(meanintensity, meanintensity, meanintensity, 1.0-contrast);
+			if (fps_mode == FPS_Dual) // black out green channel
+				glClearColor(bgcolor, 0., bgcolor, 1.0-contrast);
+			else
+				glClearColor(bgcolor, bgcolor, bgcolor, 1.0-contrast);
             glBlendFunc(GL_ONE, GL_ZERO);
             glClear(GL_COLOR_BUFFER_BIT);
             //glBlendColor(0., 0., 0., contrast);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			glDisable(GL_BLEND);
         } else {
-            glClearColor(meanintensity, meanintensity, meanintensity, 1.);
+			// clearcolor set at top of function
             glClear(GL_COLOR_BUFFER_BIT);
         }
         glTranslatef(disps[num].x, disps[num].y, 0); // displace frame
@@ -834,7 +840,7 @@ FrameCreator::~FrameCreator()
 void FrameCreator::run()
 {
     std::vector<unsigned> entropyMem; 
-	entropyMem.reserve(cf.Nx*cf.Ny*(cf.quad_fps?3:(cf.dual_fps ? 2 : 1))+16);
+	entropyMem.reserve(cf.Nx*cf.Ny*(((int)cf.fps_mode)+1)+16);
 
 	unsigned nProcs;
 	if ((nProcs=getNProcessors()) > 2) {
@@ -860,7 +866,7 @@ void CheckerFlicker::save()
               << "stixelwidth = " << stixelWidth << "\n"
               << "stixelheight = " << stixelHeight << "\n"
               << "blackwhite = " << (blackwhite?"true":"false") << "\n"
-              << "meanintensity = " << meanintensity << "\n"
+              << "bgcolor = " << bgcolor << "\n"
               << "contrast = " << contrast << "\n"
               << "seed = " << originalSeed << "\n"
               << "Nblinks = " << Nblinks << "\n"
@@ -868,8 +874,7 @@ void CheckerFlicker::save()
               << "rmargin = " << rmargin << "\n"
               << "bmargin = " << bmargin << "\n"
               << "tmargin = " << tmargin << "\n"
-              << "quad_fps = " << (quad_fps ? "true" : "false") << "\n"
-              << "dual_fps = " << (dual_fps ? "true" : "false") << "\n"
+			  << "fps_mode = " << (fps_mode == FPS_Single ? "single" : (fps_mode == FPS_Dual ? "dual" : "triple")) << "\n"
               << "fbo = " << fbo << "\n"
               << "colortable = " << (gaussColorMask+1) << "\n"
               << "cores = " << nCoresMax << "\n"

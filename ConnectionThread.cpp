@@ -408,7 +408,9 @@ bool ConnectionThread::eventFilter(QObject *watched, QEvent *event)
             StartStopPluginEvent *e = dynamic_cast<StartStopPluginEvent *>(event);
             if (e) {
                 StimPlugin *p = stimApp()->glWin()->pluginFind(e->plugin);
-                if (p) p->start(e->flag);            
+				if (p) {
+					if (!p->start(e->flag)) p->stop();
+				}
             }
         }
             return true;

@@ -33,6 +33,11 @@
 #include <QMutexLocker>
 #include "FrameVariables.h"
 
+enum FPS_Mode {
+	FPS_Single = 0, FPS_Dual, FPS_Triple, FPS_Quad = FPS_Triple,
+	FPS_N_Mode
+};
+
 /**
    \brief Abstract class  -- inherit from this class to create a plugin.  
 
@@ -74,7 +79,7 @@ public:
     unsigned height() const;
 
     /// start the plugin -- marks the plugin as 'running' with the GLWindow and calls init(), then emits 'started' signal.  If reimplementing, call super.
-    virtual void start(bool startUnpaused = false);
+    virtual bool start(bool startUnpaused = false);
     /// stop the plugin -- marks the plugin as 'not running' with the GLWindow, calls cleanup(), then emits 'stopped' signal.  If reimplementig, call super
     virtual void stop(bool doSave = false, bool use_gui = false);
 
@@ -203,7 +208,9 @@ protected:
     double cycleTimeLeft; ///< the number of seconds left in this cycle -- updated by glWindow before calling afterVSync
     bool needNotifyStart; ///< iff true, we will notify LeoDAQGL of plugin start on unpause
 	int ftrackbox_x, ftrackbox_y, ftrackbox_w;
-	bool quad_fps, dual_fps; // these two are mutually exclusive
+	FPS_Mode fps_mode; ///< one of FPS_Single, FPS_Dual, FPS_Triple, FPS_Quad (this currently means triple!)
+	float bgcolor;
+
 
     void notifySpikeGLAboutStart();
     void notifySpikeGLAboutStop();

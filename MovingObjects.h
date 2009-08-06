@@ -51,7 +51,6 @@ private:
 	int tcyclecount;
 	int delay;
 	float objcolor;
-	float bgcolor;
 	float mon_x_cm;
 	float mon_x_pix;
 	float mon_y_cm;

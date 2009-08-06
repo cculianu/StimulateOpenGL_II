@@ -161,6 +161,15 @@ void GLWindow::paintGL()
                
     bool doBufSwap = false;
 
+	if (running) {
+		// unconditionally setup the clear color here
+		switch(running->fps_mode) {
+			case FPS_Dual: glClearColor(running->bgcolor, 0.f, running->bgcolor, 1.0); break; // dual mode has blank green channel (green channel is middle frame)
+			default: glClearColor(running->bgcolor, running->bgcolor, running->bgcolor, 1.0); break;
+		}
+	} else
+		glClearColor(0.5, 0.5, 0.5, 1.0);
+
     if (!paused) {
         // NB: don't clear here, let the plugin do clearing as an optimization
         // glClear( GL_COLOR_BUFFER_BIT );
@@ -170,7 +179,7 @@ void GLWindow::paintGL()
                 // indicate the frame was skipped
                 running->putMissedFrame(static_cast<unsigned>((tThisFrame-tLastFrame)*1e3));
             running->cycleTimeLeft = 1.0/getHWRefreshRate();
-            running->computeFPS();            
+            running->computeFPS(); 
             running->drawFrame();
 			running->drawFTBox();
             // NB: running ptr may be made null if drawFrame() called stop()
@@ -181,7 +190,6 @@ void GLWindow::paintGL()
     if (!running /* if we aren't running, always clear!*/
         || (running && running->getFrameNum() < 0) ) /* paused, before we drew anything */
     { 
-        glClearColor(.5,.5,.5,1.0);
         glClear( GL_COLOR_BUFFER_BIT );
         doBufSwap = true;
     }

@@ -9,8 +9,7 @@ Flicker::Flicker()
 
 bool Flicker::init()
 {
-	int lmargin,rmargin,bmargin,tmargin;
-	int max_active_frames_per_cycle = 1;
+	int lmargin,rmargin,bmargin,tmargin,max_active_frames_per_cycle;
 
 	//if (getHWRefreshRate() != 120) {
 	//	Error() << "Flicker plugin requires running on a monitor that is locked at 120Hz refresh rate!  Move the window to a monitor running at 120Hz and try again!";
@@ -23,9 +22,13 @@ bool Flicker::init()
 	if (!getParam("tmargin", tmargin)) tmargin = 0;
 	// default duty_cycle for 240 Hz is 1, 120Hz 2, and everything else
 	if (!getParam("duty_cycle", duty_cycle)) duty_cycle = (hz > 120 ? 1 : (hz > 60 ? 2 : 3) );  
-	if (!getParam("intensity", intensity)) intensity = 255;
-	if (!getParam("max_active_frames_per_cycle", max_active_frames_per_cycle)) max_active_frames_per_cycle = 1;
-	if (max_active_frames_per_cycle <= 0) max_active_frames_per_cycle = 1;
+	if (!getParam("intensity", intensity_f)) intensity_f = 1.0;
+	// deal with 0->255 spec
+	if (intensity_f > 1.0) intensity_f /= 255.0;
+	GLubyte intensity = intensity_f * 255.0;
+	if (!getParam("bgcolor", bgcolor)) bgcolor = 0.0; // re-default bgcolor to 0.0
+	if (!getParam("max_active_frames_per_cycle", max_active_frames_per_cycle)) max_active_frames_per_cycle = -1;
+	if (max_active_frames_per_cycle <= 0) max_active_frames_per_cycle = -1;
 	
 
 	// verify params
@@ -46,10 +49,12 @@ bool Flicker::init()
 			Error() << "hz param to plugin needs to be one of: 240,120,60,40,30,24,20,17,15,13,12!";
 			return false;
 	}
-	// TODO tweak me!
 	activef = cycf/2;
+	if (max_active_frames_per_cycle > 0) {
+		if (activef < max_active_frames_per_cycle) activef = cycf-1;
+		if (activef > max_active_frames_per_cycle) activef = max_active_frames_per_cycle;
+	}
 	if (!activef) activef = 1;
-	if (activef > max_active_frames_per_cycle) activef = max_active_frames_per_cycle;
 
 	cycct = activect = 0;
 	
@@ -63,13 +68,13 @@ bool Flicker::init()
 	GLubyte color[3] = {0,0,0};
 	if (hz == 240) {
 		// 240 Hz is special case of red + blue channels always
-		color[0] = (GLubyte)intensity;
-		color[2] = (GLubyte)intensity;
+		color[0] = intensity;
+		color[2] = intensity;
 	} else { // otherwise pay attention to duty cycle to determine which channels to enable, NB: channels are in BGR order on projector
 		switch(duty_cycle) {
-			case 3: color[0] = (GLubyte)intensity;
-			case 2: color[1] = (GLubyte)intensity;
-			case 1: color[2] = (GLubyte)intensity;
+			case 3: color[0] = intensity;
+			case 2: color[1] = intensity;
+			case 1: color[2] = intensity;
 		}
 	}
 
@@ -87,7 +92,6 @@ bool Flicker::init()
 
 void Flicker::drawFrame()
 {
-	glClearColor(0.,0.,0.,1.);
 	glClear( GL_COLOR_BUFFER_BIT ); // sanely clear
 
 	if (activect-- > 0) { // if we aren't skipping a frame.. draw the flicker box

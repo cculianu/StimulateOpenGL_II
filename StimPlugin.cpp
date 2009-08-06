@@ -67,7 +67,7 @@ void StimPlugin::stop(bool doSave, bool useGui)
     initted = false;
 }
 
-void StimPlugin::start(bool startUnpaused)
+bool StimPlugin::start(bool startUnpaused)
 {
     initted = false;
 
@@ -96,20 +96,43 @@ void StimPlugin::start(bool startUnpaused)
 	if(!getParam("ftrackbox_x" , ftrackbox_x) || ftrackbox_x < 0)  ftrackbox_x = 0;
 	if(!getParam("ftrackbox_y" , ftrackbox_y) || ftrackbox_y < 0)  ftrackbox_y = 10;
 	if(!getParam("ftrackbox_w" , ftrackbox_w) || ftrackbox_w < 0)  ftrackbox_w = 40;
-	if (!getParam("dual_fps", dual_fps)) dual_fps = 0;
-	if (!getParam("quad_fps", quad_fps)) quad_fps = 0;
-
-	if (dual_fps && quad_fps) {
-		stop();
-		Error() << "Plugin " << name() << " params specified *both* quad_fps and dual_fps -- they are mutually exclusive!";
-		return;
+	QString fpsParm;
+	if (!getParam("fps_mode", fpsParm)) fpsParm = "single";
+	fps_mode = FPS_Single;
+	if (fpsParm.startsWith("s" ,Qt::CaseInsensitive)) fps_mode = FPS_Single;
+	else if (fpsParm.startsWith("d", Qt::CaseInsensitive)) fps_mode = FPS_Dual;
+	else if (fpsParm.startsWith("t", Qt::CaseInsensitive)
+		     ||fpsParm.startsWith("q", Qt::CaseInsensitive)) fps_mode = FPS_Triple;
+	else {
+		bool ok;
+		int m = fpsParm.toInt(&ok);
+		if (ok) {
+			switch(m) {
+				case FPS_Single:
+				case FPS_Dual: 
+				case FPS_Triple: fps_mode = (FPS_Mode)m; break;
+				default:
+					ok = false;
+			}
+		} 
+		if (!ok) {
+				Error() << "Invalid fps_mode param specified: " << fpsParm;
+				return false;
+		}
+	}
+	if(!getParam( "bgcolor" , bgcolor))	bgcolor = 0.5;
+	if (bgcolor > 1.0) bgcolor /= 255.0f; // deal with 0->255 values
+	QString tmp;
+	if ((getParam("quad_fps", tmp) && (tmp="quad_fps").length()) || (getParam("dual_fps", tmp) && (tmp="dual_fps").length())) {
+		Error() << "Param `" << tmp << "' is deprecated.  Use fps_mode = single|dual|triple instead!";
+		return false;
 	}
 
     if ( !startUnpaused ) parent->pauseUnpause();
     if (!(init())) { 
         stop(); 
         Error() << "Plugin " << name() << " failed to initialize."; 
-        return; 
+        return false; 
     }
 	
 	if (initDelay()) {
@@ -118,6 +141,7 @@ void StimPlugin::start(bool startUnpaused)
 	} else {
 		initDone(); 
 	}
+	return true;
 }
 
 void StimPlugin::initDone()

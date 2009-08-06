@@ -34,9 +34,6 @@ bool MovingObjects::init()
 	// units for target info; 0=pixels, 1=degrees (1=> convert to pixels via mon_*_cm info)
 	if(!getParam( "objUnits" , objUnits))	     objUnits = 0;
 	if(!getParam( "objcolor" , objcolor))	     objcolor = 0;
-	if(!getParam( "bgcolor" , bgcolor))	     bgcolor = 1.;
-	glClearColor(bgcolor,bgcolor,bgcolor,1.0);
-	glColor4f(bgcolor,bgcolor,bgcolor,1.0);
 
 	// use these for setting angular size and speed
 	if(!getParam( "mon_x_cm" , mon_x_cm))	     mon_x_cm = 24.2f;
@@ -44,6 +41,8 @@ bool MovingObjects::init()
 	if(!getParam( "mon_y_cm" , mon_y_cm))	     mon_y_cm = 18.2f;
 	if(!getParam( "mon_y_pix" , mon_y_pix))	     mon_y_pix = height();
 	if(!getParam( "mon_z_cm" , mon_z_cm))	     mon_z_cm = 12;
+	// note bgcolor already set in StimPlugin, re-default it to 1.0 if not set in data file
+	if(!getParam( "bgcolor" , bgcolor))	     bgcolor = 1.;
 
 	// trajectory stuff
 	if(!getParam( "rndtrial" , rndtrial))	     rndtrial = 0;
@@ -58,12 +57,6 @@ bool MovingObjects::init()
 
 	if(!getParam( "jitterlocal" , jitterlocal))  jitterlocal = false;
 	if(!getParam( "jittermag" , jittermag))	     jittermag = 2;
-
-	// this increases the frame rate by encoding each RGB as 3 separate frames
-	// generallty used w/ DLP projector w/ removed color wheel, in which case
-	// native FPS increases by 4x (since color wheel has 4-segments/frame, RGB-W)
-	// (make sure W set to all black or all white on projector)
-	if(!getParam( "quad_fps" , quad_fps) && !dual_fps) quad_fps = true; ///< defaults to quad_fps = true if nothing specified in config file
 
 	// set up blending to allow individual RGB target motion frame control
 	// blending factor depends on bgcolor...
@@ -126,11 +119,6 @@ bool MovingObjects::processKey(int key)
 
 void MovingObjects::drawFrame()
 {
-	// set bg
-	//glColor3f(bgcolor,bgcolor,bgcolor);
-	//glRecti(0,0,mon_x_pix,mon_y_pix);
-        // for some reason glClearColor() goes way, FIXME -- for now workaround is to re-set it each frame, which is OK since this plugin is lightweight! 
-        glClearColor(bgcolor, bgcolor, bgcolor, 1.0);
 	glClear( GL_COLOR_BUFFER_BIT ); 
 
 	// local target jitter
@@ -141,14 +129,14 @@ void MovingObjects::drawFrame()
 	else 
 		jitterx = jittery = 0;
         
-    if (quad_fps || dual_fps) {
+    if (fps_mode != FPS_Single) {
             glEnable(GL_BLEND);
             if (bgcolor >  0.5)
                 glBlendFunc(GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR);
             else glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
     }
 
-	const int niters = quad_fps ? 3 : (dual_fps ? 2 : 1);
+	const int niters = ((int)fps_mode)+1; // hack :)
 	for (int k=0; k < niters; k++) {
             if( moveFlag ){
 			
@@ -210,7 +198,7 @@ void MovingObjects::drawFrame()
             if ((int(frameNum)%tframes - delay) >= 0) {
 				float r,g,b;
 
-				if (quad_fps) {
+				if (fps_mode == FPS_Triple) {
 					b = g = r = bgcolor;
 					switch(k) {
 						// bgr order of frames
@@ -218,7 +206,7 @@ void MovingObjects::drawFrame()
 						case 1: g = objcolor; break;
 						case 2: r = objcolor; break;
 					}
-				} else if (dual_fps) {
+				} else if (fps_mode == FPS_Dual) {
 					b = g = r = bgcolor;
 					switch(k) {
 						// bgr order of frames
@@ -241,7 +229,7 @@ void MovingObjects::drawFrame()
 
 	}
    
-    if (quad_fps || dual_fps) {
+    if (fps_mode != FPS_Single) {
 		if (bgcolor >  0.5)
 			glBlendFunc(GL_DST_COLOR,GL_ONE);
         else glBlendFunc(GL_SRC_COLOR,GL_ONE);

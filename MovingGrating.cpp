@@ -30,16 +30,16 @@ bool MovingGrating::init()
 }
 
 void MovingGrating::drawFrame()
-{     
+{   
 	glClear( GL_COLOR_BUFFER_BIT );
 
 	glPushMatrix();
         
     glScalef(xscale, yscale, 1.f);
 
-	if (quad_fps || dual_fps) {
+	if (fps_mode != FPS_Single) {
 		float totalTranslations[3];
-		const int n_iters = dual_fps ? 2 : 3;
+		const int n_iters = ((int)fps_mode)+1;
 		for (int k = 0; k < n_iters; ++k) {
 			if( totalTranslation > period ){
 				totalTranslation = totalTranslation - period + speed;
@@ -50,7 +50,7 @@ void MovingGrating::drawFrame()
 			totalTranslations[k] = totalTranslation;
 			frameVars->push(double(frameNum), double(totalTranslation)/double(period));
 		}
-		if (dual_fps) {
+		if (fps_mode == FPS_Dual) {
 			for( int i=0; i<1600; i++ ) {
 				float r = 0.5+0.5*sin(2*3.14159*(i+totalTranslations[1])/period),
 					  g = 0.f,
