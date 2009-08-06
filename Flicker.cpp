@@ -61,20 +61,24 @@ bool Flicker::init()
 	if (intensity < 0 || intensity > 255) Warning() << "intensity of " << intensity << " invalid, defaulting to 255", intensity = 255;
 
 	GLubyte color[3] = {0,0,0};
-	switch(duty_cycle) {
-		case 3: color[0] = (GLubyte)intensity;
-		case 2: color[1] = (GLubyte)intensity;
-		case 1: color[2] = (GLubyte)intensity;
+	if (hz == 240) {
+		// 240 Hz is special case of red + blue channels always
+		color[0] = (GLubyte)intensity;
+		color[2] = (GLubyte)intensity;
+	} else { // otherwise pay attention to duty cycle to determine which channels to enable, NB: channels are in BGR order on projector
+		switch(duty_cycle) {
+			case 3: color[0] = (GLubyte)intensity;
+			case 2: color[1] = (GLubyte)intensity;
+			case 1: color[2] = (GLubyte)intensity;
+		}
 	}
-	// 240 Hz is special case of red + blue channels
-	if (hz == 240) color[0] = (GLubyte)intensity;
 
 	for (int i = 0; i < 4; ++i) memcpy(colors[i], color, sizeof(color));
 	GLint v[4][2] = {
-		{lmargin, bmargin},
-		{lmargin, height()-tmargin},
-		{width()-rmargin, height()-tmargin},
-		{width()-rmargin, bmargin},
+		{ lmargin         ,  bmargin          },
+		{ lmargin         ,  height()-tmargin },
+		{ width()-rmargin ,  height()-tmargin },
+		{ width()-rmargin ,  bmargin          },
 	};
 	memcpy(vertices, v, sizeof(v));
 
@@ -86,13 +90,14 @@ void Flicker::drawFrame()
 	glClearColor(0.,0.,0.,1.);
 	glClear( GL_COLOR_BUFFER_BIT ); // sanely clear
 
-	if (activect-- > 0) { // if we aren't skipping a frame.. so draw the flicker box
+	if (activect-- > 0) { // if we aren't skipping a frame.. draw the flicker box
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glEnableClientState(GL_COLOR_ARRAY);
 
 		glVertexPointer(2, GL_INT, 0, vertices);
 		glColorPointer(3, GL_UNSIGNED_BYTE, 0, colors);
 		glDrawArrays(GL_QUADS, 0, 4); // draw the rectangle using the above color and vertex pointers
+
 		glDisableClientState(GL_VERTEX_ARRAY);
 		glDisableClientState(GL_COLOR_ARRAY);
 	}
