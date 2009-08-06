@@ -60,10 +60,10 @@ class StimPlugin : public QObject
     friend class GLWindow;
 
 protected:
-    StimPlugin(const QString & name); // c'tor -- it's QObject parent is automatically StimApp::instance() and the name should be passed to this c'tor from child classes
+    StimPlugin(const QString & name); ///< c'tor -- it's QObject parent is automatically StimApp::instance() and the name should be passed to this c'tor from child classes
 
 public:
-    virtual ~StimPlugin();
+    virtual ~StimPlugin(); 
 
     /// iff 0, this plugin runs as fast as possible (up to monitor refresh rate)
     virtual unsigned preferredFPS() const { return 0; }

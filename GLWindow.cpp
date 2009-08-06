@@ -262,6 +262,7 @@ StimPlugin *GLWindow::pluginFind(const QString &name, bool casesensitive)
 #include "MovingObjects.h"
 #include "MovingGrating.h"
 #include "CheckerFlicker.h"
+#include "Flicker.h"
 void GLWindow::initPlugins()
 {
     Log() << "Initializing plugins...";
@@ -274,6 +275,7 @@ void GLWindow::initPlugins()
     new MovingObjects();  // experiment plugin.. bouncey square!
     new MovingGrating();  // experiment plugin.. the grid!
     new CheckerFlicker(); // experiment plugin.. the checkerboard!
+	new Flicker();        // experiment plugin.. the flicker tester!
 
     // TODO: more plugins here
 
