@@ -27,8 +27,9 @@ protected:
     bool processKey(int key); ///< remiplemented
 
 private:
-        void initDisplayLists();
-        void cleanupDisplayLists();
+    void initDisplayLists();
+    void cleanupDisplayLists();
+	void doFrameDraw();
 
 	unsigned short *trajdata;		// image data for each ou-movie frame		
 	float x;

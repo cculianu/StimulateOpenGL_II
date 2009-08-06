@@ -102,6 +102,16 @@ bool StimPlugin::start(bool startUnpaused)
 		fpsParm = "single";
 		fps_mode = FPS_Single;
 	}
+	QString fvfile;
+	if (getParam("frame_vars", fvfile)) {
+		if (!frameVars->readInput(fvfile)) {
+			Error() << "Could not parse frameVar input file: " << fvfile;
+			return false;
+		}
+		have_fv_input_file = true;
+	} else
+		have_fv_input_file = false;
+		
 	if (fpsParm.startsWith("s" ,Qt::CaseInsensitive)) fps_mode = FPS_Single;
 	else if (fpsParm.startsWith("d", Qt::CaseInsensitive)) fps_mode = FPS_Dual;
 	else if (fpsParm.startsWith("t", Qt::CaseInsensitive)

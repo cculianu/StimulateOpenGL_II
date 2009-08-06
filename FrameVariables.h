@@ -38,6 +38,10 @@ public:
 
 	static QString makeFileName(const QString & prefix);
 
+	bool readInput(const QString & fileName);
+	QVector<double> readNext() { return inp.getNextRow(); }
+	void readReset() { inp.curr_row = 0; }
+
 private:
 	static QStringList FrameVariables::splitHeader(const QString & ln);
 	static QString lastFileName;
@@ -46,5 +50,14 @@ private:
 	mutable QFile f;
 	mutable QTextStream ts;
 	QStringList var_names;
+
+	// lastread stuff
+	struct Input {
+		Input() : nrows(0), ncols(0), curr_row(0) {}
+		QVector<double> allVars;
+		int nrows, ncols;
+		int curr_row;
+		QVector<double> getNextRow();
+	} inp;
 };
 #endif

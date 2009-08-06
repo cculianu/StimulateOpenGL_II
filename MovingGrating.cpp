@@ -41,14 +41,34 @@ void MovingGrating::drawFrame()
 		float totalTranslations[3];
 		const int n_iters = ((int)fps_mode)+1;
 		for (int k = 0; k < n_iters; ++k) {
-			if( totalTranslation > period ){
-				totalTranslation = totalTranslation - period + speed;
+		    QVector<double> fv;
+			if (have_fv_input_file) {
+				fv = frameVars->readNext();
+				if (fv.size() < 2 && frameNum) {
+					// at end of file?
+					Warning() << name() << "'s frame_var file ended input, stopping plugin.";
+					parent->pauseUnpause();
+					have_fv_input_file = false;
+					glPopMatrix();
+					stop();
+					return;
+				} 
+				if (fv.size() < 2 || fv[0] != frameNum) {
+					Error() << "Error reading frame " << frameNum << " from frameVar file! Datafile frame num differs from current frame number!  Does the fps_mode of the frameVar file match the current fps mode?";			
+					stop();
+					return;
+				}
 			}
-			else {
-				totalTranslation = totalTranslation + speed;
+			if (fv.size()) {
+				totalTranslation = fv[1];
+			} else if( totalTranslation > period ){
+					totalTranslation = totalTranslation - period + speed;
+			} else {
+					totalTranslation = totalTranslation + speed;
 			}
 			totalTranslations[k] = totalTranslation;
-			frameVars->push(double(frameNum), double(totalTranslation)/double(period));
+			if (!fv.size())
+				frameVars->push(double(frameNum), double(totalTranslation)/double(period));
 		}
 		if (fps_mode == FPS_Dual) {
 			for( int i=0; i<1600; i++ ) {
@@ -66,12 +86,34 @@ void MovingGrating::drawFrame()
 			}
 		}
 	} else { // !quad_fps && !dual_fps
-		if( totalTranslation > period ) {
+	    QVector<double> fv;
+		if (have_fv_input_file) {
+				fv = frameVars->readNext();
+				if (fv.size() < 2 && frameNum) {
+					// at end of file?
+					Warning() << name() << "'s frame_var file ended input, pausing plugin.";
+					parent->pauseUnpause();
+					have_fv_input_file = false;
+					glPopMatrix();
+					stop();
+					return;
+				} 
+				if (fv.size() < 2 || fv[0] != frameNum) {
+					fv.clear();
+					Error() << "Error reading frame " << frameNum << " from frameVar file! Datafile frame num differs from current frame number!  Does the fps_mode of the frameVar file match the current fps mode?";			
+					stop();
+					return;
+				}
+		}
+		if (fv.size()) {
+			totalTranslation = fv[1];
+		} else if( totalTranslation > period ) {
 			totalTranslation = totalTranslation - period + speed;
 		} else {
 			totalTranslation = totalTranslation + speed;
 		}
-		frameVars->push(double(frameNum), double(totalTranslation)/double(period));
+		if (!fv.size())
+			frameVars->push(double(frameNum), double(totalTranslation)/double(period));
 
 		for( int i=0; i<1600; i++ )
 			setGrayLevel( i, 0, 0.5+0.5*sin(2*3.14159*(i+totalTranslation)/period) );

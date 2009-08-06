@@ -136,8 +136,38 @@ void MovingObjects::drawFrame()
             else glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
     }
 
+	doFrameDraw();
+   
+    if (fps_mode != FPS_Single) {
+		if (bgcolor >  0.5)
+			glBlendFunc(GL_DST_COLOR,GL_ONE);
+        else glBlendFunc(GL_SRC_COLOR,GL_ONE);
+			glDisable(GL_BLEND);
+    }
+
+}
+
+void MovingObjects::doFrameDraw()
+{
 	const int niters = ((int)fps_mode)+1; // hack :)
 	for (int k=0; k < niters; k++) {
+		    QVector<double> fv;
+			if (have_fv_input_file) {
+				fv = frameVars->readNext();
+				if (fv.size() < 3 && frameNum) {
+					// at end of file?
+					Warning() << name() << "'s frame_var file ended input, stopping plugin.";
+					have_fv_input_file = false;
+					stop();
+					return;
+				} 
+				if (fv.size() < 3 || fv[0] != frameNum) {
+					Error() << "Error reading frame " << frameNum << " from frameVar file! Datafile frame num differs from current frame number!  Does the fps_mode of the frameVar file match the current fps mode?";	
+					stop();
+					return;
+				}
+			}
+		
             if( moveFlag ){
 			
                 // adjust for wall bounce
@@ -195,7 +225,7 @@ void MovingObjects::drawFrame()
             //x = trajdata[frameNum] + jitterx;
             //y = trajdata[frameNum+tframes] + jittery;
             // draw stim if out of delay period
-            if ((int(frameNum)%tframes - delay) >= 0) {
+            if (fv.size() || (int(frameNum)%tframes - delay) >= 0) {
 				float r,g,b;
 
 				if (fps_mode == FPS_Triple) {
@@ -220,20 +250,14 @@ void MovingObjects::drawFrame()
 
                 glMatrixMode(GL_MODELVIEW);
                 glPushMatrix();
+				if (fv.size()) { x = fv[1], y = fv[2]; }
                 glTranslatef(x, y, 1);
                 glCallList(objDL);
                 glPopMatrix();
-				// nb: push() needs to take all doubles as args!
-				frameVars->push(double(frameNum), double(x), double(y));
+				if (!fv.size()) 
+					// nb: push() needs to take all doubles as args!
+					frameVars->push(double(frameNum), double(x), double(y));
             }
 
 	}
-   
-    if (fps_mode != FPS_Single) {
-		if (bgcolor >  0.5)
-			glBlendFunc(GL_DST_COLOR,GL_ONE);
-        else glBlendFunc(GL_SRC_COLOR,GL_ONE);
-			glDisable(GL_BLEND);
-    }
-
 }

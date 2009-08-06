@@ -11,6 +11,7 @@ FrameVariables::FrameVariables(const QString &of, const QStringList & varnames)
 {
 	lastFileName = fname;
 	setVariableNames(varnames);
+	readReset();
 }
 
 FrameVariables::~FrameVariables()
@@ -161,4 +162,24 @@ QStringList FrameVariables::readHeaderFromLast()
 	if (fin.open(QIODevice::ReadOnly)) 
 		return splitHeader(fin.readLine());
 	return QStringList();
+}
+
+QVector<double> FrameVariables::Input::getNextRow()
+{
+	QVector<double> ret;
+	if (nrows*ncols != allVars.size()) return ret;
+	if (curr_row < nrows) {
+		ret.reserve(ncols);
+		for (int i = 0; i < ncols; ++i) {
+			ret.push_back(allVars[curr_row*ncols+i]);
+		}
+		++curr_row;
+	}
+	return ret;
+}
+
+bool FrameVariables::readInput(const QString & fileName)
+{
+	inp.curr_row = 0;
+	return readAllFromFile(fileName, inp.allVars, &inp.nrows, &inp.ncols, false);
 }

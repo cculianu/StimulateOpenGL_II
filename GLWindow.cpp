@@ -180,11 +180,12 @@ void GLWindow::paintGL()
                 running->putMissedFrame(static_cast<unsigned>((tThisFrame-tLastFrame)*1e3));
             running->cycleTimeLeft = 1.0/getHWRefreshRate();
             running->computeFPS(); 
-            running->drawFrame();
-			running->drawFTBox();
-            // NB: running ptr may be made null if drawFrame() called stop()
-			if (running) ++running->frameNum;
-            doBufSwap = true;
+			running->drawFrame();
+			if (running) { // NB: drawFrame may have called stop(), thus NULLing this pointer
+				running->drawFTBox();
+				++running->frameNum;
+				doBufSwap = true;
+			} 			
         }
     }
     if (!running /* if we aren't running, always clear!*/
@@ -242,13 +243,13 @@ void GLWindow::pluginStarted(StimPlugin *p)
 
 void GLWindow::pluginStopped(StimPlugin *p)
 {
+	if (running != p)
+		Error() << "pluginStopped() but running != p";
     if (running == p) {
         running = 0;
         paused = false;
         Log() << p->name() << " stopped.";
         setWindowTitle(WINDOW_TITLE);
-    } else {
-        Error() << "pluginStopped() but running != p";
     }
 }
 

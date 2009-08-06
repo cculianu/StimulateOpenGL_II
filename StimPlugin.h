@@ -142,6 +142,7 @@ public:
 
 	/// Frame Variables -- use this object in your pushFrameVars() method!
 	FrameVariables *frameVars;
+	bool have_fv_input_file; ///< defaults to false, true indicates plugin is using a frameVars input file
 
 signals:
     void started(); ///< emitted when plugin starts
