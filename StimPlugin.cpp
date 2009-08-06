@@ -97,8 +97,11 @@ bool StimPlugin::start(bool startUnpaused)
 	if(!getParam("ftrackbox_y" , ftrackbox_y) || ftrackbox_y < 0)  ftrackbox_y = 10;
 	if(!getParam("ftrackbox_w" , ftrackbox_w) || ftrackbox_w < 0)  ftrackbox_w = 40;
 	QString fpsParm;
-	if (!getParam("fps_mode", fpsParm)) fpsParm = "single";
-	fps_mode = FPS_Single;
+	if (!getParam("fps_mode", fpsParm)) {
+		Log() << "fps_mode param not specified, defaulting to `single'";
+		fpsParm = "single";
+		fps_mode = FPS_Single;
+	}
 	if (fpsParm.startsWith("s" ,Qt::CaseInsensitive)) fps_mode = FPS_Single;
 	else if (fpsParm.startsWith("d", Qt::CaseInsensitive)) fps_mode = FPS_Dual;
 	else if (fpsParm.startsWith("t", Qt::CaseInsensitive)
@@ -116,7 +119,7 @@ bool StimPlugin::start(bool startUnpaused)
 			}
 		} 
 		if (!ok) {
-				Error() << "Invalid fps_mode param specified: " << fpsParm;
+				Error() << "Invalid fps_mode param specified: " << fpsParm << ", please specify one of single, dual, or triple!";
 				return false;
 		}
 	}
@@ -283,11 +286,11 @@ QByteArray StimPlugin::getFrameDump(unsigned num, GLenum datatype)
     }
     QByteArray ret(datasize, 0);
     if (parent->runningPlugin() != this) {
-        Warning() << name() << " wasn't the currently-running plugin, stopping current and restarting with `" << name() << "'";        
+        Warning() << name() << " wasn't the currently-running plugin, stopping current and restarting with `" << name() << "' this may not work 100% for some plugins!";        
         parent->runningPlugin()->stop();
         start(false);
     } else if (num < frameNum) {
-        Warning() << "Got non-increasing read of frame # " << num << ", restarting plugin and fast-forwarding to frame # " << num << " (this is slower than a sequential read).";
+        Warning() << "Got non-increasing read of frame # " << num << ", restarting plugin and fast-forwarding to frame # " << num << " (this is slower than a sequential read).  This may not work 100% for some plugins (in particular CheckerFlicker!!)";
         stop();
         start(false);
     } else if (!parent->isPaused()) {

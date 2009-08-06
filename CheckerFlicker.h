@@ -8,6 +8,10 @@ class GLWindow;
 struct Frame;
 class FrameCreator;
 
+enum Rand_Gen {
+	Uniform = 0, Gauss, Binary, N_Rand_Gen
+};
+
 /**
    \brief A class for drawing randomly-generated 'checkers' of arbitrary width 
           and height to the GLWindow.  
@@ -28,7 +32,7 @@ class CheckerFlicker : public StimPlugin
 
     int stixelWidth;	///< width of stixel in x direction
     int stixelHeight;	///< height of stixel in y direction
-    bool blackwhite;	///< indicator whether stimulus is running in black/white or in gaussian mode
+	Rand_Gen rand_gen;
     float meanintensity; ///< mean light intensity between 0 and 1
     float contrast;	 ///< defined as Michelsen contrast for black/white mode
     // and as std/mean for gaussian mode

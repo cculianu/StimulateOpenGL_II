@@ -276,18 +276,46 @@ bool CheckerFlicker::init()
 	QString tmp;
 	if ((getParam("blackwhite", tmp) && (tmp="blackwhite").length()) || (getParam("meanintensity", tmp) && (tmp="meanintensity").length())) {
 		// reject deprecated params!
-		Error() << "Checkerflicker param `" << tmp << "' is deprecated!  Please rename this param or get rid of it (check the docs!)";
+		Error() << "Checkerflicker param `" << tmp << "' is no longer supported!  Please rename this param or get rid of it (check the docs!)";
 		return false;
+	}
+	if (getParam("contrast", contrast)) {
+		Warning() << "Param `contrast' is no longer supported in checkerflicker as it didn't jive well with the random number generators!";
 	}
 	const int xdim = w, ydim = h;
 	// find parameters
 	// if not found, either set to default value or generate warning message and abort (=return false)
 	if( !getParam("stixelwidth", stixelWidth) ) stixelWidth = 10;
 	if( !getParam("stixelheight", stixelHeight) ) stixelHeight = 10;
-	if( !getParam("blackwhite", blackwhite) ) blackwhite = true;
+	QString rgen;
+	if( !getParam("rand_gen", rgen) ) {
+		rgen = "uniform";
+		Log() << "rand_gen parameter not specified, defaulting to `" << rgen << "'";
+	}
+	if (rgen.startsWith("u" ,Qt::CaseInsensitive)) rand_gen = Uniform;
+	else if (rgen.startsWith("g", Qt::CaseInsensitive)) rand_gen = Gauss;
+	else if (rgen.startsWith("b", Qt::CaseInsensitive)) rand_gen = Binary;
+	else {
+		bool ok;
+		int m = rgen.toInt(&ok);
+		if (ok) {
+			switch(m) {
+				case Uniform:
+				case Gauss: 
+				case Binary: rand_gen = (Rand_Gen)m; break;
+				default:
+					ok = false;
+			}
+		} 
+		if (!ok) {
+				Error() << "Invalid `rand_gen' param specified: " << rgen << ", please specify one of uniform, gauss, or binary!";
+				return false;
+		}
+	}
+
 
 	if( !getParam("contrast", contrast) ){
-		if( blackwhite ) contrast = 1;
+		if ( rand_gen == Binary ) contrast = 1;
 		else contrast = 0.3f;
 	}
 
@@ -603,7 +631,7 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
 		if (dolocking) rngmut.unlock();
 	}
 
-    if (blackwhite) {
+    if (rand_gen == Binary || rand_gen == Uniform) {
         if (dolocking) rngmut.lock();
         gen_rand_array((w128_t *)f->texels, MAX(f->nqqw, N));
         if (dolocking) rngmut.unlock();
@@ -612,18 +640,32 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
             const __m128i mask = _mm_set_epi32(0, 0, 0, 0);
 			for (unsigned long i = 0; i < f->nqqw; ++i) 
                 quads[i] = _mm_unpacklo_epi8(quads[i], mask); // this makes quads[i] be b0,0,b1,0,b2,0..b7,0  
-        } 
-/*        if (quad_fps) {
+		} else if (fps_mode == FPS_Single) { 
+			// make all 3 channels have the same level by making each 8-bit value in every dword of the qqwords be the same <-- confusing wording
+			int ex[4];
+			for (unsigned long i = 0; i < f->nqqw; ++i) {
+				ex[0] = _mm_extract_epi16(quads[i], 0) & 0xff;
+				ex[1] = _mm_extract_epi16(quads[i], 2) & 0xff;
+				ex[2] = _mm_extract_epi16(quads[i], 4) & 0xff;
+				ex[3] = _mm_extract_epi16(quads[i], 6) & 0xff;
+				ex[0] = (ex[0] | (ex[0] << 8) | (ex[0] << 16));
+				ex[1] = (ex[1] | (ex[1] << 8) | (ex[1] << 16));
+				ex[2] = (ex[2] | (ex[2] << 8) | (ex[2] << 16));
+				ex[3] = (ex[3] | (ex[3] << 8) | (ex[3] << 16));
+                quads[i] = _mm_set_epi32(ex[0], ex[1], ex[2], ex[3]);
+			}
+		}
+        if (rand_gen == Binary) { // map all 8-bit values to either 0x00 or 0xff using an SSE2 instruction
             const __m128i mask = _mm_set_epi32(0, 0, 0, 0);
             for (unsigned long i = 0; i < f->nqqw; ++i)
                 quads[i] = _mm_cmpgt_epi8(mask, quads[i]);
-        } else {
+        }/* else {
             const __m128i mask = _mm_set_epi32(0, 0, 0, 0);
             for (unsigned long i = 0; i < f->nqqw; ++i)
                 quads[i] = _mm_cmpgt_epi32(mask, quads[i]);
         }
 		*/
-    } else {
+    } else { // Gaussian
 #if 1
 		const unsigned entr_arr_sz = f->nqqw*4*(((int)fps_mode)+1);
         entvec.resize(MAX(entr_arr_sz+8, (N+3)*4));
@@ -694,24 +736,30 @@ void CheckerFlicker::drawFrame()
         glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[num]);
         glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        if (blackwhite) {
+        //if (rand_gen != Gauss) {
+			// NB: WHAT DOES ALL OF THIS DO?!?!!?!?!?
+			/*
             glEnable(GL_BLEND);
 			if (fps_mode == FPS_Dual) // black out green channel
 				glClearColor(bgcolor, 0., bgcolor, 1.0-contrast);
 			else
 				glClearColor(bgcolor, bgcolor, bgcolor, 1.0-contrast);
             glBlendFunc(GL_ONE, GL_ZERO);
+			*/
             glClear(GL_COLOR_BUFFER_BIT);
+			/*
             //glBlendColor(0., 0., 0., contrast);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			glDisable(GL_BLEND);
-        } else {
+			*/
+        //} else {
 			// clearcolor set at top of function
-            glClear(GL_COLOR_BUFFER_BIT);
-        }
+        glClear(GL_COLOR_BUFFER_BIT);
+        //}
         glTranslatef(disps[num].x, disps[num].y, 0); // displace frame
         glBegin(GL_QUADS);
-          if (blackwhite) glColor4f(0., 0., 0., contrast);
+		// what does this commented-out if do?  NB: contrast support is taken out
+        //  if (blackwhite) glColor4f(0., 0., 0., contrast);
           glTexCoord2i(0, 0);   glVertex2i(lmargin, bmargin);
           glTexCoord2i(Nx, 0);   glVertex2i(w-rmargin, bmargin);
           glTexCoord2i(Nx, Ny);   glVertex2i(w-rmargin, h-tmargin);
@@ -865,7 +913,7 @@ void CheckerFlicker::save()
     outStream << "Parameters:" << "\n"
               << "stixelwidth = " << stixelWidth << "\n"
               << "stixelheight = " << stixelHeight << "\n"
-              << "blackwhite = " << (blackwhite?"true":"false") << "\n"
+			  << "rand_gen = " << (rand_gen == Uniform ? "uniform":(rand_gen == Gauss ? "gauss" : "binary")) << "\n"
               << "bgcolor = " << bgcolor << "\n"
               << "contrast = " << contrast << "\n"
               << "seed = " << originalSeed << "\n"

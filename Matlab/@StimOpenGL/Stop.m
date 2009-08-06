@@ -17,6 +17,12 @@ function [s] = Stop(varargin)
     if (~isnumeric(dosaveflag)),
         error('Arguments to stop are Stop(StimOpemGLOBJ, save_data_flag)');
     end;
-    s = DoSimpleCmd(s, sprintf('STOP %d', dosaveflag));
+    d = DoSimpleCmd(s, sprintf('STOP %d', dosaveflag));
+    i=0;
+    while (length(Running(s)) & i < 6),
+        pause(.5);
+        i=i+1;
+    end;
+    
 
     
