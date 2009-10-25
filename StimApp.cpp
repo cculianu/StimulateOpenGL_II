@@ -29,6 +29,8 @@
 #include "StimGL_LeoDAQGL_Integration.h"
 #include "ui_LeoDAQGLIntegration.h"
 
+#define DEFAULT_WIN_SIZE QSize(800,600)
+
 Q_DECLARE_METATYPE(unsigned);
 
 namespace {
@@ -66,7 +68,7 @@ namespace {
 StimApp * StimApp::singleton = 0;
 
 StimApp::StimApp(int & argc, char ** argv)
-    : QApplication(argc, argv, true), debug(false), initializing(true), server(0), nLinesInLog(0), nLinesInLogMax(1000)
+    : QApplication(argc, argv, true), consoleWindow(0), glWindow(0), glWinHasFrame(true), debug(false), initializing(true), server(0), nLinesInLog(0), nLinesInLogMax(1000), glWinSize(DEFAULT_WIN_SIZE) /* default plugin size */
 {
     if (singleton) {
         QMessageBox::critical(0, "Invariant Violation", "Only 1 instance of StimApp allowed per application!");
@@ -87,13 +89,12 @@ StimApp::StimApp(int & argc, char ** argv)
 
     Log() << "Application started";
 
-    glWindow = new GLWindow(800, 600);    
     consoleWindow->installEventFilter(this);
     consoleWindow->textEdit()->installEventFilter(this);
 
-    glWindow->move(0,0);
-    
+    createGLWindow(false);
     glWindow->show();
+
     getHWFrameCount(); // forces error message to print once if frame count func is not found
     consoleWindow->setWindowTitle("StimulateOpenGL II");
     consoleWindow->resize(800, 300);
@@ -104,6 +105,10 @@ StimApp::StimApp(int & argc, char ** argv)
     consoleWindow->move(0,glWindow->frameSize().height()+delta);
     consoleWindow->show();
 
+    if (getNProcessors() > 2)
+        setProcessAffinityMask(0x2|0x4); // set it to core 2 and core 3
+    
+
     setRTPriority();
     setVSyncMode();
 
@@ -113,17 +118,28 @@ StimApp::StimApp(int & argc, char ** argv)
 
     createAppIcon();
 
-#ifdef Q_OS_WIN
-    initializing = false;
-    Log() << "Application initialized";    
-#else
-    calibrateRefresh();
+#ifndef Q_OS_WIN
+    if (getenv("NOCALIB")) {
+#endif
+        initializing = false;
+        Log() << "Application initialized";    
+#ifndef Q_OS_WIN
+    } else
+        calibrateRefresh();
 #endif
 
     QTimer *timer = new QTimer(this);
     Connect(timer, SIGNAL(timeout()), this, SLOT(updateStatusBar()));
     timer->setSingleShot(false);
     timer->start(247); // update status bar every 247ms.. i like this non-round-numbre.. ;)
+}
+
+void StimApp::createGLWindow(bool initPlugs)
+{
+    glWindow = new GLWindow(glWinSize.width(), glWinSize.height(), !glWinHasFrame);
+    glWindow->move(0,0);
+    
+    if (initPlugs) glWindow->initPlugins();
 }
 
 #ifndef Q_OS_WIN
@@ -397,6 +413,7 @@ volatile int ReentrancyPreventer::ct = 0;
 
 void StimApp::loadStim()
 {
+    unloadStim();
     ReentrancyPreventer rp; if (!rp) return;
 
     QString lf;
@@ -437,6 +454,30 @@ void StimApp::loadStim()
         }
         tsparams.flush();
         params.fromString(paramsBuf);
+
+        {
+            // custom window size handling: mon_x_pix and mon_y_pix
+            QSize desiredSize(DEFAULT_WIN_SIZE);
+            if (params.contains("mon_x_pix")) 
+                desiredSize.setWidth(params["mon_x_pix"].toUInt());
+            if (params.contains("mon_y_pix")) 
+                desiredSize.setHeight(params["mon_y_pix"].toUInt());
+            
+            if (desiredSize != glWinSize && !desiredSize.isEmpty()) {
+                Log() << "GLWindow size changed to: " << desiredSize.width() << "x" << desiredSize.height();
+                QString pname = p->name();
+                // need to (re)create the gl window with the desired size!
+                QDesktopWidget desktop;
+                const QRect screenRect(desktop.screenGeometry(glWindow));
+                delete glWindow;
+                glWinSize = desiredSize;                
+                createGLWindow();
+                glWindow->move(screenRect.x(), screenRect.y());
+                glWindow->show();
+                p = pfound = glWindow->pluginFind(pname);
+            }
+        }
+
         QFileInfo fi(lastFile);
         Log() << fi.fileName() << " loaded";
         p->setParams(params);       
@@ -455,7 +496,7 @@ void StimApp::unloadStim()
             if (p != glWindow->runningPlugin())
                 QMessageBox::information(0, "Already unloaded", 
                                          "Plugin already unloaded in the meantime!");
-            else if (p->getFrameNum() > -1) {
+            else if (/*p->getFrameNum() > -1*/true) {
                 bool doSave = 0; //QMessageBox::question(0, "Save data?", QString("Save data for '") + p->name() + "'?", QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes;
                 if (p != glWindow->runningPlugin()) {
                     QMessageBox::information(0, "Already unloaded", 
@@ -545,22 +586,17 @@ void StimApp::hideUnhideConsole()
 void StimApp::alignGLWindow()
 {
     if (glWindow) {
-        if (!savedGeometry.isEmpty()) {
-            glWindow->restoreGeometry(savedGeometry);
-            savedGeometry.clear();
-            Log() << "Restored GL window to original position";
+        if (glWindow->runningPlugin()) {
+            Warning() << "Align of GLWindow not possible while a plugin is loaded.  Please unload the current Stim Plugin then try to align again.";
         } else {
             QDesktopWidget desktop;
             const QRect screenRect(desktop.screenGeometry(glWindow));
-            int xdelta = glWindow->geometry().x() - glWindow->x(),
-                ydelta = glWindow->geometry().y() - glWindow->y();
-            if (xdelta <= 0 || ydelta <= 0) {
-                Error() << "Cannot align GLWindow since something is wrong with the window system's idea of the frame geometry!";
-                return;
-            }
-            savedGeometry = glWindow->saveGeometry();
-            glWindow->move(screenRect.x()-xdelta, screenRect.y()-ydelta);
-            Log() << "Aligned GL window to monitor 0,0";
+            delete glWindow;
+            glWinHasFrame = !glWinHasFrame;
+            createGLWindow();
+            glWindow->aMode = !glWinHasFrame; // 'A' mode if we lack a frame
+            glWindow->move(screenRect.x(), screenRect.y());
+            glWindow->show();
         }
     }
 }

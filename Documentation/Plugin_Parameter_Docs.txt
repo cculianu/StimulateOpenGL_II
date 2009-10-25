@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <cculianu@yahoo.com>
-Last Updated: July 8, 2008
+Last Updated: June 21, 2009
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -10,6 +10,21 @@ listed for that parameter.  Some parameters lack default values and
 therefore must be specified in the configuration file and/or
 configuration parameter struct given in matlab.  However, the majority of
 parameters below do have (sensible) defaults.
+
+-----------------------------------------------------------------------------
+Global PLUGN PARAMETERS
+-----------------------------------------------------------------------------
+mon_x_pix
+        Synopsis:         Specifies the width in pixels of the GL window
+	Datatype:         integer
+	Possible values:  1 - +2147483647
+	Default value:    800
+
+mon_y_pix
+        Synopsis:         Specifies the height in pixels of the GL window
+	Datatype:         integer
+	Possible values:  1 - +2147483647
+	Default value:    600
 
 ------------------------------------------------------------------------------
 `MovingObjects' PLUGIN PARAMETERS

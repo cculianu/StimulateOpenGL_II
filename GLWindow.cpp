@@ -1,3 +1,4 @@
+#define GL_GLEXT_PROTOTYPES
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
@@ -11,8 +12,12 @@
 #endif
 #ifdef Q_WS_MACX
 #  include <gl.h>
+#  include <glext.h>
 #else
 #  include <GL/gl.h>
+#  ifndef Q_OS_WIN
+#    include <GL/glext.h>
+#  endif
 #endif
 #include <math.h>
 #include <QTimer>
@@ -21,8 +26,8 @@
 
 #define WINDOW_TITLE "StimulateOpenGL II - GLWindow"
 
-GLWindow::GLWindow(unsigned w, unsigned h)
-    : QGLWidget((QWidget *)0), running(0), paused(false), tooFastWarned(false), lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.)
+GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
+    : QGLWidget((QWidget *)0,0,static_cast<Qt::WindowFlags>(Qt::MSWindowsOwnDC|(frameless ? Qt::FramelessWindowHint : 0))), aMode(false), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.)
 {
     QSize s(w, h);
     setMaximumSize(s);
@@ -46,7 +51,12 @@ GLWindow::GLWindow(unsigned w, unsigned h)
     setWindowTitle(WINDOW_TITLE);
 }
 
-GLWindow::~GLWindow() { if (running) running->stop(); }
+GLWindow::~GLWindow() { 
+    if (running) running->stop(); 
+    // be sure to remove all plugins while we are still a valid GLWindow instance, to avoid a crash bug
+    while (pluginsList.count())
+        delete pluginsList.front(); // StimPlugin * should auto-remove itself from list so list will shrink..
+}
 
 void GLWindow::closeEvent(QCloseEvent *evt)
 {
@@ -83,7 +93,7 @@ void GLWindow::initializeGL()
     glDisable( GL_DITHER );
     glDrawBuffer( GL_BACK_LEFT );
 
-    glClearColor( 0.5, 0.5, 0.5, 0.0 ); //set the clearing color to be gray
+    glClearColor( 0.5, 0.5, 0.5, 1.0 ); //set the clearing color to be gray
     glShadeModel( GL_FLAT );
     glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
 }
@@ -98,7 +108,6 @@ void GLWindow::resizeGL(int w, int h)
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity();
     gluOrtho2D( 0.0, (GLdouble)w, 0.0, (GLdouble) h );
-
 }
 
 // draw each frame
@@ -150,6 +159,8 @@ void GLWindow::paintGL()
         Warning() << "Dropped frame " << getHWFrameCount();
     }
                
+    bool doBufSwap = !aMode;
+
     if (!paused) {
         // NB: don't clear here, let the plugin do clearing as an optimization
         // glClear( GL_COLOR_BUFFER_BIT );
@@ -163,13 +174,25 @@ void GLWindow::paintGL()
             running->drawFrame();
             // NB: running ptr may be made null if drawFrame() called stop()
             if (running) ++running->frameNum;
+            doBufSwap = true;
+        }  else {
+            glClear( GL_COLOR_BUFFER_BIT );
+            doBufSwap = true;
         }
+    } else if (running && running->getFrameNum() < 0) {
+        glClear( GL_COLOR_BUFFER_BIT );
+        doBufSwap = true;
     }
 
     tLastLastFrame = tLastFrame;
     tLastFrame = tThisFrame;
 
-    swapBuffers();// should wait for vsync...   
+    if (doBufSwap) {// doBufSwap is normally true either if we don't have aMode or if we have a plugin and it is running and not paused
+        
+        swapBuffers();// should wait for vsync...   
+    } else {
+        // don't swap buffers here to avoid frame ghosts in 'A' Mode on Windows.. We get frame ghosts in Windows in 'A' mode when paused or not running because we didn't draw a new frame if paused, and so swapping the buffers causes previous frames to appear onscreen
+    }
 
 #ifdef Q_OS_WIN
     //timer->start(timerpd);     
@@ -270,7 +293,8 @@ void GLWindow::keyPressEvent(QKeyEvent *event)
         break;
     case 'L':
     case 'l':
-        stimApp()->loadStim();
+        //stimApp()->loadStim();
+        QTimer::singleShot(1, stimApp(), SLOT(loadStim())); // ends up possibly deleting this object, so we don't want to run this from this event handler, thus we'll enqueue it.
         break;
     case 'd':
     case 'D':
@@ -288,11 +312,14 @@ void GLWindow::keyPressEvent(QKeyEvent *event)
         break;
     case 'a':
     case 'A':
-        stimApp()->alignGLWindow();
+        //stimApp()->alignGLWindow();
+        QTimer::singleShot(1, stimApp(), SLOT(alignGLWindow())); // ends up deleting this object, so we don't want to run this from this event handler, thus we'll enqueue it.
         break;
 
     case Qt::Key_Escape: 
-        stimApp()->unloadStim();
+        //stimApp()->unloadStim();
+        QTimer::singleShot(1, stimApp(), SLOT(unloadStim())); // may end up possibly deleting this object?
+
         break;
     }
 }
@@ -303,7 +330,7 @@ void GLWindow::pauseUnpause()
     paused = !paused;
     Log() << (paused ? "Paused" : "Unpaused");
     if (!paused && !running->frameNum && running->needNotifyStart) 
-        running->notifySpikeGLAboutStart();    
+        running->notifySpikeGLAboutStart();  
 }
 
 QList<QString> GLWindow::plugins() const

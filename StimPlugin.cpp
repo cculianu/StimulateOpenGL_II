@@ -51,7 +51,8 @@ void StimPlugin::stop(bool doSave, bool useGui)
     parent->pluginStopped(this);
     emit stopped();
     parent->makeCurrent();
-    glClearColor(0.5, 0.5,  0.5, 0.);
+    glClearColor(0.5, 0.5,  0.5, 1.);
+    glColor4f(0.5, 0.5,  0.5, 1.);
     glClear( GL_COLOR_BUFFER_BIT );    
     cleanup();
     // restore original matrices from matrix stack

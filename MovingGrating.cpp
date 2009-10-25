@@ -2,7 +2,7 @@
 
 
 MovingGrating::MovingGrating()
-    : GridPlugin("MovingGrating")
+    : GridPlugin("MovingGrating"), xscale(1.f), yscale(1.f)
 {
 }
 
@@ -13,6 +13,10 @@ bool MovingGrating::init()
 	if( !getParam("period", period) ) returnvalue = false;
 	if( !getParam("speed",  speed) ) returnvalue = false;
 	if( !getParam("angle", angle) ) returnvalue = false;
+
+
+        xscale = width()/800.0;
+        yscale = height()/600.0;
 
 	totalTranslation = 0;
 
@@ -27,6 +31,10 @@ bool MovingGrating::init()
 void MovingGrating::drawFrame()
 {
         glClear( GL_COLOR_BUFFER_BIT );
+
+        glPushMatrix();
+        
+        glScalef(xscale, yscale, 1.f);
 
 	//glRotatef( 2.0, 0.0, 0.0, 1.0 );
 	if( totalTranslation > period ){
@@ -45,7 +53,9 @@ void MovingGrating::drawFrame()
 	drawGrid();
 
 	glRotatef( -angle, 0.0, 0.0, 1.0 );
-
+        
 	//if( framecount%2 == 0 ) pulse = true;
 	//else pulse = false;
+        
+        glPopMatrix();
 }
