@@ -35,7 +35,7 @@ static void MapDestroy(int handle)
 {
   NetClientMap::iterator it = clientMap.find(handle);
   if (it != clientMap.end()) {
-    delete it->second;  
+    delete it->second;
     clientMap.erase(it);
   } else {
     mexWarnMsgTxt("Invalid or unknown handle passed to CalinsNetMex MapDestroy!");
@@ -44,12 +44,12 @@ static void MapDestroy(int handle)
 
 static int GetHandle(int nrhs, const mxArray *prhs[])
 {
-  if (nrhs < 1) 
+  if (nrhs < 1)
     mexErrMsgTxt("Need numeric handle argument!");
 
   const mxArray *handle = prhs[0];
 
-  if ( !mxIsDouble(handle) || mxGetM(handle) != 1 || mxGetN(handle) != 1) 
+  if ( !mxIsDouble(handle) || mxGetM(handle) != 1 || mxGetN(handle) != 1)
     mexErrMsgTxt("Handle must be a single double value.");
 
   return static_cast<int>(*mxGetPr(handle));
@@ -73,7 +73,7 @@ void createNewClient(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   const mxArray *host = prhs[0], *port = prhs[1];
   if ( !mxIsChar(host) || mxGetM(host) != 1 ) mexErrMsgTxt("Hostname must be a string row vector!");
   if ( !mxIsDouble(port) || mxGetM(port) != 1 || mxGetN(port) != 1) mexErrMsgTxt("Port must be a single numeric value.");
-  
+
   char *hostStr = mxArrayToString(host);
   unsigned short portNum = static_cast<unsigned short>(*mxGetPr(port));
   NetClient *nc = new NetClient(hostStr, portNum);
@@ -103,7 +103,7 @@ void tryConnection(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   RETURN(1);
 }
- 
+
 void closeSocket(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   NetClient *nc = GetNetClient(nrhs, prhs);
@@ -115,10 +115,10 @@ void closeSocket(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 void sendString(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   NetClient *nc = GetNetClient(nrhs, prhs);
-  
+
   if(nrhs != 2)		mexErrMsgTxt("Two arguments required: handle, string.");
   //if(nlhs < 1) mexErrMsgTxt("One output argument required.");
-  if(mxGetClassID(prhs[1]) != mxCHAR_CLASS) 
+  if(mxGetClassID(prhs[1]) != mxCHAR_CLASS)
 	  mexErrMsgTxt("Argument 2 must be a string.");
 
   char *tmp = mxArrayToString(prhs[1]);
@@ -130,7 +130,7 @@ void sendString(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   } catch (const SocketException & e) {
     mexWarnMsgTxt(e.why().c_str());
     RETURN_NULL();
-  }  
+  }
   RETURN(1);
 }
 
@@ -153,7 +153,7 @@ void sendMatrix(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   default:
       mexErrMsgTxt("Argument 2 must be a matrix of numeric type.");
   }
-      
+
 
   void *theMatrix = mxGetPr(prhs[1]);
 
@@ -163,7 +163,7 @@ void sendMatrix(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       mexWarnMsgTxt(e.why().c_str());
       RETURN_NULL();
   }
-  
+
   RETURN(1);
 }
 
@@ -217,9 +217,9 @@ void readMatrix(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   NetClient *nc = GetNetClient(nrhs, prhs);
   int ndims, datalen;
-  if (!nlhs) 
+  if (!nlhs)
       mexErrMsgTxt("output (lhs) parameter is required.");
-  if (nrhs < 3 || !mxIsChar(prhs[1]) || !mxIsDouble(prhs[2]) || (ndims=mxGetN(prhs[2])) < 2 || mxGetM(prhs[2]) != 1) 
+  if (nrhs < 3 || !mxIsChar(prhs[1]) || !mxIsDouble(prhs[2]) || (ndims=mxGetN(prhs[2])) < 2 || mxGetM(prhs[2]) != 1)
       mexErrMsgTxt("'readMatrix' needs arguments:\n Argument 1 handle\n Argument 2, a string 'double' or 'single' or 'uint8'\n Argument 3, a 1x3 or 1x2 vector of dimensions for m,n[,o]");
   int buflen = (mxGetM(prhs[1]) * mxGetN(prhs[1]) * sizeof(mxChar)) + 1;
   std::string stdstr(buflen, '0');
@@ -266,7 +266,7 @@ struct CommandFunction
 	void (*func)(int, mxArray **, int, const mxArray **);
 };
 
-static struct CommandFunction functions[] = 
+static struct CommandFunction functions[] =
 {
     { "create", createNewClient },
     { "destroy", destroyClient },
@@ -289,14 +289,14 @@ void mexFunction( int nlhs, mxArray *plhs[],
   int i;
   std::string cmdname, errString = "";
   char *tmp = 0;
-  
+
   /* Check for proper number of arguments. */
   if(nrhs < 2) {
       errString += "At least two input arguments are required.\n";
       goto err_out;
-  } else 
+  } else
       cmd = prhs[0];
-  
+
   if (!mxIsChar(cmd)) {
       errString +=  "First argument must be a string.\n";
       goto err_out;
@@ -310,7 +310,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
   mxFree(tmp);
   for (i = 0; i < n_functions; ++i) {
       // try and match cmdname to a command we know about
-    if (::strcmpi(functions[i].name, cmdname.c_str()) == 0 ) { 
+    if (::strcmpi(functions[i].name, cmdname.c_str()) == 0 ) {
         // a match.., call function for the command, popping off first prhs
         functions[i].func(nlhs, plhs, nrhs-1, prhs+1); // call function by function pointer...
         return;

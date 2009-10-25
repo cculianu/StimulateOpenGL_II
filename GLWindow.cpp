@@ -159,27 +159,38 @@ void GLWindow::paintGL()
         Warning() << "Dropped frame " << getHWFrameCount();
     }
                
-    bool doBufSwap = !aMode;
+    bool doBufSwap = false;
+
+	if (running) {
+		// unconditionally setup the clear color here
+		switch(running->fps_mode) {
+			case FPS_Dual: glClearColor(running->bgcolor, 0.f, running->bgcolor, 1.0); break; // dual mode has blank green channel (green channel is middle frame)
+			default: glClearColor(running->bgcolor, running->bgcolor, running->bgcolor, 1.0); break;
+		}
+	} else
+		glClearColor(0.5, 0.5, 0.5, 1.0);
 
     if (!paused) {
         // NB: don't clear here, let the plugin do clearing as an optimization
         // glClear( GL_COLOR_BUFFER_BIT );
 
-        if (running) {
+        if (running && running->initted) {
             if (tooSlow) 
                 // indicate the frame was skipped
                 running->putMissedFrame(static_cast<unsigned>((tThisFrame-tLastFrame)*1e3));
             running->cycleTimeLeft = 1.0/getHWRefreshRate();
-            running->computeFPS();            
-            running->drawFrame();
-            // NB: running ptr may be made null if drawFrame() called stop()
-            if (running) ++running->frameNum;
-            doBufSwap = true;
-        }  else {
-            glClear( GL_COLOR_BUFFER_BIT );
-            doBufSwap = true;
+            running->computeFPS(); 
+			running->drawFrame();
+			if (running) { // NB: drawFrame may have called stop(), thus NULLing this pointer
+				running->drawFTBox();
+				++running->frameNum;
+				doBufSwap = true;
+			} 			
         }
-    } else if (running && running->getFrameNum() < 0) {
+    }
+    if (!running /* if we aren't running, always clear!*/
+        || (running && running->getFrameNum() < 0) ) /* paused, before we drew anything */
+    { 
         glClear( GL_COLOR_BUFFER_BIT );
         doBufSwap = true;
     }
@@ -190,18 +201,19 @@ void GLWindow::paintGL()
     if (doBufSwap) {// doBufSwap is normally true either if we don't have aMode or if we have a plugin and it is running and not paused
         
         swapBuffers();// should wait for vsync...   
+
     } else {
         // don't swap buffers here to avoid frame ghosts in 'A' Mode on Windows.. We get frame ghosts in Windows in 'A' mode when paused or not running because we didn't draw a new frame if paused, and so swapping the buffers causes previous frames to appear onscreen
     }
 
 #ifdef Q_OS_WIN
-    //timer->start(timerpd);     
-    update();
+	    //timer->start(timerpd);
+	    update();
 #else
-    timer->start(0);     
+	    timer->start(0);
 #endif
 
-    if (running && !paused) {
+    if (running && running->initted && !paused) {
         running->cycleTimeLeft -= getTime()-tThisFrame;
         running->afterVSync();
     }
@@ -231,13 +243,13 @@ void GLWindow::pluginStarted(StimPlugin *p)
 
 void GLWindow::pluginStopped(StimPlugin *p)
 {
+	if (running != p)
+		Error() << "pluginStopped() but running != p";
     if (running == p) {
         running = 0;
         paused = false;
         Log() << p->name() << " stopped.";
         setWindowTitle(WINDOW_TITLE);
-    } else {
-        Error() << "pluginStopped() but running != p";
     }
 }
 
@@ -259,6 +271,7 @@ StimPlugin *GLWindow::pluginFind(const QString &name, bool casesensitive)
 #include "MovingObjects.h"
 #include "MovingGrating.h"
 #include "CheckerFlicker.h"
+#include "Flicker.h"
 void GLWindow::initPlugins()
 {
     Log() << "Initializing plugins...";
@@ -271,6 +284,7 @@ void GLWindow::initPlugins()
     new MovingObjects();  // experiment plugin.. bouncey square!
     new MovingGrating();  // experiment plugin.. the grid!
     new CheckerFlicker(); // experiment plugin.. the checkerboard!
+	new Flicker();        // experiment plugin.. the flicker tester!
 
     // TODO: more plugins here
 

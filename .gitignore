@@ -27,4 +27,7 @@ core.*
 StimulateOpenGL_II.kdevses
 _UpgradeReport_Files
 UpgradeLog.XML
+*.asv
+*.idb
+*.pdb
 

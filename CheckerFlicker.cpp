@@ -4,6 +4,7 @@
 #include <QMutex>
 #include <deque>
 #include <QThread>
+#include <QTimer.h>
 #ifdef Q_OS_WIN
 #define __SSE2__
 #include <windows.h>
@@ -188,6 +189,7 @@ struct Frame
     // presently not used..
     int ifmt, fmt, type; ///< for gltexsubimage..
     unsigned int seed; ///< the rng seed used for this frame
+	Vec2i displacement; ///< frame displacement in pixels in the x and y direction
 };
 
 Frame::Frame(unsigned w, unsigned h, unsigned es): mem(0), texels(0), w(w), h(h), tx_size(es), ifmt(0), fmt(0), type(0), seed(0)
@@ -234,7 +236,7 @@ private:
 
 
 CheckerFlicker::CheckerFlicker()
-    : StimPlugin("CheckerFlicker"), w(width()), h(height()), fbo(0), fbos(0), texs(0)
+    : StimPlugin("CheckerFlicker"), w(width()), h(height()), fbo(0), fbos(0), texs(0), origThreadAffinityMask(0)
 {
 }
 
@@ -271,22 +273,51 @@ bool CheckerFlicker::init()
 {
     glGetError(); // clear error flag
 
-        const int xdim = w, ydim = h;
+	QString tmp;
+	if ((getParam("blackwhite", tmp) && (tmp="blackwhite").length()) || (getParam("meanintensity", tmp) && (tmp="meanintensity").length())) {
+		// reject deprecated params!
+		Error() << "Checkerflicker param `" << tmp << "' is no longer supported!  Please rename this param or get rid of it (check the docs!)";
+		return false;
+	}
+	if (getParam("contrast", contrast)) {
+		Warning() << "Param `contrast' is no longer supported in checkerflicker as it didn't jive well with the random number generators!";
+	}
+	const int xdim = w, ydim = h;
 	// find parameters
 	// if not found, either set to default value or generate warning message and abort (=return false)
 	if( !getParam("stixelwidth", stixelWidth) ) stixelWidth = 10;
 	if( !getParam("stixelheight", stixelHeight) ) stixelHeight = 10;
-	if( !getParam("blackwhite", blackwhite) ) blackwhite = true;
-        if( !getParam("quad_fps", quad_fps) ) quad_fps = true;
-	if( !getParam("meanintensity", meanintensity) ) meanintensity = 0.5;
-	if( !getParam("contrast", contrast) ){
-		if( blackwhite ) contrast = 1;
-		else contrast = 0.3f;
+	QString rgen;
+	if( !getParam("rand_gen", rgen) ) {
+		rgen = "uniform";
+		Log() << "rand_gen parameter not specified, defaulting to `" << rgen << "'";
+	}
+	if (rgen.startsWith("u" ,Qt::CaseInsensitive)) rand_gen = Uniform;
+	else if (rgen.startsWith("g", Qt::CaseInsensitive)) rand_gen = Gauss;
+	else if (rgen.startsWith("b", Qt::CaseInsensitive)) rand_gen = Binary;
+	else {
+		bool ok;
+		int m = rgen.toInt(&ok);
+		if (ok) {
+			switch(m) {
+				case Uniform:
+				case Gauss: 
+				case Binary: rand_gen = (Rand_Gen)m; break;
+				default:
+					ok = false;
+			}
+		} 
+		if (!ok) {
+				Error() << "Invalid `rand_gen' param specified: " << rgen << ", please specify one of uniform, gauss, or binary!";
+				return false;
+		}
 	}
 
-	if ( !getParam("bx", bx) ) bx = 0;
-	if ( !getParam("by", by) ) by = 10;
-	if ( !getParam("bw", bw) ) bw = 45;
+
+	if( !getParam("contrast", contrast) ){
+		if ( rand_gen == Binary ) contrast = 1;
+		else contrast = 0.3f;
+	}
 
 	if( !getParam("lmargin", lmargin) ) lmargin = 0;
 	if( !getParam("rmargin", rmargin) ) rmargin = 0;
@@ -314,19 +345,13 @@ bool CheckerFlicker::init()
 	if( stixelHeight < 0 ) stixelHeight *= -1;
 	if( stixelWidth < 1 ) stixelWidth = 1;
 	if( stixelHeight < 1 ) stixelHeight = 1;
-	if( lmargin < 0 ) lmargin = 0;
-	if( rmargin < 0 ) rmargin = 0;
-	if( bmargin < 0 ) bmargin = 0;
-	if( tmargin < 0 ) tmargin = 0;
-	if( lmargin+rmargin >= xdim ){ lmargin = 0; rmargin = 0; }
-	if( bmargin+tmargin >= ydim ){ bmargin = 0; tmargin = 0; }
 	if( !getParam( "seed", originalSeed) ) originalSeed = 10000;
 
 	ran1Gen.reseed(originalSeed); // NB: it doesn't matter anymore if seed is negative or positive -- all negative seeds end up being positie anyway and the generator no longer needs a negative seed to indicate "reseed".  That was ugly.  See RanGen.h for how to use the class.. 
-        gasGen.reseed(originalSeed); // Need to reseed this too.. 
-        // our SFMT random number generator gets seeded too
-        init_gen_rand(originalSeed);
-        gen_rand_all();
+    gasGen.reseed(originalSeed); // Need to reseed this too.. 
+    // our SFMT random number generator gets seeded too
+    init_gen_rand(originalSeed);
+    gen_rand_all();
 
 	if( !getParam( "Nblinks", Nblinks) ) Nblinks = 1;
         blinkCt = 0;
@@ -335,6 +360,16 @@ bool CheckerFlicker::init()
 
         lastAvgTexSubImgProcTime = 0.0045;
 
+	if (!getParam("rand_displacement_x", rand_displacement_x)) rand_displacement_x = 0;
+	if (!getParam("rand_displacement_y", rand_displacement_y)) rand_displacement_y = 0;
+
+	if (rand_displacement_x && (!lmargin && !rmargin)) {
+		Warning() << "rand_displacement_x set to: " << rand_displacement_x << " -- Recommend setting lmargin and rmargin to " << -int(rand_displacement_x);
+	}
+	if (rand_displacement_y && (!tmargin && !bmargin)) {
+		Warning() << "rand_displacement_y set to: " << rand_displacement_y << " -- Recommend setting tmargin and bmargin to " << -int(rand_displacement_y);
+	}
+		
 	// determine the right number of tiles in x and y direction to fill screen        
         do {
             xpixels = xdim-(lmargin+rmargin);
@@ -369,21 +404,23 @@ bool CheckerFlicker::init()
         initted = false;
 		frameGenAvg_usec;
 
-        if (meanintensity < 0. || meanintensity > 1. || contrast < 0. || contrast > 1.) {
-            Error() << "Either one of: `meanintensity' or `contrast' is out of range.  They must be in the range [0,1]";
+        if (bgcolor < 0. || bgcolor > 1. || contrast < 0. || contrast > 1.) {
+            Error() << "Either one of: `bgcolor' or `contrast' is out of range.  They must be in the range [0,1]";
             return false;
         }
 
-		if (getNProcessors() > 2) {
-			setCurrentThreadAffinityMask(1); // make it run on first cpu
-			Log() << "Set affinity mask of main thread to: " << 1;
+		unsigned nProcs;
+		if ((nProcs=getNProcessors()) > 2) {
+			const unsigned mask = 0x1<<(nProcs-3);
+			origThreadAffinityMask = setCurrentThreadAffinityMask(mask); // make it run on second cpu
+			Log() << "Set affinity mask of main thread to: " << mask;
 		}
 
         QTime tim; tim.start();
         Log() << "Pregenerating gaussian color table of size " << colortable << ".. (please be patient)";
         Status() << "Generating gaussian color table ...";
-        stimApp()->console()->update(); // ensure message is printed
-        stimApp()->processEvents(QEventLoop::ExcludeUserInputEvents); // ensure message is printed
+//        stimApp()->console()->update(); // ensure message is printed
+        //stimApp()->processEvents(QEventLoop::ExcludeUserInputEvents); // ensure message is printed
         genGaussColors();
         Log() << "Generated " << gaussColors.size() << " colors in " << tim.elapsed()/1000.0 << " secs";
         
@@ -393,7 +430,12 @@ bool CheckerFlicker::init()
             Error() << "*FBO MODE IS REQUIRED FOR THIS PLUGIN TO WORK*";
             return false;
         }        
-        initted = true;
+        frameNum = 0; // reset frame num!
+
+#ifdef Q_OS_WIN
+		Sleep(500); // sleep for 500ms to ensure init is ok
+#endif
+
 	return true;
 }
 
@@ -422,6 +464,9 @@ bool CheckerFlicker::initFBO()
             memset(fbos, 0, sizeof(GLuint) * fbo);
             texs = new GLuint[fbo];
             memset(texs, 0, sizeof(GLuint) * fbo);
+			disps = new Vec2i[fbo];
+			memset(disps, 0, sizeof(Vec2i) * fbo);
+
             glGenFramebuffersEXT(fbo, fbos);
             if ( !checkFBStatus() ) {
                 Error() << "Error after glGenFramebuffersEXT call.";
@@ -500,6 +545,7 @@ bool CheckerFlicker::initFBO()
                 fc->haveMore.acquire();
                 Frame * f = fc->popOne();
                 glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, Nx, Ny, fmt, type, f->texels);
+				disps[i] = f->displacement;
                 delete f;
                 glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
                 glPopAttrib();
@@ -535,8 +581,10 @@ void CheckerFlicker::cleanupFBO()
             glDeleteTextures(fbo, texs);
         delete [] fbos;
         delete [] texs;
+		delete [] disps;
         fbos = 0;
         texs = 0;
+		disps = 0;
         Debug() << "Freed " << fbo << " framebuffer objects.";
         // Make sure rendering to the window is on, just in case
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
@@ -548,8 +596,8 @@ void CheckerFlicker::cleanup()
 {
     cleanupFBO();
     setNums();    
-	if (getNProcessors() > 2) {
-		setCurrentThreadAffinityMask((1<<getNProcessors())-1); // make it runnable on all CPUs again
+	if (origThreadAffinityMask) {
+		setCurrentThreadAffinityMask(origThreadAffinityMask); // make it runnable as it was before plugin was run
 	}
 }
 
@@ -557,7 +605,7 @@ void CheckerFlicker::genGaussColors()
 {
     gaussColors.resize(gaussColorMask+1); // reserve data for color table -- gaussColorMask should be <=16MB..
     for (unsigned i = 0; i < gaussColors.size(); ++i) {
-        double d = ((gasGen()*(meanintensity*contrast)) + meanintensity);
+        double d = ((gasGen()*(bgcolor*contrast)) + bgcolor);
         if (d < 0. || d > 1.) { --i; continue; } // keep retrying until we get a value in range
         gaussColors[i] = static_cast<GLubyte>( d * 256.);
         //qDebug("%hhu", gaussColors[i]);
@@ -571,27 +619,55 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
     double t0 = getTime();
 
     Frame *f = new Frame(Nx, Ny, 4);
-    __m128i *quads = (__m128i *)f->texels;
+    __m128i *quads = (__m128i *)f->texels; (void)quads;
     unsigned *dwords = (unsigned *)f->texels;
     bool dolocking = fcs.size() > 1;
 
-    if (blackwhite) {
+	// Random Frame displacement -- NEW!  Added by Calin 8/04/2009
+	if (rand_displacement_x || rand_displacement_y) {
+		if (dolocking) rngmut.lock();
+		if (rand_displacement_x) f->displacement.x = ((ran1Gen.next()*2.0)-1.0)*int(rand_displacement_x);
+		if (rand_displacement_y) f->displacement.y = ((ran1Gen.next()*2.0)-1.0)*int(rand_displacement_y);
+		if (dolocking) rngmut.unlock();
+	}
+
+    if (rand_gen == Binary || rand_gen == Uniform) {
         if (dolocking) rngmut.lock();
         gen_rand_array((w128_t *)f->texels, MAX(f->nqqw, N));
         if (dolocking) rngmut.unlock();
-/*        if (quad_fps) {
+        if (fps_mode == FPS_Dual) { // for this mode we need to eliminate the green channels (and alpha can be set to whatever), so we use an SSE2 instruction
+			// need to 0 out every other byte
+            const __m128i mask = _mm_set_epi32(0, 0, 0, 0);
+			for (unsigned long i = 0; i < f->nqqw; ++i) 
+                quads[i] = _mm_unpacklo_epi8(quads[i], mask); // this makes quads[i] be b0,0,b1,0,b2,0..b7,0  
+		} else if (fps_mode == FPS_Single) { 
+			// make all 3 channels have the same level by making each 8-bit value in every dword of the qqwords be the same <-- confusing wording
+			int ex[4];
+			for (unsigned long i = 0; i < f->nqqw; ++i) {
+				ex[0] = _mm_extract_epi16(quads[i], 0) & 0xff;
+				ex[1] = _mm_extract_epi16(quads[i], 2) & 0xff;
+				ex[2] = _mm_extract_epi16(quads[i], 4) & 0xff;
+				ex[3] = _mm_extract_epi16(quads[i], 6) & 0xff;
+				ex[0] = (ex[0] | (ex[0] << 8) | (ex[0] << 16));
+				ex[1] = (ex[1] | (ex[1] << 8) | (ex[1] << 16));
+				ex[2] = (ex[2] | (ex[2] << 8) | (ex[2] << 16));
+				ex[3] = (ex[3] | (ex[3] << 8) | (ex[3] << 16));
+                quads[i] = _mm_set_epi32(ex[0], ex[1], ex[2], ex[3]);
+			}
+		}
+        if (rand_gen == Binary) { // map all 8-bit values to either 0x00 or 0xff using an SSE2 instruction
             const __m128i mask = _mm_set_epi32(0, 0, 0, 0);
             for (unsigned long i = 0; i < f->nqqw; ++i)
                 quads[i] = _mm_cmpgt_epi8(mask, quads[i]);
-        } else {
+        }/* else {
             const __m128i mask = _mm_set_epi32(0, 0, 0, 0);
             for (unsigned long i = 0; i < f->nqqw; ++i)
                 quads[i] = _mm_cmpgt_epi32(mask, quads[i]);
         }
 		*/
-    } else {
+    } else { // Gaussian
 #if 1
-        const unsigned entr_arr_sz = (quad_fps ? f->nqqw*4*3 : f->nqqw*4);
+		const unsigned entr_arr_sz = f->nqqw*4*(((int)fps_mode)+1);
         entvec.resize(MAX(entr_arr_sz+8, (N+3)*4));
         const unsigned ndwords = f->nqqw*4;
         unsigned * entr = reinterpret_cast<unsigned *>((reinterpret_cast<unsigned long>(&entvec[0])+0x10UL)&~0xfUL); // align to 16-byte boundary
@@ -600,12 +676,17 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
         if (dolocking) rngmut.unlock();
         
         // f->seed = whatever here..
-        if (quad_fps) {
+        if (fps_mode == FPS_Triple) {
             for (unsigned i = 0; i < ndwords; ++i) {
                 dwords[i] = getColor(entr[0])|getColor(entr[1])<<8|getColor(entr[2])<<16;
                 entr+=3;
             }
-        } else {
+		} else if (fps_mode == FPS_Dual) {
+            for (unsigned i = 0; i < ndwords; ++i) {
+                dwords[i] = getColor(entr[0])|/*0|*/getColor(entr[1])<<16;
+                entr+=2;
+            }
+        } else {  // single fps
             for (unsigned i = 0; i < ndwords; ++i) {
                 unsigned char cc = getColor(*entr++);
                 dwords[i] = cc|cc<<8|cc<<16|cc<<24;
@@ -613,9 +694,9 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
         }
 #endif
 #if 0 /* Uses Ziggurat Gaussians.. still not as fast as above method */
-#       define CLR static_cast<unsigned char>((ZigguratGauss::generate(gen_rand32, contrast) + meanintensity)*(unsigned char)0xff)
+#       define CLR static_cast<unsigned char>((ZigguratGauss::generate(gen_rand32, contrast) + bgcolor)*(unsigned char)0xff)
         unsigned ndwords = f->nqqw*4;
-        const double factor = contrast*meanintensity;
+        const double factor = contrast*bgcolor;
         if (dolocking) rngmut.lock();
         // f->seed = whatever here..
         if (quad_fps) {
@@ -641,8 +722,10 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
 
 void CheckerFlicker::drawFrame()
 {
-    if (!initted) return;
-	int framestate = (frameNum%2 == 0);
+        if (!initted) {
+            glClear( GL_COLOR_BUFFER_BIT );
+            return;
+        } 
 
         // using framebuffer objects.. the fastest but not as portable 
         // method
@@ -653,43 +736,39 @@ void CheckerFlicker::drawFrame()
         glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[num]);
         glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        if (blackwhite) {
+        //if (rand_gen != Gauss) {
+			// NB: WHAT DOES ALL OF THIS DO?!?!!?!?!?
+			/*
             glEnable(GL_BLEND);
-            glClearColor(meanintensity, meanintensity, meanintensity, 1.0-contrast);
+			if (fps_mode == FPS_Dual) // black out green channel
+				glClearColor(bgcolor, 0., bgcolor, 1.0-contrast);
+			else
+				glClearColor(bgcolor, bgcolor, bgcolor, 1.0-contrast);
             glBlendFunc(GL_ONE, GL_ZERO);
+			*/
             glClear(GL_COLOR_BUFFER_BIT);
+			/*
             //glBlendColor(0., 0., 0., contrast);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        } else {
-            glClearColor(meanintensity, meanintensity, meanintensity, 0.);
-            glClear(GL_COLOR_BUFFER_BIT);
-        }
-        
+			glDisable(GL_BLEND);
+			*/
+        //} else {
+			// clearcolor set at top of function
+        glClear(GL_COLOR_BUFFER_BIT);
+        //}
+        glTranslatef(disps[num].x, disps[num].y, 0); // displace frame
         glBegin(GL_QUADS);
-          if (blackwhite) glColor4f(0., 0., 0., contrast);
+		// what does this commented-out if do?  NB: contrast support is taken out
+        //  if (blackwhite) glColor4f(0., 0., 0., contrast);
           glTexCoord2i(0, 0);   glVertex2i(lmargin, bmargin);
           glTexCoord2i(Nx, 0);   glVertex2i(w-rmargin, bmargin);
           glTexCoord2i(Nx, Ny);   glVertex2i(w-rmargin, h-tmargin);
           glTexCoord2i(0, Ny);   glVertex2i(lmargin, h-tmargin);
         glEnd();
+        glTranslatef(-disps[num].x, -disps[num].y, 0); // translate back
 
-
-        if (blackwhite) glDisable(GL_BLEND);
         glDisable(GL_TEXTURE_RECTANGLE_ARB);
         glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
-
-
-
-	// draw frame tracking flicker box at bottom of grid
-	// but not for full-field stim
-	if ((framestate) && (Nx > 1) && (Ny > 1)){
-		glColor3f(framestate, framestate, framestate);
-		glRecti(bx, by, bx+bw, by+bw);
-	}
-
-	//if(framestate) pulse = true; // set an event marker on every second frame
-        //	else pulse = false;
-
 }
 
 
@@ -712,6 +791,7 @@ void CheckerFlicker::afterVSync(bool isSimulated)
         ++n;
         glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[idx]);
         glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, Nx, Ny, fmt, type, f->texels);
+		disps[idx] = f->displacement; // save displacement as well
         glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
         delete f;        
         return;
@@ -744,6 +824,7 @@ void CheckerFlicker::afterVSync(bool isSimulated)
                 fc->createMore.release();
             glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[idx]);
             glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, Nx, Ny, fmt, type, f->texels);
+			disps[idx] = f->displacement;
             glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
             delete f;
             ++n;
@@ -807,10 +888,11 @@ FrameCreator::~FrameCreator()
 void FrameCreator::run()
 {
     std::vector<unsigned> entropyMem; 
-    entropyMem.reserve(cf.Nx*cf.Ny*(cf.quad_fps?3:1)+16);
+	entropyMem.reserve(cf.Nx*cf.Ny*(((int)cf.fps_mode)+1)+16);
 
-	if (getNProcessors() > 2) {
-		unsigned mask = 1<<(cf.fcs.size()%getNProcessors());
+	unsigned nProcs;
+	if ((nProcs=getNProcessors()) > 2) {
+		const unsigned mask = (0x1<<(nProcs-3))<<(cf.fcs.size()%nProcs);
 		setCurrentThreadAffinityMask(mask); // pin it to one core
 		Log() << "Set thread affinity mask to: " << mask;
 	}
@@ -831,8 +913,8 @@ void CheckerFlicker::save()
     outStream << "Parameters:" << "\n"
               << "stixelwidth = " << stixelWidth << "\n"
               << "stixelheight = " << stixelHeight << "\n"
-              << "blackwhite = " << (blackwhite?"true":"false") << "\n"
-              << "meanintensity = " << meanintensity << "\n"
+			  << "rand_gen = " << (rand_gen == Uniform ? "uniform":(rand_gen == Gauss ? "gauss" : "binary")) << "\n"
+              << "bgcolor = " << bgcolor << "\n"
               << "contrast = " << contrast << "\n"
               << "seed = " << originalSeed << "\n"
               << "Nblinks = " << Nblinks << "\n"
@@ -840,7 +922,9 @@ void CheckerFlicker::save()
               << "rmargin = " << rmargin << "\n"
               << "bmargin = " << bmargin << "\n"
               << "tmargin = " << tmargin << "\n"
-              << "quad_fps = " << (quad_fps ? "true" : "false") << "\n"
+			  << "rand_displacement_x" << rand_displacement_x << "\n"
+			  << "rand_displacement_y" << rand_displacement_y << "\n"
+			  << "fps_mode = " << (fps_mode == FPS_Single ? "single" : (fps_mode == FPS_Dual ? "dual" : "triple")) << "\n"
               << "fbo = " << fbo << "\n"
               << "colortable = " << (gaussColorMask+1) << "\n"
               << "cores = " << nCoresMax << "\n"
@@ -849,4 +933,9 @@ void CheckerFlicker::save()
               << "last_frame_gen_time_ms = " << lastFramegen << "\n"
               << "lastAvgTexSubImgProcTime_secs = " << lastAvgTexSubImgProcTime << "\n";
 
+}
+
+unsigned CheckerFlicker::initDelay(void)
+{
+	return 500;
 }

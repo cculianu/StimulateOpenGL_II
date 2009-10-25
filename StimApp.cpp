@@ -427,7 +427,9 @@ void StimApp::loadStim()
         }
         QTextStream ts(&f);
         QString line;
-        line = ts.readLine().trimmed();
+		do {
+			line = ts.readLine().trimmed();
+		} while (!line.length() && !ts.atEnd());
         Debug() << "stim plugin: " << line;
         StimPlugin *pfound = glWindow->pluginFind(line), *p = glWindow->runningPlugin();
         if (!pfound) {
@@ -481,8 +483,12 @@ void StimApp::loadStim()
         QFileInfo fi(lastFile);
         Log() << fi.fileName() << " loaded";
         p->setParams(params);       
-        p->start();
-        glWindow->setWindowTitle(QString("StimulateOpenGL II - ") + fi.fileName());
+		if ( p->start() ) {
+			glWindow->setWindowTitle(QString("StimulateOpenGL II - ") + fi.fileName());
+		} else {
+			QMessageBox::critical(0, QString("Plugin Failed to Start"), QString("Plugin ") + p->name() + " failed to start.  Check the console for errors.");
+			p->stop();
+		}
     }
 }
 

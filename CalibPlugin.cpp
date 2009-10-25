@@ -17,12 +17,13 @@ void CalibPlugin::stop(bool doSave, bool use_gui)
     stimApp()->leoDAQGLNotifyParams.enabled = wasEnabled;
 }
 
-void CalibPlugin::start(bool startUnpaused)
+bool CalibPlugin::start(bool startUnpaused)
 {
     const bool wasEnabled = stimApp()->leoDAQGLNotifyParams.enabled;
     stimApp()->leoDAQGLNotifyParams.enabled = false; // suppress for this plugin
     StimPlugin::start(startUnpaused);
     stimApp()->leoDAQGLNotifyParams.enabled = wasEnabled;
+	return true;
 }
 
 void CalibPlugin::drawFrame()

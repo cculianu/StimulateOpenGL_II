@@ -31,7 +31,12 @@
 #include <QByteArray>
 #include <QMutex>
 #include <QMutexLocker>
+#include "FrameVariables.h"
 
+enum FPS_Mode {
+	FPS_Single = 0, FPS_Dual, FPS_Triple, FPS_Quad = FPS_Triple,
+	FPS_N_Mode
+};
 
 /**
    \brief Abstract class  -- inherit from this class to create a plugin.  
@@ -60,10 +65,10 @@ class StimPlugin : public QObject
     friend class GLWindow;
 
 protected:
-    StimPlugin(const QString & name); // c'tor -- it's QObject parent is automatically StimApp::instance() and the name should be passed to this c'tor from child classes
+    StimPlugin(const QString & name); ///< c'tor -- it's QObject parent is automatically StimApp::instance() and the name should be passed to this c'tor from child classes
 
 public:
-    virtual ~StimPlugin();
+    virtual ~StimPlugin(); 
 
     /// iff 0, this plugin runs as fast as possible (up to monitor refresh rate)
     virtual unsigned preferredFPS() const { return 0; }
@@ -74,7 +79,7 @@ public:
     unsigned height() const;
 
     /// start the plugin -- marks the plugin as 'running' with the GLWindow and calls init(), then emits 'started' signal.  If reimplementing, call super.
-    virtual void start(bool startUnpaused = false);
+    virtual bool start(bool startUnpaused = false);
     /// stop the plugin -- marks the plugin as 'not running' with the GLWindow, calls cleanup(), then emits 'stopped' signal.  If reimplementig, call super
     virtual void stop(bool doSave = false, bool use_gui = false);
 
@@ -108,6 +113,10 @@ public:
     /// Returns the number of missed frames that the plugin has encountered thus far
     unsigned getNumMissedFrames() const { return missedFrames.size(); }
 
+	/// \brief Inform calling code if this plugin is initializing or not
+	/// If true, the plugin is ready, if false, need to wait
+	bool isInitialized() const { return initted; }
+
     /// Returns the time that start() was called for this plugin
     QDateTime getBeginTime() const { return begintime; }
     
@@ -130,6 +139,10 @@ public:
     /// @param num the frame number to generate/dump
     /// @param data_type the OpenGL data type of the generated data.  Note that the default is good for most users so no need to change it unless you know what you are doing.
     QByteArray getFrameDump(unsigned num, GLenum data_type = GL_UNSIGNED_BYTE);
+
+	/// Frame Variables -- use this object in your pushFrameVars() method!
+	FrameVariables *frameVars;
+	bool have_fv_input_file; ///< defaults to false, true indicates plugin is using a frameVars input file
 
 signals:
     void started(); ///< emitted when plugin starts
@@ -165,6 +178,12 @@ protected:
     /// The meat of every plugin -- re-implement this function to draw the actual frame.  Class variable frameNum holds the frame number.
     virtual void drawFrame() = 0;
 
+	/// Normally no need to re-implement.  Just draws the frame track box for the PD sensor. Only drawn if the box has dimensions (see ftrackbox_[xyw])
+	virtual void drawFTBox();
+
+	/// Convenience method that just calls drawFrame() and drawFTBox() for you, in that order
+	inline void renderFrame() { drawFrame(); drawFTBox(); }
+
     /// \brief Called immediately after a vsync (if not paused).  
     ///
     /// Reimplement this in your plugin to do some work  after the vsync, 
@@ -175,12 +194,24 @@ protected:
     /// and not actually drawing to screen. 
     virtual void afterVSync(bool isSimulated = false);
 
+	/// \brief Called during plugin start to ask the plugin how much of a delay it needs before it is considered initialized.
+	///
+	/// Reimplent this in your plugin if you wish to introduce a pre-delay before a plugin is considered 'initialized'
+	/// CheckerFlicker makes use of this because it is buggy if run right after init (frame doubling bug in A mode).
+	/// Return the delay you wish for your plugin, in milliseconds.  Default implementation returns 0.
+	virtual unsigned initDelay(void);
+
     GLWindow *parent;
 
+    volatile bool initted;
     unsigned frameNum; ///< starts at 0 and gets incremented for each frame (each time drawFrame() is called)
     double fps, fpsAvg, fpsMin, fpsMax;
     double cycleTimeLeft; ///< the number of seconds left in this cycle -- updated by glWindow before calling afterVSync
     bool needNotifyStart; ///< iff true, we will notify LeoDAQGL of plugin start on unpause
+	int ftrackbox_x, ftrackbox_y, ftrackbox_w;
+	FPS_Mode fps_mode; ///< one of FPS_Single, FPS_Dual, FPS_Triple, FPS_Quad (this currently means triple!)
+	float bgcolor;
+
 
     void notifySpikeGLAboutStart();
     void notifySpikeGLAboutStop();
@@ -246,6 +277,10 @@ private:
     /// file.  This is called for you immediately after your save() method, 
     /// so don't call it yourself (not that you can anyway, it's private).
     void writeGeneralInfo();
+
+private slots:
+	/// Sets initted = true, calls LeoDAQGL notify
+	void initDone();
 
 };
 

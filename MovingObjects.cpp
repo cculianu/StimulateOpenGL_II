@@ -12,14 +12,13 @@ MovingObjects::~MovingObjects()
 bool MovingObjects::init()
 {
         moveFlag = true;
-        jitterFlag = false;
         quad = 0;
 
 	// set up pixel color blending to enable 480Hz monitor mode
 
 	// set default parameters
 	// basic target attributes
-        if (!getParam("objType", objType))           objType = "box"; // possible types are box and circle
+    if (!getParam("objType", objType))           objType = "box"; // possible types are box and circle
 	if(!getParam( "objLen" , objLen))            objLen = 8; // diameter
 	if(!getParam( "objVelx" , objVelx))          objVelx = 4;
 	if(!getParam( "objVely" , objVely))	     objVely = 4;
@@ -35,9 +34,6 @@ bool MovingObjects::init()
 	// units for target info; 0=pixels, 1=degrees (1=> convert to pixels via mon_*_cm info)
 	if(!getParam( "objUnits" , objUnits))	     objUnits = 0;
 	if(!getParam( "objcolor" , objcolor))	     objcolor = 0;
-	if(!getParam( "bgcolor" , bgcolor))	     bgcolor = 1.;
-	glClearColor(bgcolor,bgcolor,bgcolor,1.0);
-	glColor4f(bgcolor,bgcolor,bgcolor,1.0);
 
 	// use these for setting angular size and speed
 	if(!getParam( "mon_x_cm" , mon_x_cm))	     mon_x_cm = 24.2f;
@@ -45,6 +41,8 @@ bool MovingObjects::init()
 	if(!getParam( "mon_y_cm" , mon_y_cm))	     mon_y_cm = 18.2f;
 	if(!getParam( "mon_y_pix" , mon_y_pix))	     mon_y_pix = height();
 	if(!getParam( "mon_z_cm" , mon_z_cm))	     mon_z_cm = 12;
+	// note bgcolor already set in StimPlugin, re-default it to 1.0 if not set in data file
+	if(!getParam( "bgcolor" , bgcolor))	     bgcolor = 1.;
 
 	// trajectory stuff
 	if(!getParam( "rndtrial" , rndtrial))	     rndtrial = 0;
@@ -60,18 +58,6 @@ bool MovingObjects::init()
 	if(!getParam( "jitterlocal" , jitterlocal))  jitterlocal = false;
 	if(!getParam( "jittermag" , jittermag))	     jittermag = 2;
 
-	// frametrack box info
-	if(!getParam( "ftrackbox_x" , ftrackbox_x))  ftrackbox_x = 0;
-	if(!getParam( "ftrackbox_y" , ftrackbox_y))  ftrackbox_y = 10;
-	if(!getParam( "ftrackbox_w" , ftrackbox_w))  ftrackbox_w = 40;
-	if(!getParam( "ftrackbox_c" , ftrackbox_c))  ftrackbox_c = ceil(1 - bgcolor);
-
-	// this increases the frame rate by encoding each RGB as 3 separate frames
-	// generallty used w/ DLP projector w/ removed color wheel, in which case
-	// native FPS increases by 4x (since color wheel has 4-segments/frame, RGB-W)
-	// (make sure W set to all black or all white on projector)
-	if(!getParam( "quad_fps" , quad_fps)) quad_fps = true;
-
 	// set up blending to allow individual RGB target motion frame control
 	// blending factor depends on bgcolor...
 	//NOTE: this may only be correct for bgcolor = [0 or 1].
@@ -81,8 +67,9 @@ bool MovingObjects::init()
                 glBlendFunc(GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR);
             else glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
         }*/
-        initDisplayLists();
-        return true;
+     initDisplayLists();
+	 frameVars->setVariableNames(QString("frameNum x y").split(QString(" ")));
+     return true;
 }
 
 void MovingObjects::initDisplayLists()
@@ -126,25 +113,12 @@ bool MovingObjects::processKey(int key)
     case 'M':
         moveFlag = !moveFlag;
         return true;
-    case 'j':
-    case 'J':
-        jitterFlag = !jitterFlag;
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-        return true;
     }
     return StimPlugin::processKey(key);
 }
 
 void MovingObjects::drawFrame()
 {
-	int framestate = (frameNum%2 == 0);
-	
-	// set bg
-	//glColor3f(bgcolor,bgcolor,bgcolor);
-	//glRecti(0,0,mon_x_pix,mon_y_pix);
-        // for some reason glClearColor() goes way, FIXME -- for now workaround is to re-set it each frame, which is OK since this plugin is lightweight! 
-        glClearColor(bgcolor, bgcolor, bgcolor, 1.0);
 	glClear( GL_COLOR_BUFFER_BIT ); 
 
 	// local target jitter
@@ -152,16 +126,48 @@ void MovingObjects::drawFrame()
 		jitterx = (ran1Gen()*jittermag - jittermag/2);
 		jittery = (ran1Gen()*jittermag - jittermag/2);
 	}
-	else jitterx = jittery = 0;
+	else 
+		jitterx = jittery = 0;
         
-        if (quad_fps) {
+    if (fps_mode != FPS_Single) {
             glEnable(GL_BLEND);
             if (bgcolor >  0.5)
                 glBlendFunc(GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR);
             else glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
-        }
+    }
 
-	for (int k=0; k<(quad_fps ? 3:1); k++) {
+	doFrameDraw();
+   
+    if (fps_mode != FPS_Single) {
+		if (bgcolor >  0.5)
+			glBlendFunc(GL_DST_COLOR,GL_ONE);
+        else glBlendFunc(GL_SRC_COLOR,GL_ONE);
+			glDisable(GL_BLEND);
+    }
+
+}
+
+void MovingObjects::doFrameDraw()
+{
+	const int niters = ((int)fps_mode)+1; // hack :)
+	for (int k=0; k < niters; k++) {
+		    QVector<double> fv;
+			if (have_fv_input_file) {
+				fv = frameVars->readNext();
+				if (fv.size() < 3 && frameNum) {
+					// at end of file?
+					Warning() << name() << "'s frame_var file ended input, stopping plugin.";
+					have_fv_input_file = false;
+					stop();
+					return;
+				} 
+				if (fv.size() < 3 || fv[0] != frameNum) {
+					Error() << "Error reading frame " << frameNum << " from frameVar file! Datafile frame num differs from current frame number!  Does the fps_mode of the frameVar file match the current fps mode?";	
+					stop();
+					return;
+				}
+			}
+		
             if( moveFlag ){
 			
                 // adjust for wall bounce
@@ -219,40 +225,39 @@ void MovingObjects::drawFrame()
             //x = trajdata[frameNum] + jitterx;
             //y = trajdata[frameNum+tframes] + jittery;
             // draw stim if out of delay period
-            if ((int(frameNum)%tframes - delay) >= 0) {
-                if (quad_fps)
-                    glColor3f((k == 2 ? objcolor:bgcolor), (k == 1 ? objcolor:bgcolor), (k == 0 ? objcolor:bgcolor)); 
-                else  glColor3f(objcolor,objcolor,objcolor);
+            if (fv.size() || (int(frameNum)%tframes - delay) >= 0) {
+				float r,g,b;
+
+				if (fps_mode == FPS_Triple) {
+					b = g = r = bgcolor;
+					switch(k) {
+						// bgr order of frames
+						case 0: b = objcolor; break;
+						case 1: g = objcolor; break;
+						case 2: r = objcolor; break;
+					}
+				} else if (fps_mode == FPS_Dual) {
+					b = g = r = bgcolor;
+					switch(k) {
+						// bgr order of frames
+						case 0: b = objcolor; break;
+						case 1: r = objcolor; break;
+					}
+				} else 
+					b = g = r = objcolor;
+
+				glColor3f(r,g,b);
+
                 glMatrixMode(GL_MODELVIEW);
                 glPushMatrix();
+				if (fv.size()) { x = fv[1], y = fv[2]; }
                 glTranslatef(x, y, 1);
                 glCallList(objDL);
                 glPopMatrix();
+				if (!fv.size()) 
+					// nb: push() needs to take all doubles as args!
+					frameVars->push(double(frameNum), double(x), double(y));
             }
 
-            //if (k==2) { //display 120Hz object next to 480Hz object for motion smoothness comparison
-            //	glColor3f(objcolor,objcolor,objcolor);
-            //	glRecti( (int)x+4*objLen, (int)y, (int)x+5*objLen, (int)y+objLen );
-            //}
 	}
-
-	// global jitter to whole image
-	if( jitterFlag ){
-		//glRotatef( 10.0, 0.0, 0.0, 1.0 );
-		glTranslatef( (int)(ran1Gen()*4 - 4/2), (int)(ran1Gen()*4 - 4/2), 0 );
-		}
-
-	// draw frame tracking flicker box at bottom of grid
-	if (framestate) {
-		glColor4f(ftrackbox_c, ftrackbox_c, ftrackbox_c, 1);
-		glRecti(ftrackbox_x, ftrackbox_y, ftrackbox_x+ftrackbox_w, ftrackbox_y+ftrackbox_w);
-	}
-        
-        if (quad_fps) {
-            if (bgcolor >  0.5)
-                glBlendFunc(GL_DST_COLOR,GL_ONE);
-            else glBlendFunc(GL_SRC_COLOR,GL_ONE);
-            glDisable(GL_BLEND);
-        }
-
 }

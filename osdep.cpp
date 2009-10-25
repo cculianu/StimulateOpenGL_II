@@ -357,21 +357,34 @@ unsigned getHWFrameCount()
     return static_cast<unsigned>(getTime() * getHWRefreshRate()); 
 }
 #else /* WINDOWS */
+
 unsigned getHWFrameCount()
 {
+	static BOOL (WINAPI *funcNV)(HDC, GLuint *) = 0;
     static BOOL (WINAPI *func)(HDC, INT64 *ust, INT64 *msc, INT64 *sbc) = 0;
     static bool triedToFindFunc = false;
     if (!triedToFindFunc && !func) {
         triedToFindFunc = true;
         stimApp()->glWin()->makeCurrent();
-        func = (BOOL (WINAPI *)(HDC, INT64 *, INT64 *, INT64 *))QGLContext::currentContext()->getProcAddress( "wglGetSyncValuesOML" );
-        if (!func) {
-            Error() << "No hw framecount func., will be emulated"; 
-            fc_is_accurate = 0;
-        } else
-            fc_is_accurate = 1;
+		funcNV = (BOOL (WINAPI *)(HDC, GLuint *))QGLContext::currentContext()->getProcAddress("wglQueryFrameCountNV");
+		if (funcNV) {
+			Debug() << "Found NVIDIA QueryFrameCountNV function! YAY!";
+			fc_is_accurate = 1;
+		} else {
+			func = (BOOL (WINAPI *)(HDC, INT64 *, INT64 *, INT64 *))QGLContext::currentContext()->getProcAddress( "wglGetSyncValuesOML" );
+			if (!func) {
+				Error() << "No hw framecount func., will be emulated"; 
+				fc_is_accurate = 0;
+			} else
+	            fc_is_accurate = 1;
+		}
     }
-    if (func) {
+	if (funcNV) {
+		HDC hdc = wglGetCurrentDC();
+		GLuint fc = 0;
+		funcNV(hdc, &fc);
+		return fc;
+	} else if (func) {
         static INT64 f0 = 0;
         HDC hdc = wglGetCurrentDC();
         INT64 ust, msc, sbc;

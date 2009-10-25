@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <cculianu@yahoo.com>
-Last Updated: June 21, 2009
+Last Updated: August 6, 2009
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -16,15 +16,68 @@ Global PLUGN PARAMETERS
 -----------------------------------------------------------------------------
 mon_x_pix
         Synopsis:         Specifies the width in pixels of the GL window
-	Datatype:         integer
-	Possible values:  1 - +2147483647
-	Default value:    800
+        Datatype:         integer
+        Possible values:  1 - +2147483647
+        Default value:    800
 
 mon_y_pix
         Synopsis:         Specifies the height in pixels of the GL window
-	Datatype:         integer
-	Possible values:  1 - +2147483647
-	Default value:    600
+        Datatype:         integer
+        Possible values:  1 - +2147483647
+        Default value:    600
+
+frame_vars
+        Synopsis:         Specifies a filename for reading in per-frame variables.
+                          If this variable is set, the experiment plugin runs in
+                          'frame var' mode, if supported.
+                          In frame var mode, the experiment plugin reads values
+                          from the frame_vars data file as input when preparing 
+                          each frame, on a frame-by-frame basis.  
+                          Currently only the 'MovingObjects' and 'MovingGrating'
+                          plugins support this feature.
+        Datatype:         string
+        Possible values:  Empty string (to specify no frame_vars), or a filename
+        Default value:    (Empty)
+	                  
+fps_mode
+        Synopsis:         Specify the 'fps_mode' to run the experiment.
+        Datatype:         string
+        Possible values:  'single' for normal, single-fps, 120Hz mode
+                          'dual' for double-fps mode 240Hz mode
+                          'triple' for triple-fps 360Hz mode.
+                          Note anything other than 'single' only will actually 
+                          raise the effective fps when using the projector as
+                          output.
+        Default value:    'single'
+	            
+bgcolor
+        Synopis:          Specify the background (clear) color of the experiment.
+        Datatype:         float
+        Possible values:  0.0 - 1.0
+        Default value:    0.5
+	
+ftrackbox_x
+        Synopsis:         Specifies the x-coordinate of the bottom-left
+                          corner of the frame track square (photodiode square).
+        Datatype:         integer
+        Possible values:  -2147483648 - +2147483647
+        Default value:    0
+
+ftrackbox_y
+        Synopsis:         Specifies the y-coordinate of the bottom-left
+                          corner of the frame track square (photodiode square).
+        Datatype:         integer
+        Possible values:  -2147483648 - +2147483647
+        Default value:    10
+
+ftrackbox_w
+        Synopsis:         Specifies the width of a side of the frame track 
+		                  square (photodiode square).
+        Datatype:         integer
+        Possible values:  0 - +2147483647
+        Default value:    45
+	
+	
 
 ------------------------------------------------------------------------------
 `MovingObjects' PLUGIN PARAMETERS
@@ -204,58 +257,6 @@ jittermag
        Possible values:   -2147483648 - +2147483647
        Default value:     2
 
-ftrackbox_x
-       Synopsis:          Specifies the x-position of the bottom-left corner
-                          of the 'frame tracker box', which is a square area
-                          of the screen that flickers on and off every other 
-                          frame and is useful for external verification
-                          of framerate.
-       Datatype:          integer
-       Possible values:   -2147483648 - +2147483647
-       Default value:     0
-
-ftrackbox_y
-       Synopsis:          Specifies the y-position of the bottom-left corner
-                          of the 'frame tracker box', which is a square area
-                          of the screen that flickers on and off every other 
-                          frame and is useful for external verification
-                          of framerate.
-       Datatype:          integer
-       Possible values:   -2147483648 - +2147483647
-       Default value:     10
-
-ftrackbox_w
-       Synopsis:          Specifies the length of one of the sides of the 
-                          'frame tracker box', which is a square area of the
-                          screen that flickers on and off every other frame
-                          and is useful for external verification of framerate.
-       Datatype:          integer
-       Possible values:   0 - +2147483647
-       Default value:     40
-
-ftrackbox_c
-       Synopsis:          Specifies the grayscale intensity of the 
-                          'frame tracker box', which is a square area of the
-                          screen that flickers on and off every other frame
-                          and is useful for external verification of framerate
-       Datatype:          float
-       Possible values:   0.0 - 1.0
-       Default value:     1-bgcolor (see bgcolor parameter)
-
-quad_fps
-       Synopsis:          Specifies whether to enable 'quad fps' mode, that is,
-                          a special mode in which three frames are drawn
-                          at once, with each frame using one of the 
-                          red, green, or blue color components for the
-                          target color.  By using only one color component per
-                          pseudo-frame, this mode exploits properties
-                          of the projector in order to effectively triple
-                          the number of frames that can appear on the screen
-                          per unit time.
-       Datatype:          boolean
-       Possible values:   0, 1
-       Default value:     0
-
 ------------------------------------------------------------------------------
 `MovingGrating' PLUGIN PARAMETERS
 ------------------------------------------------------------------------------
@@ -303,37 +304,18 @@ stixelheight
        Possible values:  0 - +2147483647
        Default value:    10
         
-blackwhite
-       Synopsis:         Specifies whether to use gaussian distributed 
-                         grayscale checker squares, or pure black/white 
-                         checkers.  If false, the checkers have an intensity
-                         that is a gaussian distribution with mean 
-                         `meanintensity' and sigma `contrast'.
-       Datatype:         bool
-       Possible values:  0, false, 1, true
-       Default value:    true
-
-quad_fps
-       Synopsis:         If true, generate 3 frames at once and overlap
-                          them using the red/green/blue trick to triple 
-                          effective framerate.
-       Datatype:         bool
-       Possible values:  0, false, 1, true
-       Default value:    true
-
-meanintensity
-       Synopsis:         Specifies the background grayscale intensity and 
-                          also the mean intensity when using blackwhite=false 
-                          mode.
-       Datatype:         float
-       Possible values:  0.0 - 1.0
-       Default value:    0.5
+rand_gen
+       Synopsis:         Specifies whether to use a gaussian, uniform, or
+                         binary random number generatior when generating 
+                         color/grayscale values for the checker squares.
+       Datatype:         string
+       Possible values:  'uniform', 'gauss', or 'binary' (for pure b&w)
+       Default value:    uniform
 
 contrast
-       Synopsis:         Specifies contrast spread for blackwhite=true 
-                         mode and for blackwhite=false mode, specifies the 
-                         variance of the normally distributed intensity
-                         levels generated.
+       Synopsis:         If in rand_gen=gauss mode, specifies specifies the 
+                         variance of the normally distributed intensity levels
+                         generated.
        Datatype:         float
        Possible values:  0.0 - 1.0
        Default value:    iff blackwhite==true, 
@@ -341,27 +323,20 @@ contrast
                          else 
                               0.3
 
-bx
-       Synopsis:         Specifies the x-coordinate of the bottom-left
-                         corner of the frame track square (photodiode square).
+rand_displacement_x
+       Synopsis:         Specifies the amount (in pixels) by which to randomly 
+                         displace the checkerboard in the X direction, per frame.
        Datatype:         integer
        Possible values:  -2147483648 - +2147483647
        Default value:    0
 
-by
-       Synopsis:         Specifies the y-coordinate of the bottom-left
-                         corner of the frame track square (photodiode square).
+rand_displacement_y
+       Synopsis:         Specifies the amount (in pixels) by which to randomly 
+                         displace the checkerboard in the Y direction, per frame.
        Datatype:         integer
        Possible values:  -2147483648 - +2147483647
-       Default value:    10
-
-bw
-       Synopsis:         Specifies the width of a side of the frame track 
-                         square (photodiode square).
-       Datatype:         integer
-       Possible values:  0 - +2147483647
-       Default value:    45
-
+       Default value:    0
+                                                         
 lmargin
        Synopsis:         Specifies the left margin of the checkerboard area
                          in pixels.

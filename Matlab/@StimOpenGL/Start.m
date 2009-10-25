@@ -15,9 +15,25 @@ function [s] = Start(varargin)
     s = varargin{1};
     pluginname = '';
     startunpaused = 0;
+    if (nargin <= 1), 
+        error('Please supply a plugin name as arg 2.');
+    end;
     if (nargin > 1), pluginname = varargin{2}; end;
     if (nargin > 2), startunpaused = varargin{3}; end;
     if (~ischar(pluginname) | ~isnumeric(startunpaused)),
         error('Arguments to start are Start(StimOpemGLOBJ, pluginString, startUnpausedFlag)');
     end;
-    s = DoSimpleCmd(s, sprintf('START %s %d', pluginname, startunpaused));
+    d = DoSimpleCmd(s, sprintf('START %s %d', pluginname, startunpaused));
+    i=0;
+    while (~IsInitialized(s) & i < 6),
+        pause(.5);
+        i=i+1;
+    end;
+    if (startunpaused),
+        i=0;
+        while (IsPaused(s) & i < 6),
+            pause(.5);
+            i=i+1;
+        end;
+    end;
+    

@@ -18,20 +18,26 @@
 %                specifying sequential frameNumbers, eg: DumpFrame(myObj,
 %                100), DumpFrame(myObj, 101), DumpFrame(myObj, 102), etc.  
 function [imgdat] = DumpFrame(s, frameNum)
-    if (isempty(Running(s))),
+    plug=Running(s);
+    if (isempty(plug)),
         imgdat = [];
         error('Cannot call DumpFrame when a plugin isn''t running!  Call Start() first!');
         return;
     end;
-    if (~isnumeric(frameNum)),
-        error('Frame number parameter needs to be numeric');
+    if (~isnumeric(frameNum) || frameNum < 0),
+        error('Frame number parameter needs to be a positive integer!');
     end;
    
     if (~IsPaused(s)),
         warning('Plugin was not paused -- pausing plugin in order to complete DumpFrame command...');
         Pause(s);
     end;
-    
+    pluginFrameNum = GetFrameCount(s);
+    if (frameNum <= pluginFrameNum),
+        warning(sprintf('Frame count specified %d is <= the plugin''s current frame number of %d, restarting plugin (this is slow!!)',frameNum, pluginFrameNum));
+        Stop(s);
+        Start(s, plug);
+    end;
     ChkConn(s);
     w=GetWidth(s);
     h=GetHeight(s);

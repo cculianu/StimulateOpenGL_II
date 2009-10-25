@@ -23,7 +23,7 @@ class MovingGrating : public GridPlugin
     float angle;
     float totalTranslation;
     float xscale,yscale;
-    friend class GLWindow;
+	friend class GLWindow;
 
 protected:
     MovingGrating(); ///< can only be constructed by our friend class

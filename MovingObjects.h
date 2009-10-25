@@ -27,8 +27,9 @@ protected:
     bool processKey(int key); ///< remiplemented
 
 private:
-        void initDisplayLists();
-        void cleanupDisplayLists();
+    void initDisplayLists();
+    void cleanupDisplayLists();
+	void doFrameDraw();
 
 	unsigned short *trajdata;		// image data for each ou-movie frame		
 	float x;
@@ -51,7 +52,6 @@ private:
 	int tcyclecount;
 	int delay;
 	float objcolor;
-	float bgcolor;
 	float mon_x_cm;
 	float mon_x_pix;
 	float mon_y_cm;
@@ -63,12 +63,7 @@ private:
 	QString traj_data_path;
 	int jittermag;
 	bool jitterlocal;
-	int	ftrackbox_x;
-	int ftrackbox_y;
-	int ftrackbox_w;
-	float ftrackbox_c;
-	bool quad_fps;
-        bool moveFlag, jitterFlag;
+    bool moveFlag, jitterFlag;
         QString objType; ///< new config param -- can be 'box' or 'disk'/'circle'
         GLuint objDL; ///< display list for the moving object
         GLUquadric *quad; ///< valid iff objType == circle or objType == sphere

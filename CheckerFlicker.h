@@ -8,6 +8,10 @@ class GLWindow;
 struct Frame;
 class FrameCreator;
 
+enum Rand_Gen {
+	Uniform = 0, Gauss, Binary, N_Rand_Gen
+};
+
 /**
    \brief A class for drawing randomly-generated 'checkers' of arbitrary width 
           and height to the GLWindow.  
@@ -19,6 +23,8 @@ class FrameCreator;
 */
 class CheckerFlicker : public StimPlugin
 {
+	Q_OBJECT
+
     friend class FrameCreator;
 
     std::vector<FrameCreator *> fcs;
@@ -26,8 +32,7 @@ class CheckerFlicker : public StimPlugin
 
     int stixelWidth;	///< width of stixel in x direction
     int stixelHeight;	///< height of stixel in y direction
-    bool blackwhite;	///< indicator whether stimulus is running in black/white or in gaussian mode
-    bool quad_fps;      
+	Rand_Gen rand_gen;
     float meanintensity; ///< mean light intensity between 0 and 1
     float contrast;	 ///< defined as Michelsen contrast for black/white mode
     // and as std/mean for gaussian mode
@@ -39,7 +44,6 @@ class CheckerFlicker : public StimPlugin
     int originalSeed;	///< seed for random number generator at initialization
     int Nblinks;	///< number of blinks (i.e. how often each frame is repeated)
     int blinkCt;
-	int bx, by, bw; ///< photo diode box X Y and width
     int Nx;		///< number of stixels in x direction
     int Ny;		///< number of stixels in y direction
     int xpixels, ypixels;
@@ -47,10 +51,11 @@ class CheckerFlicker : public StimPlugin
     unsigned fbo;       ///< iff nonzero, the number of framebuffer objects to use for prerendering -- this is faster than `prerender' but not always supported?
     int ifmt, fmt, type; ///< for glTexImage2D() call..
     int nConsecSkips;
-    bool initted;
+	unsigned rand_displacement_x, rand_displacement_y; ///< if either are nonzero, each frame is displaced by this amont in pixels (not stixels!) randomly in x or y direction
     // Note only one of display_lists, prerender, or fbo may be active above
 
     GLuint *fbos, *texs; ///< array of fbo object id's and the texture ids iff fbo is nonzero
+	Vec2i *disps; ///< frame displacements per fbo object
 
     friend class GLWindow;
     unsigned gaussColorMask; ///< this will always be a power of 2 minus 1
@@ -63,6 +68,7 @@ class CheckerFlicker : public StimPlugin
     double lastAvgTexSubImgProcTime;
     volatile int lastFramegen;
 	volatile unsigned frameGenAvg_usec;
+	unsigned origThreadAffinityMask;
 
     inline void putNum() { oldnums.push_back(num);  }
     inline unsigned takeNum() { 
@@ -107,6 +113,7 @@ protected:
     /// Informs FrameCreator threads to generate more frames and pops off 1 Frame from a FrameCreator queue and loads it onto the video board using FBO
     void afterVSync(bool isSimulated = false);
     bool init();
+	unsigned initDelay(void); ///< reimplemented from superclass -- returns an init delay of 500ms
     void cleanup(); 
     void save();
 };

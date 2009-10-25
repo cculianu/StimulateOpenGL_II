@@ -4,12 +4,15 @@
 #include <QMessageBox>
 #include <QDir>
 #include <QGLContext>
+#include <QTimer>
 #include "StimGL_LeoDAQGL_Integration.h"
 
 StimPlugin::StimPlugin(const QString &name)
-    : QObject(StimApp::instance()->glWin()), parent(StimApp::instance()->glWin()), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0)
+    : QObject(StimApp::instance()->glWin()), parent(StimApp::instance()->glWin()), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0)
 {
+	frameVars = 0;
     needNotifyStart = true;
+    initted = false;
     frameNum = 0x7fffffff;
     setObjectName(name);
     parent->pluginCreated(this);    
@@ -42,6 +45,8 @@ void StimPlugin::stop(bool doSave, bool useGui)
         saveData(useGui);
     }
 
+	frameVars->finalize();
+
     // Notify LeoDAQGL via a socket.. if possible..
     // Notify LeoDAQGL via a socket.. if possible..
     if (stimApp()->leoDAQGLNotifyParams.enabled) {
@@ -59,24 +64,18 @@ void StimPlugin::stop(bool doSave, bool useGui)
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     frameNum = 0;
+    initted = false;
 }
 
-void StimPlugin::start(bool startUnpaused)
+bool StimPlugin::start(bool startUnpaused)
 {
+    initted = false;
+
     parent->pluginStarted(this);
 
-    // Notify LeoDAQGL via a socket.. if possible..
-    needNotifyStart = false;
-    if (stimApp()->leoDAQGLNotifyParams.enabled) {
-        if (startUnpaused) {
-            notifySpikeGLAboutStart();
-        } else {
-            needNotifyStart = true;
-        }
-    }
-
     emit started();
-    
+	if (frameVars) delete frameVars;
+	frameVars = new FrameVariables(FrameVariables::makeFileName(stimApp()->outputDirectory() + "/" + name()));
     parent->makeCurrent();
 
     // start out with identity matrix
@@ -93,11 +92,83 @@ void StimPlugin::start(bool startUnpaused)
     if (!missedFrames.capacity()) missedFrames.reserve(4096);
     if (!missedFrameTimes.capacity()) missedFrameTimes.reserve(4096);
     customStatusBarString = "";
+	// frametrack box info
+	if(!getParam("ftrackbox_x" , ftrackbox_x) || ftrackbox_x < 0)  ftrackbox_x = 0;
+	if(!getParam("ftrackbox_y" , ftrackbox_y) || ftrackbox_y < 0)  ftrackbox_y = 10;
+	if(!getParam("ftrackbox_w" , ftrackbox_w) || ftrackbox_w < 0)  ftrackbox_w = 40;
+	QString fpsParm;
+	if (!getParam("fps_mode", fpsParm)) {
+		Log() << "fps_mode param not specified, defaulting to `single'";
+		fpsParm = "single";
+		fps_mode = FPS_Single;
+	}
+	QString fvfile;
+	if (getParam("frame_vars", fvfile)) {
+		if (!frameVars->readInput(fvfile)) {
+			Error() << "Could not parse frameVar input file: " << fvfile;
+			return false;
+		}
+		have_fv_input_file = true;
+	} else
+		have_fv_input_file = false;
+		
+	if (fpsParm.startsWith("s" ,Qt::CaseInsensitive)) fps_mode = FPS_Single;
+	else if (fpsParm.startsWith("d", Qt::CaseInsensitive)) fps_mode = FPS_Dual;
+	else if (fpsParm.startsWith("t", Qt::CaseInsensitive)
+		     ||fpsParm.startsWith("q", Qt::CaseInsensitive)) fps_mode = FPS_Triple;
+	else {
+		bool ok;
+		int m = fpsParm.toInt(&ok);
+		if (ok) {
+			switch(m) {
+				case FPS_Single:
+				case FPS_Dual: 
+				case FPS_Triple: fps_mode = (FPS_Mode)m; break;
+				default:
+					ok = false;
+			}
+		} 
+		if (!ok) {
+				Error() << "Invalid fps_mode param specified: " << fpsParm << ", please specify one of single, dual, or triple!";
+				return false;
+		}
+	}
+	if(!getParam( "bgcolor" , bgcolor))	bgcolor = 0.5;
+	if (bgcolor > 1.0) bgcolor /= 255.0f; // deal with 0->255 values
+	QString tmp;
+	if ((getParam("quad_fps", tmp) && (tmp="quad_fps").length()) || (getParam("dual_fps", tmp) && (tmp="dual_fps").length())) {
+		Error() << "Param `" << tmp << "' is deprecated.  Use fps_mode = single|dual|triple instead!";
+		return false;
+	}
+
     if ( !startUnpaused ) parent->pauseUnpause();
-    if (!init()) { 
+    if (!(init())) { 
         stop(); 
         Error() << "Plugin " << name() << " failed to initialize."; 
-        return; 
+        return false; 
+    }
+	
+	if (initDelay()) {
+		needNotifyStart = false; // suppress temporarily until initDone() runs
+		QTimer::singleShot(initDelay(), this, SLOT(initDone()));
+	} else {
+		initDone(); 
+	}
+	return true;
+}
+
+void StimPlugin::initDone()
+{
+	initted = true;
+
+    // Notify LeoDAQGL via a socket.. if possible..
+    needNotifyStart = false;
+    if (stimApp()->leoDAQGLNotifyParams.enabled) {
+        if (!parent->isPaused()) {
+            notifySpikeGLAboutStart();
+        } else {
+            needNotifyStart = true;
+        }
     }
 }
 
@@ -127,6 +198,17 @@ void StimPlugin::computeFPS()
         if (fpsMax < fps) fpsMax = fps;
         if (fpsMin > fps) fpsMin = fps;
     }
+}
+
+void StimPlugin::drawFTBox()
+{
+	if (!initted) return;
+	if (ftrackbox_w) {
+		// draw frame tracking flicker box at bottom of grid
+		if (!(frameNum % 2)) glColor4f(1.f, 1.f, 1.f, 1.f);
+		else glColor4f(0.f, 0.f, 0.f, 1.f);
+		glRecti(ftrackbox_x, ftrackbox_y, ftrackbox_x+ftrackbox_w, ftrackbox_y+ftrackbox_w);
+	}
 }
 
 void StimPlugin::afterVSync(bool b) { (void)b; /* nothing.. */ }
@@ -214,11 +296,11 @@ QByteArray StimPlugin::getFrameDump(unsigned num, GLenum datatype)
     }
     QByteArray ret(datasize, 0);
     if (parent->runningPlugin() != this) {
-        Warning() << name() << " wasn't the currently-running plugin, stopping current and restarting with `" << name() << "'";        
+        Warning() << name() << " wasn't the currently-running plugin, stopping current and restarting with `" << name() << "' this may not work 100% for some plugins!";        
         parent->runningPlugin()->stop();
         start(false);
     } else if (num < frameNum) {
-        Warning() << "Got non-increasing read of frame # " << num << ", restarting plugin and fast-forwarding to frame # " << num << " (this is slower than a sequential read).";
+        Warning() << "Got non-increasing read of frame # " << num << ", restarting plugin and fast-forwarding to frame # " << num << " (this is slower than a sequential read).  This may not work 100% for some plugins (in particular CheckerFlicker!!)";
         stop();
         start(false);
     } else if (!parent->isPaused()) {
@@ -231,7 +313,7 @@ QByteArray StimPlugin::getFrameDump(unsigned num, GLenum datatype)
     do  {
         double t0 = getTime();
         cycleTimeLeft = tFrame;
-        drawFrame();
+		renderFrame(); // NB: renderFrame() just does drawFrame(); drawFTBox();
         if (frameNum == num) {
             GLint bufwas;
             glGetIntegerv(GL_READ_BUFFER, &bufwas);
@@ -270,3 +352,6 @@ void StimPlugin::notifySpikeGLAboutStop()
                                                         p.timeout_ms);
         needNotifyStart = true;
 }
+
+unsigned StimPlugin::initDelay(void) { return 0; }
+
