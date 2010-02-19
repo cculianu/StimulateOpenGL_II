@@ -273,6 +273,7 @@ StimPlugin *GLWindow::pluginFind(const QString &name, bool casesensitive)
 #include "CheckerFlicker.h"
 #include "Flicker.h"
 #include "Flicker_RGBW.h"
+#include "Sawtooth.h"
 void GLWindow::initPlugins()
 {
     Log() << "Initializing plugins...";
@@ -287,6 +288,7 @@ void GLWindow::initPlugins()
     new CheckerFlicker(); // experiment plugin.. the checkerboard!
 	new Flicker();        // experiment plugin.. the flicker tester!
 	new Flicker_RGBW();   // experiment plugin.. the old legacy flicker for the original BRGW-style projectors 
+	new Sawtooth();       // experiment plugin.. the sawtooth generator!
 
     // TODO: more plugins here
 
