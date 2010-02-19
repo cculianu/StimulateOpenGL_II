@@ -446,6 +446,9 @@ Nblinks
 ------------------------------------------------------------------------------
 `Flicker' PLUGIN PARAMETERS
 ------------------------------------------------------------------------------
+fps_mode
+		(This plugin uses this variable -- see global param)
+
 hz
         Synopsis:         Specifies the flicker rate in Hz.  Note that values 
                           above 120Hz are emulated using the projector 
@@ -499,6 +502,9 @@ tmargin
 ------------------------------------------------------------------------------
 `Sawtooth' PLUGIN PARAMETERS
 ------------------------------------------------------------------------------
+fps_mode
+		(This plugin uses this variable -- see global param)
+
 Nloops
         Synopsis:         The number of sawteeth cycles to generate.  
 		                  -1 for infinite.
