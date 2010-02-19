@@ -4,12 +4,13 @@
 #include <QRegExp>
 #include <QFile>
 
-void StimParams::fromString(const QString & instr)
+void StimParams::fromString(const QString & instr, bool doClear)
 {
     QString instrcpy (instr);
     QTextStream ts(&instrcpy, QIODevice::ReadOnly|QIODevice::Text);
     QString line;
-    clear();
+	if (doClear)
+		clear();
 
     // now parse remaining lines which should be name/value pairs
     while ( !(line = ts.readLine()).isNull() ) {

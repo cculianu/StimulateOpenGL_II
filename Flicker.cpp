@@ -40,11 +40,14 @@ bool Flicker::init()
 	float intensity_f;
 	if (!getParam("intensity", intensity_f)) intensity_f = 1.0;
 	// deal with 0->255 spec
-	if (intensity_f < 0. || intensity_f > 1.0) {
+	if (intensity_f < 0.) {
 		Warning() << "intensity of " << intensity_f << " invalid, defaulting to 1.0";
 		intensity_f = 1.0;
 	}
-	intensity = intensity_f * 255.0;
+	if (intensity_f > 1.0)
+		intensity = intensity_f;
+	else
+		intensity = intensity_f * 255.0;
 	if (!getParam("bgcolor", bgcolor)) bgcolor = 0.0; // re-default bgcolor to 0.0
 	int dummy;
 	if (getParam("max_active_frames_per_cycle", dummy)) 

@@ -62,6 +62,16 @@ public:
         unsigned short port;
         int timeout_ms;
     } leoDAQGLNotifyParams;
+
+	struct GlobalDefaults {
+		int mon_x_pix, mon_y_pix, ftrackbox_x, ftrackbox_y, ftrackbox_w;
+		char color_order[4];
+		int fps_mode;
+
+		GlobalDefaults() : mon_x_pix(800), mon_y_pix(600), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), fps_mode(2) {
+			qstrncpy(color_order, "rgb", 4);
+		}
+	} globalDefaults;
     
     /// Returns a pointer to the application-wide GLWindow instance.
     GLWindow *glWin() const { return const_cast<GLWindow *>(glWindow); }
@@ -131,6 +141,9 @@ public slots:
 
     /// Pops up the LeoDAQGL integration options dialog and sets the params based on this Window
     void leoDAQGLIntegrationDialog();
+
+    /// Pops up the Global Default Params dialog
+    void globalDefaultsDialog();
 
 protected:
 

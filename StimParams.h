@@ -30,7 +30,7 @@ public:
     StimParams() {}
     StimParams(const QString &str) { fromString(str); }
     /// Parses an ini-stile string to set the params
-    void fromString(const QString &);
+    void fromString(const QString &, bool doClear = true);
     /** Creates an ini-style multi-line string of the params.
         Format is as follows:
         \code 

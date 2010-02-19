@@ -28,6 +28,7 @@
 #include <QDesktopWidget>
 #include "StimGL_LeoDAQGL_Integration.h"
 #include "ui_LeoDAQGLIntegration.h"
+#include "ui_ParamDefaultsWindow.h"
 
 #define DEFAULT_WIN_SIZE QSize(800,600)
 
@@ -331,6 +332,15 @@ void StimApp::loadSettings()
     leoDaq.hostname = settings.value("LeoDAQGL_Notify_Host", "localhost").toString();
     leoDaq.port = settings.value("LeoDAQGL_Notify_Port",  LEODAQ_GL_NOTIFY_DEFAULT_PORT).toUInt();
     leoDaq.timeout_ms = settings.value("LeoDAQGL_Notify_TimeoutMS", LEODAQ_GL_NOTIFY_DEFAULT_TIMEOUT_MSECS ).toInt();    
+
+	struct GlobalDefaults & defs (globalDefaults);
+	defs.mon_x_pix = settings.value("mon_x_pix", defs.mon_x_pix).toInt();
+	defs.mon_y_pix = settings.value("mon_y_pix", defs.mon_y_pix).toInt();
+	defs.ftrackbox_x = settings.value("ftrackbox_x", defs.ftrackbox_x).toInt();
+	defs.ftrackbox_y = settings.value("ftrackbox_y", defs.ftrackbox_y).toInt();
+	defs.ftrackbox_w = settings.value("ftrackbox_w", defs.ftrackbox_w).toInt();
+	qstrncpy(defs.color_order, settings.value("color_order__", defs.color_order).toString().toAscii().constData(), 4);
+	defs.fps_mode = settings.value("fps_mode", defs.fps_mode).toInt();
 }
 
 void StimApp::saveSettings()
@@ -349,6 +359,15 @@ void StimApp::saveSettings()
     settings.setValue("LeoDAQGL_Notify_Host", leoDaq.hostname);
     settings.setValue("LeoDAQGL_Notify_Port",  leoDaq.port);
     settings.setValue("LeoDAQGL_Notify_TimeoutMS", leoDaq.timeout_ms);    
+
+	struct GlobalDefaults & defs (globalDefaults);
+	settings.setValue("mon_x_pix", defs.mon_x_pix);
+	settings.setValue("mon_y_pix", defs.mon_y_pix);
+	settings.setValue("ftrackbox_x", defs.ftrackbox_x);
+	settings.setValue("ftrackbox_y", defs.ftrackbox_y);
+	settings.setValue("ftrackbox_w", defs.ftrackbox_w);
+	settings.setValue("color_order", QString(defs.color_order));
+	settings.setValue("fps_mode", defs.fps_mode);
 }
 
 
@@ -455,7 +474,20 @@ void StimApp::loadStim()
             tsparams << line << "\n";
         }
         tsparams.flush();
-        params.fromString(paramsBuf);
+		{
+			params.clear();
+			GlobalDefaults & defs (globalDefaults);
+			// set params from defaults
+			params["mon_x_pix"] = defs.mon_x_pix;
+			params["mon_y_pix"] = defs.mon_y_pix;
+			params["ftrackbox_x"] = defs.ftrackbox_x;
+			params["ftrackbox_y"] = defs.ftrackbox_y;
+			params["ftrackbox_w"] = defs.ftrackbox_w;
+			params["fps_mode"] = defs.fps_mode == 0 ? "single" : (defs.fps_mode == 1 ? "double" : "triple");
+			params["color_order"] = defs.color_order;
+		}
+        params.fromString(paramsBuf, false);
+
 
         {
             // custom window size handling: mon_x_pix and mon_y_pix
@@ -609,7 +641,7 @@ void StimApp::alignGLWindow()
 
 void StimApp::leoDAQGLIntegrationDialog()
 {
-    QDialog dlg(0);
+    QDialog dlg(consoleWindow);
     dlg.setWindowTitle("LeoDAQGL Integration Options");
     dlg.setWindowIcon(consoleWindow->windowIcon());
     dlg.setModal(true);
@@ -626,6 +658,36 @@ void StimApp::leoDAQGLIntegrationDialog()
         p.hostname = controls.hostNameLE->text();
         p.port = controls.portSB->value();
         p.timeout_ms = controls.timeoutSB->value();
+    }
+    saveSettings();
+}
+
+void StimApp::globalDefaultsDialog()
+{
+    QDialog dlg(consoleWindow);
+    dlg.setWindowTitle("Global Parameter Defaults");
+    dlg.setWindowIcon(consoleWindow->windowIcon());
+    dlg.setModal(true);
+    GlobalDefaults & g (globalDefaults);
+
+    Ui::ParamDefaultsWindow controls;
+    controls.setupUi(&dlg);
+	controls.cb_fps_mode->setCurrentIndex(g.fps_mode);
+	controls.cb_color_order->setCurrentIndex(controls.cb_color_order->findText(g.color_order));
+	controls.sb_mon_x_pix->setValue(g.mon_x_pix);
+	controls.sb_mon_y_pix->setValue(g.mon_y_pix);
+	controls.sb_ftrackbox_x->setValue(g.ftrackbox_x);
+	controls.sb_ftrackbox_y->setValue(g.ftrackbox_y);
+	controls.sb_ftrackbox_w->setValue(g.ftrackbox_w);
+
+    if ( dlg.exec() == QDialog::Accepted ) {
+		g.fps_mode = controls.cb_fps_mode->currentIndex();
+		qstrncpy(g.color_order, controls.cb_color_order->currentText().toLatin1().constData(), 4);
+		g.mon_x_pix = controls.sb_mon_x_pix->value();
+		g.mon_y_pix = controls.sb_mon_y_pix->value();
+		g.ftrackbox_x = controls.sb_ftrackbox_x->value();
+		g.ftrackbox_y = controls.sb_ftrackbox_y->value();
+		g.ftrackbox_w = controls.sb_ftrackbox_w->value();
     }
     saveSettings();
 }
