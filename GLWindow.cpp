@@ -164,7 +164,7 @@ void GLWindow::paintGL()
 	if (running) {
 		// unconditionally setup the clear color here
 		switch(running->fps_mode) {
-			case FPS_Dual: glClearColor(running->bgcolor, 0.f, running->bgcolor, 1.0); break; // dual mode has blank green channel (green channel is middle frame)
+			case FPS_Dual: glClearColor(0.f, running->bgcolor, running->bgcolor, 1.0); break; // dual mode has blank RED channel (RED channel is first frame)
 			default: glClearColor(running->bgcolor, running->bgcolor, running->bgcolor, 1.0); break;
 		}
 	} else
@@ -272,6 +272,7 @@ StimPlugin *GLWindow::pluginFind(const QString &name, bool casesensitive)
 #include "MovingGrating.h"
 #include "CheckerFlicker.h"
 #include "Flicker.h"
+#include "Flicker_RGBW.h"
 void GLWindow::initPlugins()
 {
     Log() << "Initializing plugins...";
@@ -285,6 +286,7 @@ void GLWindow::initPlugins()
     new MovingGrating();  // experiment plugin.. the grid!
     new CheckerFlicker(); // experiment plugin.. the checkerboard!
 	new Flicker();        // experiment plugin.. the flicker tester!
+	new Flicker_RGBW();   // experiment plugin.. the old legacy flicker for the original BRGW-style projectors 
 
     // TODO: more plugins here
 

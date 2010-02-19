@@ -635,7 +635,7 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
         if (dolocking) rngmut.lock();
         gen_rand_array((w128_t *)f->texels, MAX(f->nqqw, N));
         if (dolocking) rngmut.unlock();
-        if (fps_mode == FPS_Dual) { // for this mode we need to eliminate the green channels (and alpha can be set to whatever), so we use an SSE2 instruction
+        if (fps_mode == FPS_Dual) { // for this mode we need to eliminate the RED channels (and alpha can be set to whatever), so we use an SSE2 instruction
 			// need to 0 out every other byte
             const __m128i mask = _mm_set_epi32(0, 0, 0, 0);
 			for (unsigned long i = 0; i < f->nqqw; ++i) 

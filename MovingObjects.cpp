@@ -41,6 +41,13 @@ bool MovingObjects::init()
 	if(!getParam( "mon_y_cm" , mon_y_cm))	     mon_y_cm = 18.2f;
 	if(!getParam( "mon_y_pix" , mon_y_pix))	     mon_y_pix = height();
 	if(!getParam( "mon_z_cm" , mon_z_cm))	     mon_z_cm = 12;
+
+	// bounding box for motion
+	if(!getParam( "max_x_pix" , max_x_pix))	     max_x_pix = mon_x_pix;
+	if(!getParam( "min_x_pix" , min_x_pix))	     min_x_pix = 0;
+	if(!getParam( "max_y_pix" , max_y_pix))	     max_y_pix = mon_y_pix;
+	if(!getParam( "min_y_pix" , min_y_pix))	     min_y_pix = 0;
+
 	// note bgcolor already set in StimPlugin, re-default it to 1.0 if not set in data file
 	if(!getParam( "bgcolor" , bgcolor))	     bgcolor = 1.;
 
@@ -171,12 +178,11 @@ void MovingObjects::doFrameDraw()
             if( moveFlag ){
 			
                 // adjust for wall bounce
-                if ((x + vx + jitterx > mon_x_pix) ||  (x + vx + jitterx < 0)) {
+                if ((x + vx + objLen/2 > max_x_pix) ||  (x + vx + objLen/2 < min_x_pix))
                     vx = -vx;
-                }
-                if ((y + vy + jittery > mon_y_pix) || (y + vy + jittery < 0)) {
+                if ((y + vy + objLen/2 > max_y_pix) || (y + vy  + objLen/2 < min_y_pix))
                     vy = -vy; 
-                }
+
                 // initialize position iff k==0 and frameNum is a multiple of tframes
                 if ( !k && !(frameNum%tframes)) {
 				
@@ -216,9 +222,14 @@ void MovingObjects::doFrameDraw()
                 }
 
                 // update position after delay period
+				// if jitter pushes us outside of motion box then do not jitter this frame
                 if ((int(frameNum)%tframes - delay) > 0) { 
-                    x += vx + jitterx;
-                    y += vy + jittery;
+					if ((x + vx + objLen/2 + jitterx > max_x_pix) ||  (x + vx + objLen/2 + jitterx < min_x_pix))
+						x += vx;
+					else x+= vx + jitterx;
+					if ((y + vy + objLen/2 + jittery > max_y_pix) || (y + vy + objLen/2 + jittery < min_y_pix)) 
+						y += vy;
+					else y += vy + jittery;
                 }
             }
 
@@ -228,21 +239,13 @@ void MovingObjects::doFrameDraw()
             if (fv.size() || (int(frameNum)%tframes - delay) >= 0) {
 				float r,g,b;
 
-				if (fps_mode == FPS_Triple) {
-					b = g = r = bgcolor;
-					switch(k) {
-						// bgr order of frames
-						case 0: b = objcolor; break;
-						case 1: g = objcolor; break;
-						case 2: r = objcolor; break;
-					}
-				} else if (fps_mode == FPS_Dual) {
-					b = g = r = bgcolor;
-					switch(k) {
-						// bgr order of frames
-						case 0: b = objcolor; break;
-						case 1: r = objcolor; break;
-					}
+				if (fps_mode == FPS_Triple || fps_mode == FPS_Dual) {
+					b = g = r = bgcolor;					
+					// order of frames comes from config parameter 'color_order' but defaults to RGB
+					if (k == b_index) b = objcolor;
+					else if (k == r_index) r = objcolor;
+					else if (k == g_index) g = objcolor;
+
 				} else 
 					b = g = r = objcolor;
 

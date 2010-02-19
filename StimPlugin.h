@@ -211,7 +211,9 @@ protected:
 	int ftrackbox_x, ftrackbox_y, ftrackbox_w;
 	FPS_Mode fps_mode; ///< one of FPS_Single, FPS_Dual, FPS_Triple, FPS_Quad (this currently means triple!)
 	float bgcolor;
-
+	char color_order[3]; ///< "bgr" or "rgb" or "brg" or "gbr" or "grb" or "rbg"  -- defaults to "rgb" if not specified.
+	
+	int b_index, r_index, g_index; ///< index of brg values in above color_order param.  
 
     void notifySpikeGLAboutStart();
     void notifySpikeGLAboutStop();

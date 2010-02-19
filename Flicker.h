@@ -9,14 +9,16 @@ class Flicker : public StimPlugin
 	// Params: the below correspond one-to-one to params from the params file
 
 	int hz; ///< a number that is either: 240, 120, 60, 40, 30, 24, 20, 17
-	int duty_cycle; ///< 1, 2, or 3, depending on Hz.  1 is the only valid value for 240Hz and 1-3 are valid for 120 Hz and below
-	float intensity_f; ///< a number from 0->1.0
+	int duty_cycle; ///< 1, 2, 3, etc depending on Hz.  1 is the only valid value for 180Hz and 1-2 is valid for 120Hz and 3+ are valid for below that
+
+	GLubyte intensity; ///< a number from 0->255.0
 
 	// the vertices are determined from lmargin, rmargin, bmargin, tmargin params
 	GLint vertices[4][2];
 	GLubyte colors[4][3];
-	int cycf, activef; ///< number of total frames for 1 full cycle, number of frames active for 1 full cycle
-	int cycct, activect;  ///< counters to above..
+
+	int cyccur, ///< current position in total cycle
+		cyctot; ///< the total cycle length which is duty_cycle + off_subframes = cyctot
 
 protected:
 	Flicker();
@@ -24,6 +26,8 @@ protected:
 	bool init();
 	void drawFrame();
 
-
+private:
+	bool validateHz() const;
+	bool validateDutyCycle() const;
 };
 #endif

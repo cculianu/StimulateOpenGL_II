@@ -13,7 +13,12 @@ bool MovingGrating::init()
 	if( !getParam("period", period) ) returnvalue = false;
 	if( !getParam("speed",  speed) ) returnvalue = false;
 	if( !getParam("angle", angle) ) returnvalue = false;
-	
+	dangle = angle;
+
+	if( !getParam("ccw", ccw) )			ccw = 0;
+	if( !getParam("tframes", tframes) )	tframes = -1;
+
+
     xscale = width()/800.0;
     yscale = height()/600.0;
 
@@ -70,20 +75,15 @@ void MovingGrating::drawFrame()
 			if (!fv.size())
 				frameVars->push(double(frameNum), double(totalTranslation)/double(period));
 		}
-		if (fps_mode == FPS_Dual) {
-			for( int i=0; i<1600; i++ ) {
-				float r = 0.5+0.5*sin(2*3.14159*(i+totalTranslations[1])/period),
-					  g = 0.f,
-					  b = 0.5+0.5*sin(2*3.14159*(i+totalTranslations[0])/period);
-				setColor(i, 0, r, g, b);
+		for (int i = 0; i < 1600; ++i) {
+			float r = 0., g = 0., b = 0.;
+			for (int ff = 0; ff < (fps_mode == FPS_Dual ? 2 : 3); ++ff) {
+				const float val = 0.5+0.5*sin(2*3.14159*(i+totalTranslations[ff])/period);
+				if (ff == r_index) r = val;
+				if (ff == g_index) g = val;
+				if (ff == b_index) b = val;
 			}
-		} else { // quad_fps
-			for( int i=0; i<1600; i++ ) {
-				float r = 0.5+0.5*sin(2*3.14159*(i+totalTranslations[2])/period),
-					  g = 0.5+0.5*sin(2*3.14159*(i+totalTranslations[1])/period),
-					  b	= 0.5+0.5*sin(2*3.14159*(i+totalTranslations[0])/period);
-				setColor(i, 0, r, g, b);
-			}
+			setColor(i, 0, r, g, b);
 		}
 	} else { // !quad_fps && !dual_fps
 	    QVector<double> fv;
@@ -118,6 +118,10 @@ void MovingGrating::drawFrame()
 		for( int i=0; i<1600; i++ )
 			setGrayLevel( i, 0, 0.5+0.5*sin(2*3.14159*(i+totalTranslation)/period) );
 	}
+
+
+	if ((frameNum > 0) && (ccw > 0) && !(frameNum % tframes))
+		angle = angle + dangle;
 
 	glRotatef( angle, 0.0, 0.0, 1.0 );
 

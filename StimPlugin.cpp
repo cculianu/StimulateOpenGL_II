@@ -96,6 +96,22 @@ bool StimPlugin::start(bool startUnpaused)
 	if(!getParam("ftrackbox_x" , ftrackbox_x) || ftrackbox_x < 0)  ftrackbox_x = 0;
 	if(!getParam("ftrackbox_y" , ftrackbox_y) || ftrackbox_y < 0)  ftrackbox_y = 10;
 	if(!getParam("ftrackbox_w" , ftrackbox_w) || ftrackbox_w < 0)  ftrackbox_w = 40;
+	QString corder;
+	if(!getParam("color_order", corder)) corder = "rgb";
+	corder = corder.toLower();
+	if (corder != "rgb" && corder != "rbg" && corder != "bgr" && corder != "brg" && corder != "grb" && corder != "gbr") {
+		Error() << "color_order must be one of rgb, brg, bgr, etc..";
+		return false;
+	}
+	b_index = corder.indexOf('b');
+	r_index = corder.indexOf('r');
+	g_index = corder.indexOf('g');
+	memcpy(color_order, corder.toAscii(), sizeof(color_order));
+	if (b_index < 0 || r_index < 0 || g_index < 0) {
+		Error() << "color_order parameter that was specified is invalid!";
+		return false;
+	}
+
 	QString fpsParm;
 	if (!getParam("fps_mode", fpsParm)) {
 		Log() << "fps_mode param not specified, defaulting to `single'";

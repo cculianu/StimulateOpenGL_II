@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
-Calin A. Culianu <cculianu@yahoo.com>
-Last Updated: August 6, 2009
+Calin A. Culianu <calin.culianu@gmail.com>
+Last Updated: February 18, 2009
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -25,6 +25,13 @@ mon_y_pix
         Datatype:         integer
         Possible values:  1 - +2147483647
         Default value:    600
+        
+color_order
+        Synopsis:         Specifies the order of the colorwheel for 'triple' fps 
+                          mode.
+        Datatype:         string
+        Possible values:  'brg' 'bgr' 'rgb' 'rbg' 'grb' 'gbr'
+        Default value:    'rgb'
 
 frame_vars
         Synopsis:         Specifies a filename for reading in per-frame variables.
