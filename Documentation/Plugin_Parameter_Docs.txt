@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
-Calin A. Culianu <cculianu@yahoo.com>
-Last Updated: August 6, 2009
+Calin A. Culianu <calin.culianu@gmail.com>
+Last Updated: February 18, 2009
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -25,6 +25,13 @@ mon_y_pix
         Datatype:         integer
         Possible values:  1 - +2147483647
         Default value:    600
+        
+color_order
+        Synopsis:         Specifies the order of the colorwheel for 'triple' fps 
+                          mode.
+        Datatype:         string
+        Possible values:  'brg' 'bgr' 'rgb' 'rbg' 'grb' 'gbr'
+        Default value:    'rgb'
 
 frame_vars
         Synopsis:         Specifies a filename for reading in per-frame variables.
@@ -435,3 +442,123 @@ Nblinks
         Datatype:         integer
         Possible values:  1 - +2147483647
         Default value:    1
+
+------------------------------------------------------------------------------
+`Flicker' PLUGIN PARAMETERS
+------------------------------------------------------------------------------
+fps_mode
+		(This plugin uses this variable -- see global param)
+
+hz
+        Synopsis:         Specifies the flicker rate in Hz.  Note that values 
+                          above 120Hz are emulated using the projector 
+                          sub-frame trick.
+        Datatype:         integer
+        Possible values:  180, 120, 90, 72, 60, 51, etc.  
+                          (Bascially 1000/(k * (1000/120/3)) for all k >=2)
+        Default value:    NONE (must be specified)
+
+intensity
+        Synopsis:         Specifies the gray level of the flicker 'on' state.
+        Datatype:         float
+        Possible values:  0.0 - 1.0
+        Default value:    1.0
+
+duty_cycle
+        Synopsis:         Specifies number of subframes in the duty cycle per 
+                          period.
+        Datatype:         integer
+        Possible values:  1 - +2147483647 (maximum value depends on hz param.)
+        Default value:    1 for 180 Hz, 2 for 120Hz, 3 otherwise.
+        
+lmargin
+       Synopsis:         Specifies the left margin of the checkerboard area
+                         in pixels.
+       Datatype:         integer
+       Possible values:  -2147483648 - +2147483647
+       Default value:    0
+
+rmargin
+       Synopsis:         Specifies the right margin of the flicker area in 
+                         pixels.
+       Datatype:         integer
+       Possible values:  -2147483648 - +2147483647
+       Default value:    0
+
+bmargin
+       Synopsis:         Specifies the bottom margin of the flicker area
+                         in pixels.
+       Datatype:         integer
+       Possible values:  -2147483648 - +2147483647
+       Default value:    0
+
+tmargin
+       Synopsis:         Specifies the top margin of the flicker area in 
+                         pixels.
+       Datatype:         integer
+       Possible values:  -2147483648 - +2147483647
+       Default value:    0
+
+------------------------------------------------------------------------------
+`Sawtooth' PLUGIN PARAMETERS
+------------------------------------------------------------------------------
+fps_mode
+		(This plugin uses this variable -- see global param)
+
+Nloops
+        Synopsis:         The number of sawteeth cycles to generate.  
+		                  -1 for infinite.
+        Datatype:         integer
+        Possible values:  -1 - +2147483647 (maximum value depends on hz param.)
+        Default value:    -1 (loop forever)
+
+Nblinks
+        Synopsis:         Specifies the number of blinks or how many times to 
+                          display each frame. 
+        Datatype:         integer
+        Possible values:  +1 - +2147483647
+        Default value:    1
+
+intensity_low
+        Synopsis:         Specifies the gray level of the beginning state for 
+                          the sawtooth.  This value along with intensity_high 
+                          (plus NBlinks) determines the sawtooth's period.
+        Datatype:         float
+        Possible values:  0.0 - 1.0
+        Default value:    0.0
+
+intensity_high
+        Synopsis:         Specifies the gray level of the end state for the
+                          sawtooth.  This value along with intensity_low 
+                          (plus NBlinks) determines the sawtooth's period.
+        Datatype:         float
+        Possible values:  0.0 - 1.0
+        Default value:    1.0
+        
+lmargin
+       Synopsis:         Specifies the left margin of the checkerboard area
+                         in pixels.
+       Datatype:         integer
+       Possible values:  -2147483648 - +2147483647
+       Default value:    0
+
+rmargin
+       Synopsis:         Specifies the right margin of the flicker area in 
+                         pixels.
+       Datatype:         integer
+       Possible values:  -2147483648 - +2147483647
+       Default value:    0
+
+bmargin
+       Synopsis:         Specifies the bottom margin of the flicker area
+                         in pixels.
+       Datatype:         integer
+       Possible values:  -2147483648 - +2147483647
+       Default value:    0
+
+tmargin
+       Synopsis:         Specifies the top margin of the flicker area in 
+                         pixels.
+       Datatype:         integer
+       Possible values:  -2147483648 - +2147483647
+       Default value:    0

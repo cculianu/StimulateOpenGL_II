@@ -22,6 +22,11 @@ class MovingGrating : public GridPlugin
     float speed;
     float angle;
     float totalTranslation;
+
+	float dangle;
+	int ccw;
+	int tframes;
+
     float xscale,yscale;
 	friend class GLWindow;
 

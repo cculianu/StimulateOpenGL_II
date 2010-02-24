@@ -37,6 +37,7 @@ ConsoleWindow::ConsoleWindow(QWidget *p, Qt::WindowFlags f)
     action = m->addAction("Hide &Console C", stimApp(), SLOT(hideUnhideConsole()));
     action = m->addAction("&Align/Unalign GL Window A", stimApp(), SLOT(alignGLWindow()));
     action = m->addAction("&LeoDAQGL Integration...", stimApp(), SLOT(leoDAQGLIntegrationDialog()));
+	action = m->addAction("&Global Parameter Defaults...", stimApp(), SLOT(globalDefaultsDialog()));
     m = mb ->addMenu("&Help");
     action = m->addAction("&About", stimApp(), SLOT(about()));
     action = m->addAction("About &Qt", stimApp(), SLOT(aboutQt()));
