@@ -29,6 +29,7 @@
 #include "StimGL_LeoDAQGL_Integration.h"
 #include "ui_LeoDAQGLIntegration.h"
 #include "ui_ParamDefaultsWindow.h"
+#include "DAQ.h"
 
 #define DEFAULT_WIN_SIZE QSize(800,600)
 
@@ -339,8 +340,12 @@ void StimApp::loadSettings()
 	defs.ftrackbox_x = settings.value("ftrackbox_x", defs.ftrackbox_x).toInt();
 	defs.ftrackbox_y = settings.value("ftrackbox_y", defs.ftrackbox_y).toInt();
 	defs.ftrackbox_w = settings.value("ftrackbox_w", defs.ftrackbox_w).toInt();
-	qstrncpy(defs.color_order, settings.value("color_order__", defs.color_order).toString().toAscii().constData(), 4);
+	qstrncpy(defs.color_order, settings.value("color_order", defs.color_order).toString().toAscii().constData(), 4);
 	defs.fps_mode = settings.value("fps_mode", defs.fps_mode).toInt();
+	defs.DO_with_vsync = settings.value("DO_with_vsync", defs.DO_with_vsync).toString();
+	if (!DAQ::DOChannelExists(defs.DO_with_vsync)) {
+		defs.DO_with_vsync = "off";
+	}
 }
 
 void StimApp::saveSettings()
@@ -368,6 +373,7 @@ void StimApp::saveSettings()
 	settings.setValue("ftrackbox_w", defs.ftrackbox_w);
 	settings.setValue("color_order", QString(defs.color_order));
 	settings.setValue("fps_mode", defs.fps_mode);
+	settings.setValue("DO_with_vsync", defs.DO_with_vsync);
 }
 
 
@@ -485,9 +491,17 @@ void StimApp::loadStim()
 			params["ftrackbox_w"] = defs.ftrackbox_w;
 			params["fps_mode"] = defs.fps_mode == 0 ? "single" : (defs.fps_mode == 1 ? "double" : "triple");
 			params["color_order"] = defs.color_order;
+			params["DO_with_vsync"] = defs.DO_with_vsync;
 		}
         params.fromString(paramsBuf, false);
 
+		{
+			QString devChan;
+			if ( (devChan = params["DO_with_vsync"].toString()) != "off" && devChan.length()) {
+				DAQ::WriteDO(devChan, false); // set it low initially..
+			}
+		}
+		
 
         {
             // custom window size handling: mon_x_pix and mon_y_pix
@@ -679,7 +693,19 @@ void StimApp::globalDefaultsDialog()
 	controls.sb_ftrackbox_x->setValue(g.ftrackbox_x);
 	controls.sb_ftrackbox_y->setValue(g.ftrackbox_y);
 	controls.sb_ftrackbox_w->setValue(g.ftrackbox_w);
-
+	DAQ::DeviceChanMap chanMap (DAQ::ProbeAllDOChannels());
+	int selected = 0;
+	for (DAQ::DeviceChanMap::const_iterator it = chanMap.begin(); it != chanMap.end(); ++it) {
+		for (QStringList::const_iterator it2 = (*it).begin(); it2 != (*it).end(); ++it2) {			
+			const QString & item (*it2);
+			controls.cb_do_with_vsync->addItem(item);
+			if (0 == item.compare(g.DO_with_vsync, Qt::CaseInsensitive)) {
+				selected = controls.cb_do_with_vsync->count()-1;
+			}
+		}
+	}
+	controls.cb_do_with_vsync->setCurrentIndex(selected);
+	
     if ( dlg.exec() == QDialog::Accepted ) {
 		g.fps_mode = controls.cb_fps_mode->currentIndex();
 		qstrncpy(g.color_order, controls.cb_color_order->currentText().toLatin1().constData(), 4);
@@ -688,6 +714,7 @@ void StimApp::globalDefaultsDialog()
 		g.ftrackbox_x = controls.sb_ftrackbox_x->value();
 		g.ftrackbox_y = controls.sb_ftrackbox_y->value();
 		g.ftrackbox_w = controls.sb_ftrackbox_w->value();
+		g.DO_with_vsync = controls.cb_do_with_vsync->currentText();
     }
     saveSettings();
 }

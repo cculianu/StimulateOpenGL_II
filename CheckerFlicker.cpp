@@ -849,7 +849,7 @@ void CheckerFlicker::afterVSync(bool isSimulated)
     if (nConsecSkips >= (int)fbo) {
         Warning() << "Possible underrun of frames.  Frame creation thread can't keep up for frame " << getHWFrameCount();
         QString s;
-        s.sprintf("cycletimeleft: %g ms thrdct: %d haveMore: %d createMore: %d nWaiting: %u nConsecSkips: %d lastFramegen: %d ms required: %d ms",  cycleTimeLeft*1e3, fcs.size(), havmor, avail, nwait, nConsecSkips, lastFramegen, int((1e3/getHWRefreshRate())*fcs.size()));
+        s.sprintf("cycletimeleft: %g ms thrdct: %d haveMore: %d createMore: %d nWaiting: %u nConsecSkips: %d lastFramegen: %d ms required: %d ms",  cycleTimeLeft*1e3, (int)fcs.size(), (int)havmor, (int)avail, (unsigned)nwait, (int)nConsecSkips, (int)lastFramegen, int((1e3/getHWRefreshRate())*fcs.size()));
         Debug() << s;
         // now, create new threads to keep up, if available
         int ncoresavail = getNProcessors() - fcs.size() - 1; // allow 1 proc to be used for main thread always

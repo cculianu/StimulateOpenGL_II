@@ -25,6 +25,7 @@ bool Flicker_RGBW::init()
 	if (!getParam("intensity", intensity_f)) intensity_f = 1.0;
 	// deal with 0->255 spec
 	if (intensity_f > 1.0) intensity_f /= 255.0;
+	if (intensity_f < 0. || intensity_f > 255.) Warning() << "intensity of " << intensity_f << " invalid, defaulting to 1.0", intensity_f = 1.0;
 	GLubyte intensity = intensity_f * 255.0;
 	if (!getParam("bgcolor", bgcolor)) bgcolor = 0.0; // re-default bgcolor to 0.0
 	if (!getParam("max_active_frames_per_cycle", max_active_frames_per_cycle)) max_active_frames_per_cycle = -1;
@@ -62,8 +63,6 @@ bool Flicker_RGBW::init()
 		Error() << "duty_cycle param " << duty_cycle << " is invalid (or invalid for the specified hz param of " << hz << ").";
 		return false;
 	}
-
-	if (intensity < 0 || intensity > 255) Warning() << "intensity of " << intensity_f << " invalid, defaulting to 1.0", intensity = 255;
 
 	GLubyte color[3] = {0,0,0};
 	if (hz == 240) {

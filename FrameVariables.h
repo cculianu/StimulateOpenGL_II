@@ -43,7 +43,7 @@ public:
 	void readReset() { inp.curr_row = 0; }
 
 private:
-	static QStringList FrameVariables::splitHeader(const QString & ln);
+	static QStringList splitHeader(const QString & ln);
 	static QString lastFileName;
 	unsigned n_fields, cnt;
 	QString fname;

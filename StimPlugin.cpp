@@ -8,7 +8,7 @@
 #include "StimGL_LeoDAQGL_Integration.h"
 
 StimPlugin::StimPlugin(const QString &name)
-    : QObject(StimApp::instance()->glWin()), parent(StimApp::instance()->glWin()), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0)
+    : QObject(StimApp::instance()->glWin()), parent(StimApp::instance()->glWin()), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0)
 {
 	frameVars = 0;
     needNotifyStart = true;

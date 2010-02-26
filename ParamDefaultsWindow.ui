@@ -1,35 +1,36 @@
-<ui version="4.0" >
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
  <class>ParamDefaultsWindow</class>
- <widget class="QDialog" name="ParamDefaultsWindow" >
-  <property name="geometry" >
+ <widget class="QDialog" name="ParamDefaultsWindow">
+  <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>274</width>
-    <height>354</height>
+    <width>276</width>
+    <height>391</height>
    </rect>
   </property>
-  <property name="windowTitle" >
+  <property name="windowTitle">
    <string>Global Parameter Defaults</string>
   </property>
-  <widget class="QDialogButtonBox" name="buttonBox" >
-   <property name="geometry" >
+  <widget class="QDialogButtonBox" name="buttonBox">
+   <property name="geometry">
     <rect>
      <x>100</x>
-     <y>310</y>
+     <y>340</y>
      <width>161</width>
      <height>31</height>
     </rect>
    </property>
-   <property name="orientation" >
+   <property name="orientation">
     <enum>Qt::Horizontal</enum>
    </property>
-   <property name="standardButtons" >
+   <property name="standardButtons">
     <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
    </property>
   </widget>
-  <widget class="QLabel" name="label_2" >
-   <property name="geometry" >
+  <widget class="QLabel" name="label_2">
+   <property name="geometry">
     <rect>
      <x>40</x>
      <y>100</y>
@@ -37,15 +38,15 @@
      <height>20</height>
     </rect>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>mox_y_pix:</string>
    </property>
-   <property name="alignment" >
+   <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
-  <widget class="QSpinBox" name="sb_mon_y_pix" >
-   <property name="geometry" >
+  <widget class="QSpinBox" name="sb_mon_y_pix">
+   <property name="geometry">
     <rect>
      <x>130</x>
      <y>100</y>
@@ -53,15 +54,15 @@
      <height>22</height>
     </rect>
    </property>
-   <property name="maximum" >
+   <property name="maximum">
     <number>9999</number>
    </property>
-   <property name="value" >
+   <property name="value">
     <number>600</number>
    </property>
   </widget>
-  <widget class="QLabel" name="label" >
-   <property name="geometry" >
+  <widget class="QLabel" name="label">
+   <property name="geometry">
     <rect>
      <x>40</x>
      <y>70</y>
@@ -69,15 +70,15 @@
      <height>20</height>
     </rect>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>mox_x_pix:</string>
    </property>
-   <property name="alignment" >
+   <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
-  <widget class="QSpinBox" name="sb_mon_x_pix" >
-   <property name="geometry" >
+  <widget class="QSpinBox" name="sb_mon_x_pix">
+   <property name="geometry">
     <rect>
      <x>130</x>
      <y>70</y>
@@ -85,15 +86,15 @@
      <height>22</height>
     </rect>
    </property>
-   <property name="maximum" >
+   <property name="maximum">
     <number>9999</number>
    </property>
-   <property name="value" >
+   <property name="value">
     <number>800</number>
    </property>
   </widget>
-  <widget class="QComboBox" name="cb_color_order" >
-   <property name="geometry" >
+  <widget class="QComboBox" name="cb_color_order">
+   <property name="geometry">
     <rect>
      <x>130</x>
      <y>130</y>
@@ -102,38 +103,38 @@
     </rect>
    </property>
    <item>
-    <property name="text" >
+    <property name="text">
      <string>rgb</string>
     </property>
    </item>
    <item>
-    <property name="text" >
+    <property name="text">
      <string>rbg</string>
     </property>
    </item>
    <item>
-    <property name="text" >
+    <property name="text">
      <string>brg</string>
     </property>
    </item>
    <item>
-    <property name="text" >
+    <property name="text">
      <string>bgr</string>
     </property>
    </item>
    <item>
-    <property name="text" >
+    <property name="text">
      <string>grb</string>
     </property>
    </item>
    <item>
-    <property name="text" >
+    <property name="text">
      <string>gbr</string>
     </property>
    </item>
   </widget>
-  <widget class="QLabel" name="label_9" >
-   <property name="geometry" >
+  <widget class="QLabel" name="label_9">
+   <property name="geometry">
     <rect>
      <x>40</x>
      <y>220</y>
@@ -141,15 +142,15 @@
      <height>20</height>
     </rect>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>ftrackbox_y:</string>
    </property>
-   <property name="alignment" >
+   <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
-  <widget class="QSpinBox" name="sb_ftrackbox_y" >
-   <property name="geometry" >
+  <widget class="QSpinBox" name="sb_ftrackbox_y">
+   <property name="geometry">
     <rect>
      <x>130</x>
      <y>220</y>
@@ -157,12 +158,12 @@
      <height>22</height>
     </rect>
    </property>
-   <property name="maximum" >
+   <property name="maximum">
     <number>9999</number>
    </property>
   </widget>
-  <widget class="QSpinBox" name="sb_ftrackbox_x" >
-   <property name="geometry" >
+  <widget class="QSpinBox" name="sb_ftrackbox_x">
+   <property name="geometry">
     <rect>
      <x>130</x>
      <y>190</y>
@@ -170,12 +171,12 @@
      <height>22</height>
     </rect>
    </property>
-   <property name="maximum" >
+   <property name="maximum">
     <number>9999</number>
    </property>
   </widget>
-  <widget class="QSpinBox" name="sb_ftrackbox_w" >
-   <property name="geometry" >
+  <widget class="QSpinBox" name="sb_ftrackbox_w">
+   <property name="geometry">
     <rect>
      <x>130</x>
      <y>250</y>
@@ -183,12 +184,12 @@
      <height>22</height>
     </rect>
    </property>
-   <property name="maximum" >
+   <property name="maximum">
     <number>9999</number>
    </property>
   </widget>
-  <widget class="QLabel" name="label_3" >
-   <property name="geometry" >
+  <widget class="QLabel" name="label_3">
+   <property name="geometry">
     <rect>
      <x>40</x>
      <y>130</y>
@@ -196,15 +197,15 @@
      <height>20</height>
     </rect>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>color_order:</string>
    </property>
-   <property name="alignment" >
+   <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
-  <widget class="QLabel" name="label_14" >
-   <property name="geometry" >
+  <widget class="QLabel" name="label_14">
+   <property name="geometry">
     <rect>
      <x>40</x>
      <y>160</y>
@@ -212,15 +213,15 @@
      <height>20</height>
     </rect>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>fps_mode:</string>
    </property>
-   <property name="alignment" >
+   <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
-  <widget class="QComboBox" name="cb_fps_mode" >
-   <property name="geometry" >
+  <widget class="QComboBox" name="cb_fps_mode">
+   <property name="geometry">
     <rect>
      <x>130</x>
      <y>160</y>
@@ -229,23 +230,23 @@
     </rect>
    </property>
    <item>
-    <property name="text" >
+    <property name="text">
      <string>single</string>
     </property>
    </item>
    <item>
-    <property name="text" >
+    <property name="text">
      <string>double</string>
     </property>
    </item>
    <item>
-    <property name="text" >
+    <property name="text">
      <string>triple</string>
     </property>
    </item>
   </widget>
-  <widget class="QLabel" name="label_11" >
-   <property name="geometry" >
+  <widget class="QLabel" name="label_11">
+   <property name="geometry">
     <rect>
      <x>40</x>
      <y>250</y>
@@ -253,15 +254,15 @@
      <height>20</height>
     </rect>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>ftrackbox_w:</string>
    </property>
-   <property name="alignment" >
+   <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
-  <widget class="QLabel" name="label_7" >
-   <property name="geometry" >
+  <widget class="QLabel" name="label_7">
+   <property name="geometry">
     <rect>
      <x>40</x>
      <y>190</y>
@@ -269,15 +270,15 @@
      <height>20</height>
     </rect>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>ftrackbox_x:</string>
    </property>
-   <property name="alignment" >
+   <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
-  <widget class="QLabel" name="label_4" >
-   <property name="geometry" >
+  <widget class="QLabel" name="label_4">
+   <property name="geometry">
     <rect>
      <x>10</x>
      <y>20</y>
@@ -285,28 +286,59 @@
      <height>21</height>
     </rect>
    </property>
-   <property name="font" >
+   <property name="font">
     <font>
      <family>Arial Black</family>
      <pointsize>12</pointsize>
     </font>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>Global Parameter Defaults:</string>
    </property>
   </widget>
-  <widget class="Line" name="line" >
-   <property name="geometry" >
+  <widget class="Line" name="line">
+   <property name="geometry">
     <rect>
      <x>10</x>
-     <y>290</y>
+     <y>320</y>
      <width>251</width>
      <height>16</height>
     </rect>
    </property>
-   <property name="orientation" >
+   <property name="orientation">
     <enum>Qt::Horizontal</enum>
    </property>
+  </widget>
+  <widget class="QLabel" name="label_12">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>280</y>
+     <width>111</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>DO_with_vsync:</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="cb_do_with_vsync">
+   <property name="geometry">
+    <rect>
+     <x>130</x>
+     <y>280</y>
+     <width>121</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>off</string>
+    </property>
+   </item>
   </widget>
  </widget>
  <resources/>
@@ -317,11 +349,11 @@
    <receiver>ParamDefaultsWindow</receiver>
    <slot>accept()</slot>
    <hints>
-    <hint type="sourcelabel" >
+    <hint type="sourcelabel">
      <x>248</x>
      <y>254</y>
     </hint>
-    <hint type="destinationlabel" >
+    <hint type="destinationlabel">
      <x>157</x>
      <y>274</y>
     </hint>
@@ -333,11 +365,11 @@
    <receiver>ParamDefaultsWindow</receiver>
    <slot>reject()</slot>
    <hints>
-    <hint type="sourcelabel" >
+    <hint type="sourcelabel">
      <x>316</x>
      <y>260</y>
     </hint>
-    <hint type="destinationlabel" >
+    <hint type="destinationlabel">
      <x>286</x>
      <y>274</y>
     </hint>

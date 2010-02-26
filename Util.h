@@ -9,6 +9,9 @@ class StimApp;
 #include <QTextStream>
 #include <QString>
 
+#define STR1(x) #x
+#define STR(x) STR1(x)
+
 #ifndef MIN
 #define MIN(a,b) ( (a) <= (b) ? (a) : (b) )
 #endif

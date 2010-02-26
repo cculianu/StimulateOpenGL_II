@@ -23,11 +23,16 @@
 #include <QTimer>
 //-- add your plugins here
 #include "StimPlugin.h"
+#include "DAQ.h"
 
 #define WINDOW_TITLE "StimulateOpenGL II - GLWindow"
 
 GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
-    : QGLWidget((QWidget *)0,0,static_cast<Qt::WindowFlags>(Qt::MSWindowsOwnDC|(frameless ? Qt::FramelessWindowHint : 0))), aMode(false), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.)
+    : QGLWidget((QWidget *)0,0,static_cast<Qt::WindowFlags>(
+#ifdef Q_OS_WIN														
+															Qt::MSWindowsOwnDC|
+#endif
+															(frameless ? Qt::FramelessWindowHint : 0))), aMode(false), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.)
 {
     QSize s(w, h);
     setMaximumSize(s);
@@ -200,6 +205,11 @@ void GLWindow::paintGL()
 
     if (doBufSwap) {// doBufSwap is normally true either if we don't have aMode or if we have a plugin and it is running and not paused
         
+		QString devChan;
+		if (running && !paused && running->frameNum == 1 && running->getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {
+			DAQ::WriteDO(devChan, true);
+		}
+		
         swapBuffers();// should wait for vsync...   
 
     } else {
@@ -246,6 +256,12 @@ void GLWindow::pluginStopped(StimPlugin *p)
 	if (running != p)
 		Error() << "pluginStopped() but running != p";
     if (running == p) {
+		
+		QString devChan;
+		if (running && running->getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {
+			DAQ::WriteDO(devChan, false);
+		}
+		
         running = 0;
         paused = false;
         Log() << p->name() << " stopped.";

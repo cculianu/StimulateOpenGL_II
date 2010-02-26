@@ -7,7 +7,7 @@
 QString FrameVariables::lastFileName;
 
 FrameVariables::FrameVariables(const QString &of, const QStringList & varnames)
-: f(of), cnt(0), fname(of)
+: cnt(0), fname(of), f(of)
 {
 	lastFileName = fname;
 	setVariableNames(varnames);

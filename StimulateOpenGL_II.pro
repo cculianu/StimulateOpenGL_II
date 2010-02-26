@@ -29,8 +29,8 @@ win32 {
 }
 
 # Input
-HEADERS += Version.h StimApp.h Util.h RNG.h ConsoleWindow.h GLWindow.h ConnectionThread.h StimPlugin.h CalibPlugin.h MovingObjects.h GridPlugin.h MovingGrating.h CheckerFlicker.h ZigguratGauss.h StimParams.h StimGL_LeoDAQGL_Integration.h FrameVariables.h Flicker.h Flicker_RGBW.h Sawtooth.h
-SOURCES += main.cpp StimApp.cpp Util.cpp RNG.cpp ConsoleWindow.cpp GLWindow.cpp osdep.cpp ConnectionThread.cpp StimPlugin.cpp CalibPlugin.cpp MovingObjects.cpp GridPlugin.cpp MovingGrating.cpp CheckerFlicker.cpp ZigguratGauss.cpp StimParams.cpp StimGL_LeoDAQGL_Integration.cpp FrameVariables.cpp Flicker.cpp Flicker_RGBW.cpp Sawtooth.cpp
+HEADERS += Version.h StimApp.h Util.h RNG.h ConsoleWindow.h GLWindow.h ConnectionThread.h StimPlugin.h CalibPlugin.h MovingObjects.h GridPlugin.h MovingGrating.h CheckerFlicker.h ZigguratGauss.h StimParams.h StimGL_LeoDAQGL_Integration.h FrameVariables.h Flicker.h Flicker_RGBW.h Sawtooth.h DAQ.h TypeDefs.h
+SOURCES += main.cpp StimApp.cpp Util.cpp RNG.cpp ConsoleWindow.cpp GLWindow.cpp osdep.cpp ConnectionThread.cpp StimPlugin.cpp CalibPlugin.cpp MovingObjects.cpp GridPlugin.cpp MovingGrating.cpp CheckerFlicker.cpp ZigguratGauss.cpp StimParams.cpp StimGL_LeoDAQGL_Integration.cpp FrameVariables.cpp Flicker.cpp Flicker_RGBW.cpp Sawtooth.cpp DAQ.cpp
 
 FORMS += LeoDAQGLIntegration.ui ParamDefaultsWindow.ui
 
@@ -38,9 +38,14 @@ win32-g++ {
 	LIBS += -lm
 }
 win32 {
-        LIBS += -lws2_32
+        LIBS += NI/NIDAQmx.lib WS2_32.lib
+        DEFINES += HAVE_NIDAQmx 
+#        LIBS += -lws2_32
         RC_FILE += WinResources.rc
 }
 unix {
 	LIBS += -lm
+}
+macx {
+	LIBS += -framework CoreServices
 }
