@@ -204,13 +204,14 @@ void GLWindow::paintGL()
     tLastFrame = tThisFrame;
 
     if (doBufSwap) {// doBufSwap is normally true either if we don't have aMode or if we have a plugin and it is running and not paused
-        
+
+		swapBuffers();// should wait for vsync...   
+
 		QString devChan;
 		if (running && !paused && running->frameNum == 1 && running->getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {
 			DAQ::WriteDO(devChan, true);
 		}
 		
-        swapBuffers();// should wait for vsync...   
 
     } else {
         // don't swap buffers here to avoid frame ghosts in 'A' Mode on Windows.. We get frame ghosts in Windows in 'A' mode when paused or not running because we didn't draw a new frame if paused, and so swapping the buffers causes previous frames to appear onscreen
