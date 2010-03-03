@@ -39,4 +39,5 @@ function [res] = DumpFrameToFile(s, frameNum, outfile_bmp)
     imgdat=BMPMex('convertRGBToBGR', imgdat);
     BMPMex('saveBMP', outfile_bmp, imgdat, size(imgdat,2), size(imgdat, 3) );
     res = 1;
+    %plug=Running(s); % here to avoid weird issue where running is sometimes ''
     

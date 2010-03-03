@@ -47,6 +47,6 @@ function [imgdat] = DumpFrame(s, frameNum)
         error('Expected BINARY DATA line, didn''t get it');
     end;   
     imgdat=CalinsNetMex('readMatrix', s.handle, 'uint8', [3 w h]);
-
+    %plug = Running(s); % this is here because of a weird issue where running sometimes returns ''
 
     

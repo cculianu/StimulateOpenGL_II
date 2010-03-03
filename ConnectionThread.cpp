@@ -129,7 +129,11 @@ void ConnectionThread::run()
                 if (resp.length()) {
                     Debug() << "Sending: " << resp;
                     if (!resp.endsWith("\n")) resp += "\n";
-                    sock.write(resp.toUtf8());
+					QByteArray data(resp.toUtf8());
+                    int len = sock.write(data);
+					if (len != data.length()) {
+						Debug() << "Sent "  << len << " bytes but expected to send " << data.length() << " bytes!";
+					}
                 }
                 Debug() << "Sending: OK";
                 sock.write("OK\n");
