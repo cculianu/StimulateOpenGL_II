@@ -23,18 +23,24 @@ extern "C" {
 #  include "scanproc.h"
 #  include "scanproc.c"
 }
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
-#include <stdlib.h>
+#  include <sys/types.h>
+#  include <sys/wait.h>
+#  include <unistd.h>
+#  include <stdlib.h>
+#elif defined(DARWIN)
+extern int errno;
+#  include <sys/types.h>
+#  include <sys/wait.h>
+#  include <unistd.h>
+#  include <stdlib.h>
 #elif defined(WIN32)
-#include <windows.h>
-#include <tlhelp32.h>
+#  include <windows.h>
+#  include <tlhelp32.h>
 #else
-#error Need to define one of LINUX or WIN32
+#  error Need to define one of LINUX, WIN32 or DARWIN 
 #endif
 
-#ifdef LINUX
+#if defined(LINUX) || defined(DARWIN)
 static bool Execute(const std::string & prog)
 {
     pid_t pid = fork();
@@ -105,13 +111,20 @@ static void ensureProgramIsRunning(int nlhs, mxArray ** plhs,
     char *tmp = mxArrayToString(prhs[0]);
     prog = tmp;
     mxFree(tmp);
-#ifdef LINUX
+#if defined(LINUX) || defined(DARWIN)
+#  ifdef LINUX
     pid_t *pids = pids_of_exe(prog.c_str());
     bool is_running = *pids;
     free(pids);
     if (is_running) {
         mexPrintf("Found a %s process already running\n", prog.c_str());
-    } else {
+    } else
+#  else
+#    warning ensureProgramIsRunning() is not yet properly implemented on this platform!
+    mexPrintf("Warning: ensureProgramIsRunning() is not yet properly implemented on this platform, silently ignoring!");
+    return;
+#  endif
+    {
         mexPrintf("Did not find a %s process already running, trying to start it up\n", prog.c_str());
         if (!Execute(prog) && !Execute(std::string("./") + prog)) {
             std::string s = "Could not start ";

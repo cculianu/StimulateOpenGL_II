@@ -7,7 +7,7 @@
 QString FrameVariables::lastFileName;
 
 FrameVariables::FrameVariables(const QString &of, const QStringList & varnames)
-: cnt(0), fname(of), f(of)
+: cnt(0), fname(of), f(of), cantOpenComplainCt(0)
 {
 	lastFileName = fname;
 	setVariableNames(varnames);
@@ -38,7 +38,10 @@ void FrameVariables::push(double varval0...) ///< all vars must be doubles, and 
 
 	if (!f.isOpen()) {
 		if (!f.open(QIODevice::WriteOnly|QIODevice::Text|QIODevice::Truncate)) {
-			Error() << "Could not open frame variable output file: " << fname;
+			if (cantOpenComplainCt < 3) {
+				Error() << "Could not open frame variable output file: " << fname;
+				++cantOpenComplainCt;
+			}
 		} else {
 			Log() << "Opened frame variables save file: " << fname;
 		}

@@ -41,23 +41,20 @@ namespace {
     
     struct GetSetData
     {
-        QSemaphore replySem, deleteOkSem;
+        QSemaphore replySem;
         QVariant req;
         QVariant datum;
-
+		
         template <typename T> void setReply(const T & t) {
             datum.setValue(t);
             replySem.release();
-            deleteOkSem.acquire();
         }
         template <typename T> T getReply() {
             T ret;
             replySem.acquire();
             ret = datum.value<T>();
-            deleteOkSem.release();
             return ret;
         }
-
     };
 
     struct GetSetEvent : public QEvent

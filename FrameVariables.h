@@ -50,6 +50,7 @@ private:
 	mutable QFile f;
 	mutable QTextStream ts;
 	QStringList var_names;
+	int cantOpenComplainCt;
 
 	// lastread stuff
 	struct Input {
