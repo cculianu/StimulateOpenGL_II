@@ -31,6 +31,7 @@
 #include <QByteArray>
 #include <QMutex>
 #include <QMutexLocker>
+#include <QList>
 #include "FrameVariables.h"
 
 enum FPS_Mode {
@@ -128,18 +129,19 @@ public:
     /// recovering from errors (or to just silently return false on error).
     bool saveData(bool use_gui_for_errors = false);
 
-    /// \brief Grab arbitrary frame data by number from a plugin.
+	/// \brief Grab arbitrary frame data by number from a plugin.
     /// 
-    //  Can replay an experiment -- arbitrarily reproduces any frame
+    //  Can replay an experiment -- arbitrarily reproduces any frames
     /// from an experiment.  Note that it's best to call this with
-    /// num increasing by 1 each time (that is, sequentially) as otherwise
+    /// num increasing each time (that is, sequentially) as otherwise
     /// you may experience long delays while the plugin recomputes all
     /// frames up to num.
     /// 
     /// @param num the frame number to generate/dump
+	/// @param numframs the number of frames to retrieve
     /// @param data_type the OpenGL data type of the generated data.  Note that the default is good for most users so no need to change it unless you know what you are doing.
-    QByteArray getFrameDump(unsigned num, GLenum data_type = GL_UNSIGNED_BYTE);
-
+    QByteArray getFrameDump(unsigned num, unsigned numframes = 1, GLenum data_type = GL_UNSIGNED_BYTE);
+	
 	/// Frame Variables -- use this object in your pushFrameVars() method!
 	FrameVariables *frameVars;
 	bool have_fv_input_file; ///< defaults to false, true indicates plugin is using a frameVars input file

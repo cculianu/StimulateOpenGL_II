@@ -12,6 +12,8 @@
 #include <QVariant>
 #include <QByteArray>
 #include <QDateTime>
+#include <new>
+
 namespace {
     enum EventTypes {
         StartPluginEventType = QEvent::User+32,
@@ -43,7 +45,7 @@ namespace {
     {
         QSemaphore replySem;
         QVariant req;
-        QVariant datum;
+        QVariant datum, datum2;
 		
         template <typename T> void setReply(const T & t) {
             datum.setValue(t);
@@ -73,7 +75,7 @@ namespace {
 
     struct GetFrameEvent : public GetSetEvent
     {
-        GetFrameEvent(unsigned framenum, int datatype) : GetSetEvent(GetFrameEventType) { d->req.setValue(framenum); d->datum.setValue(datatype); }
+        GetFrameEvent(unsigned framenum, unsigned numframes, int datatype) : GetSetEvent(GetFrameEventType) { d->req.setValue(framenum); d->datum.setValue(datatype); d->datum2.setValue(numframes); }
     };
 
     struct IsConsoleHiddenEvent : public GetSetEvent
@@ -189,8 +191,14 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
         return QString::number(stimApp()->glWin()->height());
     } else if (cmd == "GETFRAME" && toks.size()) {
         bool ok;
-        unsigned framenum = toks[0].toUInt(&ok);
+        unsigned framenum = toks[0].toUInt(&ok), numFrames = 1;
         toks.pop_front();
+		if (toks.size()) {
+			bool ok2;
+			numFrames = toks.front().toUInt(&ok2);
+			if (ok2) toks.pop_front();
+			if (!ok2 || numFrames < 1) numFrames = 1;
+		}
         int datatype = GL_UNSIGNED_BYTE;
         if (toks.size()) {
             QString s = toks.join(" ").toUpper().trimmed();
@@ -207,14 +215,18 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
             }
         }
         if (ok) {
-            GetFrameEvent *e = new GetFrameEvent(framenum, datatype);
+            GetFrameEvent *e = new GetFrameEvent(framenum, numFrames, datatype);
             GetSetData *d = e->d;
             stimApp()->postEvent(this, e);
-            QByteArray framedata = d->getReply<QByteArray>();
+			const double tgen0 = getTime();
+            QByteArray frameData (d->getReply<QByteArray>());
+			Debug() << "Generating " << numFrames << " frames (" << frameData.size() << " bytes) took " << getTime()-tgen0 << " secs";
             delete d;
-            if (!framedata.isNull()) {
-                sock.write((QString("BINARY DATA ") + QString::number(framedata.size()) + "\n").toUtf8());
-                sock.write(framedata);
+            if (!frameData.isNull()) {
+                sock.write((QString("BINARY DATA ") + QString::number(frameData.size()) + "\n").toUtf8());
+				const double t0 = getTime();
+				sock.write(frameData);
+				Debug() << "Sending " << numFrames << " frames (" << frameData.size() << " bytes) took " << getTime()-t0 << " secs";
                 return "";
             }
         }
@@ -436,11 +448,11 @@ bool ConnectionThread::eventFilter(QObject *watched, QEvent *event)
         case GetFrameEventType: {
             GetSetEvent *e = dynamic_cast<GetSetEvent *>(event);
             if (e) {
-                unsigned num = e->d->req.toUInt();
+                unsigned num = e->d->req.toUInt(), numframes = e->d->datum2.toInt();
                 int datatype = e->d->datum.toInt();
                 StimPlugin *p;
                 if ((p=stimApp()->glWin()->runningPlugin()) && stimApp()->glWin()->isPaused()) {
-                    e->d->setReply(p->getFrameDump(num, datatype));
+                    e->d->setReply(p->getFrameDump(num, numframes, datatype));
                 } else
                     e->d->setReply(QByteArray());
             }

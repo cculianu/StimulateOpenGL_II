@@ -91,6 +91,7 @@ void tryConnection(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   bool ok = false;
   try {
     ok = nc->connect();
+    nc->setSocketOption(Socket::TCPNoDelay, true);
   } catch (const SocketException & e) {
     mexWarnMsgTxt(e.why().c_str());
     RETURN_NULL();
@@ -220,17 +221,18 @@ void readMatrix(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (!nlhs)
       mexErrMsgTxt("output (lhs) parameter is required.");
   if (nrhs < 3 || !mxIsChar(prhs[1]) || !mxIsDouble(prhs[2]) || (ndims=mxGetN(prhs[2])) < 2 || mxGetM(prhs[2]) != 1)
-      mexErrMsgTxt("'readMatrix' needs arguments:\n Argument 1 handle\n Argument 2, a string 'double' or 'single' or 'uint8'\n Argument 3, a 1x3 or 1x2 vector of dimensions for m,n[,o]");
+      mexErrMsgTxt("'readMatrix' needs arguments:\n Argument 1 handle\n Argument 2, a string 'double' or 'single' or 'uint8'\n Argument 3, a 1x4, 1x3 or 1x2 vector of dimensions for m,n[,o,p]");
   int buflen = (mxGetM(prhs[1]) * mxGetN(prhs[1]) * sizeof(mxChar)) + 1;
   std::string stdstr(buflen, '0');
   mxGetString(prhs[1], &stdstr[0], buflen);
   const char *str = stdstr.c_str();
   const double *dims_dbls = mxGetPr(prhs[2]);
-  if (ndims > 3) ndims = 3;
+  if (ndims > 4) ndims = 4;
   const int dims[] = { static_cast<int>(dims_dbls[0]),
                        static_cast<int>(dims_dbls[1]),
-                       ndims == 3 ? static_cast<int>(dims_dbls[2]) : 1 };
-  datalen = dims[0]*dims[1]*dims[2];
+                       ndims >= 3 ? static_cast<int>(dims_dbls[2]) : 1,
+                       ndims >= 4 ? static_cast<int>(dims_dbls[3]) : 1 };
+  datalen = dims[0]*dims[1]*dims[2]*dims[3];
   mxClassID cls;
   if (!strcmpi(str, "double")) cls = mxDOUBLE_CLASS, datalen *= sizeof(double);
   else if (!strcmpi(str, "single")) cls = mxSINGLE_CLASS, datalen *= sizeof(float);

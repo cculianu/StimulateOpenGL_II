@@ -6,6 +6,7 @@
 #include <QGLContext>
 #include <QTimer>
 #include "StimGL_LeoDAQGL_Integration.h"
+#include <iostream>
 
 StimPlugin::StimPlugin(const QString &name)
     : QObject(StimApp::instance()->glWin()), parent(StimApp::instance()->glWin()), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0)
@@ -291,7 +292,7 @@ void StimPlugin::putMissedFrame(unsigned cycleTimeMsecs)
     missedFrameTimes.push_back(cycleTimeMsecs);
 }
 
-QByteArray StimPlugin::getFrameDump(unsigned num, GLenum datatype)
+QByteArray StimPlugin::getFrameDump(unsigned num, unsigned numframes, GLenum datatype)
 {
     unsigned long datasize = width()*height()*3; // R, G, B broken out per pix.
     switch (datatype) {
@@ -310,7 +311,13 @@ QByteArray StimPlugin::getFrameDump(unsigned num, GLenum datatype)
         Error() << "Unsupported datatype `" << datatype << "' in StimPlugin::getFrameNum!";
         return QByteArray();
     }
-    QByteArray ret(datasize, 0);
+    QByteArray ret(1, 0);
+	try {
+		ret.resize(datasize*numframes); // set to uninitialized data
+	} catch (std::bad_alloc & e) {
+		Warning() << "Bad_alloc caught when attempting to allocate " << datasize*numframes << " of data for the frames buffer: " + e.what();
+		return QByteArray();
+	}
     if (parent->runningPlugin() != this) {
         Warning() << name() << " wasn't the currently-running plugin, stopping current and restarting with `" << name() << "' this may not work 100% for some plugins!";        
         parent->runningPlugin()->stop();
@@ -326,21 +333,24 @@ QByteArray StimPlugin::getFrameDump(unsigned num, GLenum datatype)
     if (QGLContext::currentContext() != parent->context())
         parent->makeCurrent();
     double tFrame = 1./getHWRefreshRate();
+	unsigned long cur = 0;
     do  {
         double t0 = getTime();
         cycleTimeLeft = tFrame;
 		renderFrame(); // NB: renderFrame() just does drawFrame(); drawFTBox();
-        if (frameNum == num) {
+        if (frameNum >= num) {
             GLint bufwas;
             glGetIntegerv(GL_READ_BUFFER, &bufwas);
             glReadBuffer(GL_BACK);
-            glReadPixels(0, 0, width(), height(), GL_RGB, datatype, ret.data());
+            glReadPixels(0, 0, width(), height(), GL_RGB, datatype, reinterpret_cast<char *>(ret.data())+cur);
             glReadBuffer(bufwas);
+			cur += datasize;
         }
         ++frameNum;
-        cycleTimeLeft -= getTime()-t0;
+		const double elapsed = getTime()-t0;
+        cycleTimeLeft -= elapsed;
         afterVSync(true);
-    } while (frameNum <= num);
+    } while (frameNum < num+numframes);
     glClear(GL_COLOR_BUFFER_BIT);
     return ret;
 }
