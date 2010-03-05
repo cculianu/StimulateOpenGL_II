@@ -315,7 +315,7 @@ QByteArray StimPlugin::getFrameDump(unsigned num, unsigned numframes, GLenum dat
 	try {
 		ret.resize(datasize*numframes); // set to uninitialized data
 	} catch (std::bad_alloc & e) {
-		Warning() << "Bad_alloc caught when attempting to allocate " << datasize*numframes << " of data for the frames buffer: " + e.what();
+		Warning() << "Bad_alloc caught when attempting to allocate " << datasize*numframes << " of data for the frames buffer: " << e.what();
 		return QByteArray();
 	}
     if (parent->runningPlugin() != this) {
