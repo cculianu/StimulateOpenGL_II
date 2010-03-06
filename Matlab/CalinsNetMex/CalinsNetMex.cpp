@@ -245,7 +245,7 @@ void readMatrix(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   else  mexErrMsgTxt("Output matrix type must be one of 'single', 'double', 'int8', 'uint8', 'int16', 'int16', 'int32', 'uint32'.");
   plhs[0] = mxCreateNumericArray(ndims, dims, cls, mxREAL);
   try {
-      nc->receiveData(mxGetPr(plhs[0]), datalen, true);
+      nc->receiveData(mxGetData(plhs[0]), datalen, true);
   } catch (const SocketException & e) {
       mexWarnMsgTxt(e.why().c_str());
       mxDestroyArray(plhs[0]);

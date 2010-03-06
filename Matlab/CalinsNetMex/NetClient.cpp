@@ -23,12 +23,16 @@ unsigned NetClient::sendData(const void *d, unsigned dataSize) throw (const Sock
 
 unsigned NetClient::receiveData(void *d, unsigned dataSize, bool require_full) throw (const SocketException &)
 {
-  unsigned recvd = 0;
+  static const unsigned maxrecv = 2*1024*1024; ///< 2MB recv max per call -- this is because on windows receiving large amounts of data causes socket errors?
+  unsigned long recvd = 0;
   char *dataBuf = static_cast<char *>(d);
 
   while ( (require_full && recvd < dataSize) || !recvd) {
-    recvd += Socket::receiveData(dataBuf + recvd, dataSize - recvd);
-    if (recvd == 0 && dataSize == 0) break; // force break from loop
+    unsigned retval, toread = dataSize - recvd;
+    if (toread > maxrecv) toread = maxrecv;
+    retval = Socket::receiveData(dataBuf + recvd, toread);
+    recvd += retval;
+    if (retval == 0 && dataSize == 0) break; // force break from loop
   }
   return recvd;
 }

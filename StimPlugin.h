@@ -140,7 +140,8 @@ public:
     /// @param num the frame number to generate/dump
 	/// @param numframs the number of frames to retrieve
     /// @param data_type the OpenGL data type of the generated data.  Note that the default is good for most users so no need to change it unless you know what you are doing.
-    QByteArray getFrameDump(unsigned num, unsigned numframes = 1, GLenum data_type = GL_UNSIGNED_BYTE);
+	/// @return a list of the frames.  Note that a short frame count may be returned on error, out of memory conditions, etc.
+    QList<QByteArray> getFrameDump(unsigned num, unsigned numframes = 1, GLenum data_type = GL_UNSIGNED_BYTE);
 	
 	/// Frame Variables -- use this object in your pushFrameVars() method!
 	FrameVariables *frameVars;

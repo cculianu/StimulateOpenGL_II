@@ -2,15 +2,18 @@
 #define SOCKET_H
 
 #include <string>
+#include <exception>
 
 struct sockaddr_in;
 
-class SocketException
+class SocketException : std::exception
 {
  public:
-  SocketException(const std::string & reason = "") : reason(reason) {}
-  std::string why() const { return reason; }
-
+  SocketException(const std::string & reason = "") {}
+  virtual ~SocketException() throw() {}
+  std::string why() const throw() { return reason; }
+  const char *what() const throw() { return reason.c_str(); }
+  
  private:
   std::string reason;
 };

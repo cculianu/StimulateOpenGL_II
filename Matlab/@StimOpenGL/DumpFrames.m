@@ -1,8 +1,8 @@
-%    imgdata = DumpFrame(myobj, frameNumber, count)
+%    imgdata = DumpFrames(myobj, frameNumber, count)
 %
 %                Retrieve count frames starting at 'frameNumber' from the currently
 %                running plugin.  The returned matrix is a matrix of
-%                unsigned chars with dimensions: count x 3 x width x height (width
+%                unsigned chars with dimensions: 3 x width x height x count (width
 %                and height are obtained from GetHeight and GetWidth method
 %                calls).  Note that if frameNumber is in the past (that is,
 %                lower than the current frameCount [see GetFrameCount]),
@@ -18,6 +18,9 @@
 %                specifying sequential frameNumbers, eg: DumpFrames(myObj,
 %                100,5), DumpFrame(myObj, 105,4), DumpFrame(myObj, 109,7), etc.  
 function [imgdat] = DumpFrames(s, frameNum, count)
+    if (count > 240), 
+        warning('More than 240 frames per DumpFrames call is not officially supported and may lead to low memory conditions!');
+    end;
     plug=Running(s);
     if (isempty(plug)),
         imgdat = [];
@@ -27,7 +30,7 @@ function [imgdat] = DumpFrames(s, frameNum, count)
     if (~isnumeric(frameNum) || frameNum < 0),
         error('Frame number parameter needs to be a positive integer!');
     end;
-   
+
     if (~IsPaused(s)),
         warning('Plugin was not paused -- pausing plugin in order to complete DumpFrame command...');
         Pause(s);
@@ -49,9 +52,8 @@ function [imgdat] = DumpFrames(s, frameNum, count)
     line = CalinsNetMex('readLine', s.handle);
     if (strfind(line, 'BINARY')~=1),
         error('Expected BINARY DATA line, didn''t get it');
-    end;   
-    imgdat=CalinsNetMex('readMatrix', s.handle, 'uint8', [count 3 w h]);
+    end;
+    imgdat=CalinsNetMex('readMatrix', s.handle, 'uint8', [3 w h count]);
     ReceiveOK(s);
-    %plug = Running(s); % this is here because of a weird issue where running sometimes returns ''
 
     

@@ -14,6 +14,8 @@
 #include <QDateTime>
 #include <new>
 
+Q_DECLARE_METATYPE(QList<QByteArray>);
+
 namespace {
     enum EventTypes {
         StartPluginEventType = QEvent::User+32,
@@ -219,14 +221,16 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
             GetSetData *d = e->d;
             stimApp()->postEvent(this, e);
 			const double tgen0 = getTime();
-            QByteArray frameData (d->getReply<QByteArray>());
-			Debug() << "Generating " << numFrames << " frames (" << frameData.size() << " bytes) took " << getTime()-tgen0 << " secs";
+            QList<QByteArray> frames (d->getReply<QList<QByteArray> >());
             delete d;
-            if (!frameData.isNull()) {
-                sock.write((QString("BINARY DATA ") + QString::number(frameData.size()) + "\n").toUtf8());
+            if (!frames.isEmpty()) {
+				const unsigned long fbytes = frames.count()*frames.front().size();
+				Debug() << "Generating " << frames.count() << " frames (" << fbytes << " bytes) took " << getTime()-tgen0 << " secs";
+                sock.write((QString("BINARY DATA ") + QString::number(fbytes) + "\n").toUtf8());
 				const double t0 = getTime();
-				sock.write(frameData);
-				Debug() << "Sending " << numFrames << " frames (" << frameData.size() << " bytes) took " << getTime()-t0 << " secs";
+				for (QList<QByteArray>::const_iterator it = frames.begin(); it != frames.end(); ++it)
+					sock.write(*it);
+				Debug() << "Sending " << numFrames << " frames (" << fbytes << " bytes) took " << getTime()-t0 << " secs";
                 return "";
             }
         }
@@ -454,7 +458,7 @@ bool ConnectionThread::eventFilter(QObject *watched, QEvent *event)
                 if ((p=stimApp()->glWin()->runningPlugin()) && stimApp()->glWin()->isPaused()) {
                     e->d->setReply(p->getFrameDump(num, numframes, datatype));
                 } else
-                    e->d->setReply(QByteArray());
+                    e->d->setReply(QList<QByteArray>());
             }
         }
             return true;
