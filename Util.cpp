@@ -125,5 +125,10 @@ Status::~Status()
         std::cerr << "STATUSMSG: " << str.toUtf8().constData() << "\n";
     }
 }
+	
+const Vec2 Vec2Zero(0.,0.); // default 0 vec -- useful as a default argument to functions
+const Vec2 Vec2Unit(1.,1.); // unit vector, that is, (1,1) -- usefule as a default argument to functions
+const Vec2i Vec2iZero(0,0); // default 0 vec -- useful as a default argument to functions
+const Vec2i Vec2iUnit(1,1); // unit vector, that is, (1,1) -- usefule as a default argument to functions
 
 }

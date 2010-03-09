@@ -136,12 +136,26 @@ public:
     /// num increasing each time (that is, sequentially) as otherwise
     /// you may experience long delays while the plugin recomputes all
     /// frames up to num.
+	///
+	/// Optionally, you may retrieve a sub-rectangle of the plugin's window.
+	/// To do this, specify the rectOrigin and rectSize parameters.
+	///
+	/// In addition, the returned data may be down-sampled to every i,j'th pixel
+	/// by specifying the downsample_pix_factor vector.  This downsampling is applied
+	/// last (thus the rectOrigin and rectSize parameters should be in pre-downsampled-coordinates).
     /// 
     /// @param num the frame number to generate/dump
 	/// @param numframs the number of frames to retrieve
+	/// @param rectOrigin The origin of the sub-rectangle of the window area to dump (basically, the crop origin).  0,0 is at bottom left corner of window, and is the default.
+	/// @param rectSize The size of the sub-rectangle of the window area to dump (basically the crop size).  The rectSize should not exceed the size of the plugin window.  Default is the entire area of the window starting at the cropOrigin.
+	/// @param downsample_pix_factor The default, 1,1, produces a pixel-by-pixel copy of the window area.  To downsample the returned pixels to every i,j'th pixel (for example, becuse it is the CheckerFlicker plugin and you have stixel sizes >1) specify a vector with component values >= 1.  Note that downsampling is applied last after cropping.
     /// @param data_type the OpenGL data type of the generated data.  Note that the default is good for most users so no need to change it unless you know what you are doing.
 	/// @return a list of the frames.  Note that a short frame count may be returned on error, out of memory conditions, etc.
-    QList<QByteArray> getFrameDump(unsigned num, unsigned numframes = 1, GLenum data_type = GL_UNSIGNED_BYTE);
+    QList<QByteArray> getFrameDump(unsigned num, unsigned numframes = 1, 
+								   const Vec2i & rectOrigin = Vec2iZero, 
+								   const Vec2i & rectSize = Vec2iZero,
+								   const Vec2i & downsample_pix_factor = Vec2iUnit, /* unit vector */
+								   GLenum data_type = GL_UNSIGNED_BYTE);
 	
 	/// Frame Variables -- use this object in your pushFrameVars() method!
 	FrameVariables *frameVars;

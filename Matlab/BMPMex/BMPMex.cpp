@@ -48,9 +48,9 @@ struct BMPInfo {
     int width,height;                /* Width and height of image */
     unsigned short int planes;       /* Number of colour planes   */
     unsigned short int bits;         /* Bits per pixel            */
-    unsigned int compression;        /* Compression type          */
+    unsigned int compression;        /* Compression type, set to 0*/
     unsigned int imagesize;          /* Image size in bytes       */
-    int xresolution,yresolution;     /* Pixels per meter          */
+    int xresolution,yresolution;     /* Pixels per meter, set to 0*/
     unsigned int ncolours;           /* Number of colours         */
     unsigned int importantcolours;   /* Important colours         */
 
@@ -110,18 +110,29 @@ void saveBMP(int nlhs, mxArray **plhs, int nrhs, const mxArray **prhs)
     }
 
     BMPHeader hdr;
-    hdr.fsize = 54+w*h*3;
+	const int pad = (4-(w*3 % 4)) % 4;
+	const int adjlinesize = w*3 + pad;
+	const int imgsize = adjlinesize*h;
+    hdr.fsize = 54+imgsize;
     BMPInfo nfo;
     nfo.bits = 24;
     nfo.width = w;
     nfo.height = h;
-    nfo.imagesize = w*h*3;
-    nfo.xresolution = 2048;
-    nfo.yresolution = 2048;
+    nfo.imagesize = imgsize;
+    nfo.xresolution = 0;
+    nfo.yresolution = 0;
     fwrite(&hdr, 14, 1, f);
     fwrite(&nfo, 40, 1, f);
-    fwrite(mxGetData(prhs[1]), w*h*3, 1, f);
-    fclose(f);
+	for (int i = 0; i < (int)h; ++i) {		
+		const char *data = (const char *)mxGetData(prhs[1]);
+		fwrite(data + w*3*i, w*3, 1, f);
+		/// now pad with zeros -- each BMP row needs to be a multiple of 4 bytes.
+		if (pad) {
+			static const char padding[4] = {0,0,0,0};
+			fwrite(padding, pad, 1, f);
+		}
+	}
+	fclose(f);
     mexPrintf("saveBMP: Saved %s\n", fname.c_str());
     RETURN(1);    
 }

@@ -1,4 +1,5 @@
 %    imgdata = DumpFrame(myobj, frameNumber)
+%    imgdata = DumpFrames(myobj, frameNumber,  cropRect, downsample_pix)
 %
 %                Retrieve frame number 'frameNumber' from the currently
 %                running plugin.  The returned matrix is a matrix of
@@ -17,37 +18,45 @@
 %                Optimal use of this function would be to call DumpFrame
 %                specifying sequential frameNumbers, eg: DumpFrame(myObj,
 %                100), DumpFrame(myObj, 101), DumpFrame(myObj, 102), etc.  
-function [imgdat] = DumpFrame(s, frameNum)
-    plug=Running(s);
-    if (isempty(plug)),
-        imgdat = [];
-        error('Cannot call DumpFrame when a plugin isn''t running!  Call Start() first!');
-        return;
-    end;
-    if (~isnumeric(frameNum) || frameNum < 0),
-        error('Frame number parameter needs to be a positive integer!');
-    end;
-   
-    if (~IsPaused(s)),
-        warning('Plugin was not paused -- pausing plugin in order to complete DumpFrame command...');
-        Pause(s);
-    end;
-    pluginFrameNum = GetFrameCount(s);
-    if (frameNum <= pluginFrameNum),
-        warning(sprintf('Frame count specified %d is <= the plugin''s current frame number of %d, restarting plugin (this is slow!!)',frameNum, pluginFrameNum));
-        Stop(s);
-        Start(s, plug);
-    end;
-    ChkConn(s);
-    w=GetWidth(s);
-    h=GetHeight(s);
-    CalinsNetMex('sendString', s.handle, sprintf('getframe %d UNSIGNED BYTE\n', frameNum));
-    line = CalinsNetMex('readLine', s.handle);
-    if (strfind(line, 'BINARY')~=1),
-        error('Expected BINARY DATA line, didn''t get it');
-    end;   
-    imgdat=CalinsNetMex('readMatrix', s.handle, 'uint8', [3 w h]);
-    ReceiveOK(s);
-    %plug = Running(s); % this is here because of a weird issue where running sometimes returns ''
+function [imgdat] = DumpFrame(s, frameNum, varargin)
+      if (~length(varargin)),
+        imgdat = DumpFrames(s, frameNum, 1);
+      elseif (length(varargin) == 2),
+        imgdat = DumpFrames(s, frameNum, 1, varargin{1}, varargin{2});
+      else
+        error('DumpFrame must take exactly 2 or 4 parameters');
+      end;
+         
+          
+%     plug=Running(s);
+%     if (isempty(plug)),
+%         imgdat = [];
+%         error('Cannot call DumpFrame when a plugin isn''t running!  Call Start() first!');
+%         return;
+%     end;
+%     if (~isnumeric(frameNum) || frameNum < 0),
+%         error('Frame number parameter needs to be a positive integer!');
+%     end;
+%    
+%     if (~IsPaused(s)),
+%         warning('Plugin was not paused -- pausing plugin in order to complete DumpFrame command...');
+%         Pause(s);
+%     end;
+%     pluginFrameNum = GetFrameCount(s);
+%     if (frameNum <= pluginFrameNum),
+%         warning(sprintf('Frame count specified %d is <= the plugin''s current frame number of %d, restarting plugin (this is slow!!)',frameNum, pluginFrameNum));
+%         Stop(s);
+%         Start(s, plug);
+%     end;
+%     ChkConn(s);
+%     w=GetWidth(s);
+%     h=GetHeight(s);
+%     CalinsNetMex('sendString', s.handle, sprintf('getframe %d UNSIGNED BYTE\n', frameNum));
+%     line = CalinsNetMex('readLine', s.handle);
+%     if (strfind(line, 'BINARY')~=1),
+%         error('Expected BINARY DATA line, didn''t get it');
+%     end;   
+%     imgdat=CalinsNetMex('readMatrix', s.handle, 'uint8', [3 w h]);
+%     ReceiveOK(s);
 
     

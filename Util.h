@@ -159,17 +159,25 @@ private:
     QTextStream s;
 };
 
-
-struct Vec2 {
-	double x,y;
-	Vec2(double x = 0, double y = 0) : x(x), y(y) {}
+template <typename T=double> 
+struct Vec2T {
+	union { 
+		struct { T x, y; };		
+		struct { T w, h; };		
+		struct { T v1, v2; };
+	};
+	Vec2T(T x = 0, T y = 0) : x(x), y(y) {}	
 };
 
-struct Vec2i {
-	int x, y;
-	Vec2i(int x = 0, int y = 0) : x(x), y(y) {}
-};
+typedef Vec2T<double> Vec2;
+typedef Vec2T<float> Vec2f;
+typedef Vec2T<int> Vec2i;
 
+extern const Vec2 Vec2Zero; // default 0 vec -- useful as a default argument to functions
+extern const Vec2 Vec2Unit; // unit vector, that is, (1,1) -- usefule as a default argument to functions
+extern const Vec2i Vec2iZero; // default 0 vec -- useful as a default argument to functions
+extern const Vec2i Vec2iUnit; // unit vector, that is, (1,1) -- usefule as a default argument to functions
+	
 } // end namespace Util
 
 using namespace Util;

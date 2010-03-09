@@ -33,6 +33,7 @@ extern int errno;
 #  include <sys/wait.h>
 #  include <unistd.h>
 #  include <stdlib.h>
+#  include "BSDProcUtil.h"
 #elif defined(WIN32)
 #  include <windows.h>
 #  include <tlhelp32.h>
@@ -44,7 +45,7 @@ extern int errno;
 static bool Execute(const std::string & prog)
 {
     pid_t pid = fork();
-    if (pid) {
+    if (pid > 0) {
         // parent
         int status;
         sleep(1);
@@ -67,8 +68,8 @@ static bool Execute(const std::string & prog)
         // error 
         std::string err = std::string("fork: ") + strerror(errno) + "\n";
         mexErrMsgTxt(err.c_str());
-        return false;
     }
+	return false;
 }
 #elif defined(WIN32)
 static bool Execute(const std::string & prog)
@@ -116,15 +117,12 @@ static void ensureProgramIsRunning(int nlhs, mxArray ** plhs,
     pid_t *pids = pids_of_exe(prog.c_str());
     bool is_running = *pids;
     free(pids);
+#  else // DARWIN
+	bool is_running = IsBSDProcessRunning(prog.c_str());
+#  endif
     if (is_running) {
         mexPrintf("Found a %s process already running\n", prog.c_str());
-    } else
-#  else
-#    warning ensureProgramIsRunning() is not yet properly implemented on this platform!
-    mexPrintf("Warning: ensureProgramIsRunning() is not yet properly implemented on this platform, silently ignoring!");
-    return;
-#  endif
-    {
+    } else {
         mexPrintf("Did not find a %s process already running, trying to start it up\n", prog.c_str());
         if (!Execute(prog) && !Execute(std::string("./") + prog)) {
             std::string s = "Could not start ";

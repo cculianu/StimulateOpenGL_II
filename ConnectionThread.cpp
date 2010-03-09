@@ -47,7 +47,7 @@ namespace {
     {
         QSemaphore replySem;
         QVariant req;
-        QVariant datum, datum2;
+        QVariant datum;
 		
         template <typename T> void setReply(const T & t) {
             datum.setValue(t);
@@ -75,9 +75,26 @@ namespace {
         GetHWFrameCountEvent() : GetSetEvent(GetHWFrameCountEventType) {}
     };
 
+	struct GetFrameData : public GetSetData {
+		unsigned frameNum, numFrames;
+		int dataType;
+		Vec2i cropOrigin, cropSize, downSample;		
+	};
+	
     struct GetFrameEvent : public GetSetEvent
     {
-        GetFrameEvent(unsigned framenum, unsigned numframes, int datatype) : GetSetEvent(GetFrameEventType) { d->req.setValue(framenum); d->datum.setValue(datatype); d->datum2.setValue(numframes); }
+        GetFrameEvent(unsigned framenum, unsigned numframes, const Vec2i & cropOrigin, const Vec2i & cropSize, const Vec2i & downSample, int datatype) : GetSetEvent(GetFrameEventType) 
+		{ 
+			delete d;
+			GetFrameData *d = new GetFrameData;
+			d->frameNum = framenum;
+			d->numFrames = numframes;
+			d->cropOrigin = cropOrigin;
+			d->cropSize = cropSize;
+			d->downSample = downSample;
+			d->dataType = datatype;
+			this->d = d;
+		}
     };
 
     struct IsConsoleHiddenEvent : public GetSetEvent
@@ -194,13 +211,26 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
     } else if (cmd == "GETFRAME" && toks.size()) {
         bool ok;
         unsigned framenum = toks[0].toUInt(&ok), numFrames = 1;
+		Vec2i co, cs, ds; // params 3,4,5,6,7,8 are crop-origin-x, crop-origin-y, crop-size-width, crop-size-height, downsample-factor-x, downsample-factor-y
         toks.pop_front();
 		if (toks.size()) {
 			bool ok2;
 			numFrames = toks.front().toUInt(&ok2);
 			if (ok2) toks.pop_front();
 			if (!ok2 || numFrames < 1) numFrames = 1;
+			Vec2i *vp[] = { &co, &cs, &ds, 0 };
+			for (Vec2i **vcur = vp; *vcur; ++vcur) {				
+				Vec2i & v = **vcur;
+				v.x = toks.size() ? toks.front().toUInt(&ok2) : 0;
+				if (ok2) toks.pop_front();
+				if (!ok2 || v.x < 0) v.x = 0;
+				v.y = toks.size() ? toks.front().toUInt(&ok2) : 0;
+				if (ok2) toks.pop_front();
+				if (!ok2 || v.y < 0) v.y = 0;
+			}
 		}
+		if (!ds.x) ds.x = 1;
+		if (!ds.y) ds.y = 1;
         int datatype = GL_UNSIGNED_BYTE;
         if (toks.size()) {
             QString s = toks.join(" ").toUpper().trimmed();
@@ -217,7 +247,7 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
             }
         }
         if (ok) {
-            GetFrameEvent *e = new GetFrameEvent(framenum, numFrames, datatype);
+            GetFrameEvent *e = new GetFrameEvent(framenum, numFrames, co, cs, ds, datatype);
             GetSetData *d = e->d;
             stimApp()->postEvent(this, e);
 			const double tgen0 = getTime();
@@ -452,13 +482,12 @@ bool ConnectionThread::eventFilter(QObject *watched, QEvent *event)
         case GetFrameEventType: {
             GetSetEvent *e = dynamic_cast<GetSetEvent *>(event);
             if (e) {
-                unsigned num = e->d->req.toUInt(), numframes = e->d->datum2.toInt();
-                int datatype = e->d->datum.toInt();
+				GetFrameData *d = (GetFrameData *)e->d;
                 StimPlugin *p;
                 if ((p=stimApp()->glWin()->runningPlugin()) && stimApp()->glWin()->isPaused()) {
-                    e->d->setReply(p->getFrameDump(num, numframes, datatype));
+                    d->setReply(p->getFrameDump(d->frameNum, d->numFrames, d->cropOrigin, d->cropSize, d->downSample, d->dataType));
                 } else
-                    e->d->setReply(QList<QByteArray>());
+                    d->setReply(QList<QByteArray>());
             }
         }
             return true;
