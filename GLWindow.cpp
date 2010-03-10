@@ -32,7 +32,7 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 #ifdef Q_OS_WIN														
 															Qt::MSWindowsOwnDC|
 #endif
-															(frameless ? Qt::FramelessWindowHint : 0))), aMode(false), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.)
+															(frameless ? Qt::FramelessWindowHint : 0))), aMode(false), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.), debugLogFrames(false)
 {
     QSize s(w, h);
     setMaximumSize(s);
@@ -188,6 +188,7 @@ void GLWindow::paintGL()
 			running->drawFrame();
 			if (running) { // NB: drawFrame may have called stop(), thus NULLing this pointer
 				running->drawFTBox();
+				if (debugLogFrames) running->logBackbufferToDisk();
 				++running->frameNum;
 				doBufSwap = true;
 			} 			
@@ -376,3 +377,4 @@ QList<QString> GLWindow::plugins() const
     }
     return ret;
 }
+

@@ -30,6 +30,10 @@ ConsoleWindow::ConsoleWindow(QWidget *p, Qt::WindowFlags f)
     QAction *action = m->addAction("&Debug Mode D", stimApp(), SLOT(setDebugMode(bool)));
     action->setCheckable(true);
     action->setChecked(stimApp()->isDebugMode());
+	action = m->addAction("Dump Frames To Disk (SLOW!)", stimApp(), SLOT(setFrameDumpMode(bool)));
+	action->setCheckable(true);
+	action->setChecked(stimApp()->isFrameDumpMode());
+	m->addSeparator();
     action = m->addAction("Choose &Output Directory...", stimApp(), SLOT(pickOutputDir()));
 #ifndef Q_OS_WIN
 	action = m->addAction("Calibrate &Refresh R", stimApp(), SLOT(calibrateRefresh()));

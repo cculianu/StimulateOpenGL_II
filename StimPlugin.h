@@ -160,6 +160,11 @@ public:
 	/// Frame Variables -- use this object in your pushFrameVars() method!
 	FrameVariables *frameVars;
 	bool have_fv_input_file; ///< defaults to false, true indicates plugin is using a frameVars input file
+	
+	/// Debugging feature: 
+	/// Opens a file in the output dir called PLUGIN_NAME_DebugFrame_X.png (where X is frameNum) which contains the entire contents
+	/// of the backbuffer
+	void logBackbufferToDisk() const;
 
 signals:
     void started(); ///< emitted when plugin starts
@@ -297,6 +302,10 @@ private:
     /// so don't call it yourself (not that you can anyway, it's private).
     void writeGeneralInfo();
 
+	/// static helper function for getFrameDump(). Low-level function to just dump the backbuffer to a bytearray given
+	/// an origin and a cropregion.
+	static bool readBackBuffer(QByteArray & dest, const Vec2i & cropOrigin, const Vec2i & cropRegionSize, GLenum datatype);
+	
 private slots:
 	/// Sets initted = true, calls LeoDAQGL notify
 	void initDone();

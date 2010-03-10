@@ -371,69 +371,87 @@ bool CheckerFlicker::init()
 	}
 		
 	// determine the right number of tiles in x and y direction to fill screen        
-        do {
-            xpixels = xdim-(lmargin+rmargin);
-            ypixels = ydim-(bmargin+tmargin);
-            if (xpixels < 0 || ypixels < 0) {
-                Error() << "Parameters are such that there is no stixel area!";
-                return false;
-            }
-            Nx = xpixels/stixelWidth;
-            Ny = ypixels/stixelHeight;
-            if( xpixels%stixelWidth ) {
-                rmargin += xpixels-(Nx*stixelWidth);
-            }
-            if( ypixels%stixelHeight ) {
-                tmargin += ypixels-(Ny*stixelHeight);            
-            }
-        } while ( xpixels%stixelWidth || ypixels%stixelHeight );
-
-        if (!fbo) {
-            Warning() << "Prerender/fbo not specified -- defaulting to prerender setting of 30 -- Please look into using either `fbo' or `prerender' as a configuration parameter.";
-            fbo = 30;            
-        }
-        
-        if (fbo < 3) {
-            Warning() << "Specified <3 prerender frames!  Probably need more than this to be robust.. forcing 3.";
-            fbo = 3;
-        }
-
-        ifmt = GL_RGB;
-        fmt = GL_BGRA;
-        type = GL_UNSIGNED_INT_8_8_8_8_REV;
-        initted = false;
-		frameGenAvg_usec;
-
-        if (bgcolor < 0. || bgcolor > 1. || contrast < 0. || contrast > 1.) {
-            Error() << "Either one of: `bgcolor' or `contrast' is out of range.  They must be in the range [0,1]";
-            return false;
-        }
-
-		unsigned nProcs;
-		if ((nProcs=getNProcessors()) > 2) {
-			const unsigned mask = 0x1<<(nProcs-3);
-			origThreadAffinityMask = setCurrentThreadAffinityMask(mask); // make it run on second cpu
-			Log() << "Set affinity mask of main thread to: " << mask;
+	do {
+		xpixels = xdim-(lmargin+rmargin);
+		ypixels = ydim-(bmargin+tmargin);
+		if (xpixels < 0 || ypixels < 0) {
+			Error() << "Parameters are such that there is no stixel area!";
+			return false;
 		}
+		Nx = xpixels/stixelWidth;
+		Ny = ypixels/stixelHeight;
+		if( xpixels%stixelWidth ) {
+			rmargin += xpixels-(Nx*stixelWidth);
+		}
+		if( ypixels%stixelHeight ) {
+			tmargin += ypixels-(Ny*stixelHeight);            
+		}
+	} while ( xpixels%stixelWidth || ypixels%stixelHeight );
 
-        QTime tim; tim.start();
-        Log() << "Pregenerating gaussian color table of size " << colortable << ".. (please be patient)";
-        Status() << "Generating gaussian color table ...";
+	{ // populate our tex coord buffer and vertex buffer basedo n Nx, Ny, lmargin, rmargin, etc
+		GLint texCoordsTmp[] = {
+			0,0,
+			Nx,0,
+			Nx,Ny,
+			0,Ny
+		};
+		
+		GLint verticesTmp[] = {
+			lmargin, bmargin,
+			w-rmargin, bmargin,
+			w-rmargin, h-tmargin,
+			lmargin, h-tmargin
+		};
+		memcpy(texCoords, texCoordsTmp, sizeof(texCoords));
+		memcpy(vertices, verticesTmp, sizeof(vertices));
+	}
+	
+	if (!fbo) {
+		Warning() << "Prerender/fbo not specified -- defaulting to prerender setting of 30 -- Please look into using either `fbo' or `prerender' as a configuration parameter.";
+		fbo = 30;            
+	}
+	
+	if (fbo < 3) {
+		Warning() << "Specified <3 prerender frames!  Probably need more than this to be robust.. forcing 3.";
+		fbo = 3;
+	}
+
+	ifmt = GL_RGB;
+	fmt = GL_BGRA;
+	type = GL_UNSIGNED_INT_8_8_8_8_REV;
+	initted = false;
+	frameGenAvg_usec;
+
+	if (bgcolor < 0. || bgcolor > 1. || contrast < 0. || contrast > 1.) {
+		Error() << "Either one of: `bgcolor' or `contrast' is out of range.  They must be in the range [0,1]";
+		return false;
+	}
+
+	unsigned nProcs;
+	if ((nProcs=getNProcessors()) > 2) {
+		const unsigned mask = 0x1<<(nProcs-3);
+		origThreadAffinityMask = setCurrentThreadAffinityMask(mask); // make it run on second cpu
+		Log() << "Set affinity mask of main thread to: " << mask;
+	}
+
+	QTime tim; tim.start();
+	Log() << "Pregenerating gaussian color table of size " << colortable << ".. (please be patient)";
+	Status() << "Generating gaussian color table ...";
 //        stimApp()->console()->update(); // ensure message is printed
-        //stimApp()->processEvents(QEventLoop::ExcludeUserInputEvents); // ensure message is printed
-        genGaussColors();
-        Log() << "Generated " << gaussColors.size() << " colors in " << tim.elapsed()/1000.0 << " secs";
-        
-        // fastest, not as compatible on some boards
-        if (!initFBO()) {
-            Error() << "FBO initialization failed -- possibly due to lack of support on this hardware or a misconfiguration.";
-            Error() << "*FBO MODE IS REQUIRED FOR THIS PLUGIN TO WORK*";
-            return false;
-        }        
-        frameNum = 0; // reset frame num!
+	//stimApp()->processEvents(QEventLoop::ExcludeUserInputEvents); // ensure message is printed
+	genGaussColors();
+	Log() << "Generated " << gaussColors.size() << " colors in " << tim.elapsed()/1000.0 << " secs";
+	
+	// fastest, not as compatible on some boards
+	if (!initFBO()) {
+		Error() << "FBO initialization failed -- possibly due to lack of support on this hardware or a misconfiguration.";
+		Error() << "*FBO MODE IS REQUIRED FOR THIS PLUGIN TO WORK*";
+		return false;
+	}        
+	frameNum = 0; // reset frame num!
 
 #ifdef Q_OS_WIN
-		Sleep(500); // sleep for 500ms to ensure init is ok
+	Sleep(500); // sleep for 500ms to ensure init is ok
 #endif
 
 	return true;
@@ -736,46 +754,35 @@ void CheckerFlicker::drawFrame()
         glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[num]);
         glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        //if (rand_gen != Gauss) {
-			// NB: WHAT DOES ALL OF THIS DO?!?!!?!?!?
-			/*
-            glEnable(GL_BLEND);
-			if (fps_mode == FPS_Dual) // black out green channel
-				glClearColor(bgcolor, 0., bgcolor, 1.0-contrast);
-			else
-				glClearColor(bgcolor, bgcolor, bgcolor, 1.0-contrast);
-            glBlendFunc(GL_ONE, GL_ZERO);
-			*/
-            glClear(GL_COLOR_BUFFER_BIT);
-			/*
-            //glBlendColor(0., 0., 0., contrast);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			glDisable(GL_BLEND);
-			*/
-        //} else {
-			// clearcolor set at top of function
         glClear(GL_COLOR_BUFFER_BIT);
-        //}
         glTranslatef(disps[num].x, disps[num].y, 0); // displace frame
-        glBegin(GL_QUADS);
-		// what does this commented-out if do?  NB: contrast support is taken out
-        //  if (blackwhite) glColor4f(0., 0., 0., contrast);
+
+		// render our vertex and coord buffers which don't change.. just the texture changes
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+		glVertexPointer(2, GL_INT, 0, vertices);
+		glTexCoordPointer(2, GL_INT, 0, texCoords);
+		glDrawArrays(GL_QUADS, 0, 4);
+		glDisableClientState(GL_VERTEX_ARRAY);
+		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+/*        glBegin(GL_QUADS);
           glTexCoord2i(0, 0);   glVertex2i(lmargin, bmargin);
           glTexCoord2i(Nx, 0);   glVertex2i(w-rmargin, bmargin);
           glTexCoord2i(Nx, Ny);   glVertex2i(w-rmargin, h-tmargin);
           glTexCoord2i(0, Ny);   glVertex2i(lmargin, h-tmargin);
         glEnd();
+ */
         glTranslatef(-disps[num].x, -disps[num].y, 0); // translate back
 
         glDisable(GL_TEXTURE_RECTANGLE_ARB);
-        glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
+        glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);	
 }
 
 
 void CheckerFlicker::setNums()
 {
-    newnums.clear(); oldnums.clear();
-    for (unsigned i = 0; i < fbo; ++i) oldnums.push_back(i);
+    nums.clear(); oldnums.clear();
+    for (unsigned i = 0; i < fbo; ++i) nums.push_back(i);
 }
 
 void CheckerFlicker::afterVSync(bool isSimulated)
@@ -813,16 +820,17 @@ void CheckerFlicker::afterVSync(bool isSimulated)
         if ( ( fc->haveMore.available() // if there are frames to consume, that is, we won't block
                || isSimulated)  // or we are simulated, in which case we are ok with blocking
              && blinkCt==0 // only get frames if blinkCt==0 so that we don't lose our frame order
-             && !newnums.size()) { // only grab frames if our 'queue' is empty
+             && oldnums.size()) { // only grab frames if our 'queue' has room
             tim2.restart();
             unsigned idx = newFrameNum();
             
             //qDebug("idx %u hwfc %u", idx, (unsigned)getHWFrameCount());
-            fc->haveMore.acquire(); // NB: doesn't block here, except for isSimulated mode where it does
+            fc->haveMore.acquire(); // NB: should block here, except for isSimulated mode where it may
             Frame *f = fc->popOne();
             if ( fc->nWaiting()+fc->createMore.available() < nQMax )
                 fc->createMore.release();
             glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[idx]);
+			Debug() << "Texidx: " << idx << " framenum " << frameNum;
             glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, Nx, Ny, fmt, type, f->texels);
 			disps[idx] = f->displacement;
             glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
@@ -832,7 +840,9 @@ void CheckerFlicker::afterVSync(bool isSimulated)
             const float secs = tim2.elapsed()/1e3;
             lastAvgTexSubImgProcTime += secs;
             cycleTimeLeft -= secs;
-        }
+        }/* else if (!isSimulated && blinkCt == 0 && !nums.size()) {
+			Error() << "Found frame creation bug???";
+		}*/
         if (isSimulated && n) break; // only loop once for isSimulated mode
     }
 

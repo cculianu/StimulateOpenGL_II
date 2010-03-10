@@ -96,8 +96,8 @@ private:
      bool paused, tooFastWarned;
      unsigned lastHWFC; ///< last hardware frame count, only iff platform has an accurate hwfc
      double tThisFrame, tLastFrame, tLastLastFrame;
-
-     
+	
+	bool debugLogFrames;
 };
 
 #endif

@@ -8,7 +8,7 @@
 #include "StimGL_LeoDAQGL_Integration.h"
 #include <iostream>
 #include <math.h>
-
+#include <QImageWriter>
 
 StimPlugin::StimPlugin(const QString &name)
     : QObject(StimApp::instance()->glWin()), parent(StimApp::instance()->glWin()), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0)
@@ -294,96 +294,45 @@ void StimPlugin::putMissedFrame(unsigned cycleTimeMsecs)
     missedFrameTimes.push_back(cycleTimeMsecs);
 }
 
-#if 0
-QList<QByteArray> StimPlugin::getFrameDump(unsigned num, unsigned numframes, 
-										   const Vec2i & cropOrigin,
-										   const Vec2i & cropSize,
-										   const Vec2i & downSampleFactor,
-										   GLenum datatype)
-{
-	QList<QByteArray> ret;
-
-    if (parent->runningPlugin() != this) {
-        Warning() << name() << " wasn't the currently-running plugin, stopping current and restarting with `" << name() << "' this may not work 100% for some plugins!";        
-        parent->runningPlugin()->stop();
-        start(false);
-    } else if (num < frameNum) {
-        Warning() << "Got non-increasing read of frame # " << num << ", restarting plugin and fast-forwarding to frame # " << num << " (this is slower than a sequential read).  This may not work 100% for some plugins (in particular CheckerFlicker!!)";
-        stop();
-        start(false);
-    } else if (!parent->isPaused()) {
-        Warning() << "StimPlugin::getFrameNum() called with a non-paused parent!  This is not really supported!  FIXME!";
-    }
-	// make sure crop size and crop origin params are in range
-	Vec2 scale(1.0/(downSampleFactor.x>0 ? downSampleFactor.x : 1), 1.0/(downSampleFactor.y>0 ? downSampleFactor.y : 1));
-	Vec2 o(cropOrigin.x*scale.x, cropOrigin.y*scale.y);
-	Vec2 cs(cropSize.w*scale.x, cropSize.h*scale.y);
-	const int w = width()*scale.x, h = height()*scale.y;
-	if (o.x <= 0) o.x = 0;
-	else if (o.x > w) o.x = w;
-	if (o.y <= 0) o.y = 0;
-	else if (o.y > h) o.y = h;
-	if (cs.w <= 0) cs.w = w;
-	if (cs.h <= 0) cs.h = h;
-	if (cs.w + o.x > w) cs.w = w-o.x;
-	if (cs.h + o.y > h) cs.h = h-o.x;
-
-	unsigned long datasize = cs.w*cs.h*3; // R, G, B broken out per pix.
-    switch (datatype) {
+static unsigned long dataTypeToSize(GLenum datatype) {
+	unsigned long typeSize = 0;
+	switch (datatype) {
 		case GL_BYTE:
-		case GL_UNSIGNED_BYTE: 
-			datasize *= sizeof(GLubyte); break;
+		case GL_UNSIGNED_BYTE:			
+			typeSize = sizeof(GLubyte); break;
 		case GL_FLOAT:
-			datasize *= sizeof(GLfloat); break;
+			typeSize = sizeof(GLfloat); break;
 		case GL_SHORT:
 		case GL_UNSIGNED_SHORT:
-			datasize *= sizeof(GLshort); break;
+			typeSize = sizeof(GLshort); break;
 		case GL_INT:
 		case GL_UNSIGNED_INT:
-			datasize *= sizeof(GLuint); break;
+			typeSize = sizeof(GLuint); break;
 		default:
-			Error() << "Unsupported datatype `" << datatype << "' in StimPlugin::getFrameNum!";
-			return ret;
+			Error() << "Unsupported datatype `" << datatype << "' in dataTypeToSize!";
     }
-	
-	
-    if (QGLContext::currentContext() != parent->context())
-        parent->makeCurrent();
-    double tFrame = 1./getHWRefreshRate();
-//	unsigned long cur = 0;
-    do  {
-        double t0 = getTime();
-        cycleTimeLeft = tFrame;
-		glPushMatrix();
-		glScaled(scale.x, scale.y, 1.);
-		renderFrame(); // NB: renderFrame() just does drawFrame(); drawFTBox();
-        if (frameNum >= num) {
-			QByteArray tmp(1, 0);
-			try {
-				tmp.resize(datasize); // set to uninitialized data
-			} catch (const std::bad_alloc & e) {
-				Error() << "Bad_alloc caught when attempting to allocate " << datasize << " of data for the frames buffer (" << e.what() << ")";
-				return ret;
-			}				
-            GLint bufwas;
-            glGetIntegerv(GL_READ_BUFFER, &bufwas);
-            glReadBuffer(GL_BACK);
-			///          orgn x,y  width of read (x,y)
-            glReadPixels(o.x, o.y, cs.x, cs.y, GL_RGB, datatype, tmp.data());
-            glReadBuffer(bufwas);
-//			cur += datasize;
-			ret.push_back(tmp);
-        }
-		glPopMatrix();
-        ++frameNum;
-		const double elapsed = getTime()-t0;
-        cycleTimeLeft -= elapsed;
-        afterVSync(true);
-    } while (frameNum < num+numframes && parent->runningPlugin() == this);
-    glClear(GL_COLOR_BUFFER_BIT);
-    return ret;
+	return typeSize;
 }
-#else
+
+bool StimPlugin::readBackBuffer(QByteArray & dest, const Vec2i & o, const Vec2i & cs, GLenum datatype)
+{
+	if (int(dest.size()) < int(cs.w*cs.h*3*dataTypeToSize(datatype))) {
+		Error() << "StimPugin::readBackBuffer was given a destination buffer that is too small!";
+		return false;
+	}
+	GLint bufwas;
+	glGetIntegerv(GL_READ_BUFFER, &bufwas);
+	glReadBuffer(GL_BACK);
+	///          orgn x,y  width of read (x,y)
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	glPixelStorei(GL_PACK_ROW_LENGTH, cs.w);
+	glReadPixels(o.x, o.y, cs.w, cs.h, GL_RGB, datatype, dest.data());
+	glPixelStorei(GL_PACK_ALIGNMENT, 0); // set them back
+	glPixelStorei(GL_PACK_ROW_LENGTH, 0);// etc...
+	glReadBuffer(bufwas);	
+	return true;
+}
+
 QList<QByteArray> StimPlugin::getFrameDump(unsigned num, unsigned numframes, 
 										   const Vec2i & cropOrigin,
 										   const Vec2i & cropSize,
@@ -422,23 +371,7 @@ QList<QByteArray> StimPlugin::getFrameDump(unsigned num, unsigned numframes,
 	if (cs.h + o.y > h) cs.h = h-o.y;
 	
 	unsigned long datasize = cs.w*cs.h*3, datasize_scaled = floor(cs.w*scale.x)*floor(cs.h*scale.y)*3.; // R, G, B broken out per pix.
-	unsigned long typeSize = 1;
-    switch (datatype) {
-		case GL_BYTE:
-		case GL_UNSIGNED_BYTE:			
-			typeSize = sizeof(GLubyte); break;
-		case GL_FLOAT:
-			typeSize = sizeof(GLfloat); break;
-		case GL_SHORT:
-		case GL_UNSIGNED_SHORT:
-			typeSize = sizeof(GLshort); break;
-		case GL_INT:
-		case GL_UNSIGNED_INT:
-			typeSize = sizeof(GLuint); break;
-		default:
-			Error() << "Unsupported datatype `" << datatype << "' in StimPlugin::getFrameNum!";
-			return ret;
-    }
+	const unsigned long typeSize = dataTypeToSize(datatype);
 	datasize *= typeSize;
 	datasize_scaled *= typeSize;
 	
@@ -461,16 +394,9 @@ QList<QByteArray> StimPlugin::getFrameDump(unsigned num, unsigned numframes,
 				Error() << "Bad_alloc caught when attempting to allocate " << datasize << " of data for the frames buffer (" << e.what() << ")";
 				return ret;
 			}				
-            GLint bufwas;
-            glGetIntegerv(GL_READ_BUFFER, &bufwas);
-            glReadBuffer(GL_BACK);
-			///          orgn x,y  width of read (x,y)
-			glPixelStorei(GL_PACK_ALIGNMENT, 1);
-			glPixelStorei(GL_PACK_ROW_LENGTH, cs.w);
-            glReadPixels(o.x, o.y, cs.w, cs.h, GL_RGB, datatype, tmp.data());
-			glPixelStorei(GL_PACK_ALIGNMENT, 0); // set them back
-			glPixelStorei(GL_PACK_ROW_LENGTH, 0);// etc...
-            glReadBuffer(bufwas);
+			
+			readBackBuffer(tmp, o, cs, datatype);
+			
 			if (doScaling) {
 				int destIdx = 0;
 				const int nlines = cs.h, ncols = cs.w;
@@ -492,7 +418,6 @@ QList<QByteArray> StimPlugin::getFrameDump(unsigned num, unsigned numframes,
     glClear(GL_COLOR_BUFFER_BIT);
     return ret;
 }
-#endif
 
 void StimPlugin::notifySpikeGLAboutStart()
 {
@@ -520,3 +445,20 @@ void StimPlugin::notifySpikeGLAboutStop()
 
 unsigned StimPlugin::initDelay(void) { return 0; }
 
+void StimPlugin::logBackbufferToDisk() const {
+    QDir dir;
+    dir.setPath(stimApp()->outputDirectory());
+	const Vec2i o = Vec2iZero, cs(width(), height());
+	QImageWriter writer;
+	writer.setFormat("png");
+	writer.setFileName(dir.path() + "/" + name() + "_DebugFrame_" + QString::number(frameNum) + ".png");
+	if (writer.canWrite()) {
+		QByteArray data; data.resize(cs.w*cs.h*3);
+		if (readBackBuffer(data, o, cs, GL_UNSIGNED_BYTE)) {
+			QImage img((const unsigned char *)data.constData(), cs.w, cs.h, cs.w*3, QImage::Format_RGB888);			
+			writer.write(img);
+		}
+	} else {
+		Error() << "QImageWriter cannot open for writing: " << writer.fileName();
+	}
+}

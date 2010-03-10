@@ -57,13 +57,16 @@ class CheckerFlicker : public StimPlugin
     GLuint *fbos, *texs; ///< array of fbo object id's and the texture ids iff fbo is nonzero
 	Vec2i *disps; ///< frame displacements per fbo object
 
+	/// for rendering -- the vertex and texture coord buffers which are just the corners of a quad covering the checker area
+	GLint texCoords[8], vertices[8];
+	
     friend class GLWindow;
     unsigned gaussColorMask; ///< this will always be a power of 2 minus 1
     std::vector<GLubyte> gaussColors;
     void genGaussColors();
     inline GLubyte getColor(unsigned entropy) {  return gaussColors[entropy&gaussColorMask]; }
 
-    std::deque<unsigned> newnums, oldnums; ///< queue of texture indices into the texs[] array above.  oldest onest are in back, newest onest in front
+    std::deque<unsigned> nums, oldnums; ///< queue of texture indices into the texs[] array above.  oldest onest are in back, newest onest in front
     unsigned num;
     double lastAvgTexSubImgProcTime;
     volatile int lastFramegen;
@@ -72,9 +75,9 @@ class CheckerFlicker : public StimPlugin
 
     inline void putNum() { oldnums.push_back(num);  }
     inline unsigned takeNum() { 
-        if (newnums.size()) {
-            num = newnums.front(); 
-            newnums.pop_front(); 
+        if (nums.size()) {
+            num = nums.front(); 
+            nums.pop_front(); 
             return num;
         } else if (oldnums.size()) {
             num = oldnums.front(); 
@@ -89,7 +92,7 @@ class CheckerFlicker : public StimPlugin
         if (oldnums.size()) {
             num = oldnums.front();
             oldnums.pop_front();
-            newnums.push_back(num);
+            nums.push_back(num);
             return num;
         } // else...
         Error() << "INTERNAL ERROR: newFrameNum() ran out of numbers in oldnums!";

@@ -83,6 +83,8 @@ public:
     /// Returns true iff the application's console window has debug output printing enabled
     bool isDebugMode() const;
 
+	bool isFrameDumpMode() const;
+	
     /// Returns the directory under which all plugin data files are to be saved.
     QString outputDirectory() const { QMutexLocker l(&mut); return outDir; }
     /// Set the directory under which all plugin data files are to be saved. NB: dpath must exist otherwise it is not set and false is returned
@@ -120,6 +122,9 @@ public:
 public slots:    
     /// Set/unset the application-wide 'debug' mode setting.  If the application is in debug mode, Debug() messages are printed to the console window, otherwise they are not
     void setDebugMode(bool); 
+	
+	void setFrameDumpMode(bool);
+	
     /// Pops up a UI so that the user can select a stim. config file to load.
     void loadStim();
     /// Unloads/stops the currently running plugin and may prompt the user to save
