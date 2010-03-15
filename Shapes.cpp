@@ -9,7 +9,8 @@
 #include "Shapes.h"
 #include "GLHeaders.h"
 
-
+namespace Shapes {
+	
 Shape::Shape() 
 	: position(Vec2Zero), scale(Vec2Unit), color(Vec3Gray), angle(0.)
 {}
@@ -132,6 +133,8 @@ Rect Rectangle::AABB() const {
 	}
 	return Rect(Vec2(minx, miny), Vec2(maxx-minx, maxy-miny));
 }
+
+} // end namespace Shapes
 
 bool Rect::intersects(const Rect & r) const {
 	return !(right() <= r.left()

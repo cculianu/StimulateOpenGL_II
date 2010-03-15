@@ -11,6 +11,7 @@
 #include "Util.h"
 #include <vector>
 
+
 struct Rect {
 	Vec2 origin; // bottom-left corner
 	Vec2 size;   // width, height
@@ -23,6 +24,10 @@ struct Rect {
 	inline double bottom() const { return origin.y; }
 	inline double top() const { return origin.y + size.h; }
 };
+
+/** this namespace is needed because stupid Windows headers pollute the global namespace with
+	'Ellipse' and 'Rectangle' already! */
+namespace Shapes { 
 
 class Shape {
 public:
@@ -90,6 +95,8 @@ public:
 	
 	Rect AABB() const;
 };
+
+} // end namespace Shapes
 
 #endif
 

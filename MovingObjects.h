@@ -35,14 +35,14 @@ private:
 	Rect canvasAABB;
 
 	enum ObjType { 
-		Box=0, Ellipsoid
+		BoxType=0, EllipseType
 	};
 	
 	static QString objTypeStrs[];
 	
 	struct ObjData {
 		ObjType type; /// box or disk or ellipse
-		Shape *shape; ///< pointer to object's geometry drawing implementation (see Shapes.h)
+		Shapes::Shape *shape; ///< pointer to object's geometry drawing implementation (see Shapes.h)
 		float jitterx, jittery;
 		float len_maj_o, len_min_o; ///< original lengths: for box, len_maj == len_min.  for ellipse, len_maj is the xradius, len_min the yradius..
 		float phi_o; ///< phi and original phi, or rotation

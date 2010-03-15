@@ -20,6 +20,10 @@ class StimApp;
 #define MAX(a,b) ( (a) >= (b) ? (a) : (b) )
 #endif
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 #ifndef DEG2RAD
 #define DEG2RAD(x) (x*(M_PI/180.0))
 #endif

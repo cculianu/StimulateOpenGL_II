@@ -2,7 +2,7 @@
 #include "Shapes.h"
 #include "GLHeaders.h"
 
-#define DEFAULT_TYPE Box
+#define DEFAULT_TYPE BoxType
 #define DEFAULT_LEN 8
 #define DEFAULT_VEL 4
 #define DEFAULT_POS_X 400
@@ -72,9 +72,9 @@ bool MovingObjects::init()
 		
 		if (otype == "ellipse" || otype == "ellipsoid" || otype == "circle" || otype == "disk" || otype == "sphere") {
 			if (otype == "sphere") Warning() << "`sphere' objType not supported, defaulting to ellipsoid.";
-			o.type = Ellipsoid;
+			o.type = EllipseType;
 		} else
-			o.type = Box;
+			o.type = BoxType;
 		
 		// be really tolerant with object maj/minor length variable names 
 		getParam( "rx"          , o.len_maj_o) 
@@ -145,10 +145,10 @@ bool MovingObjects::init()
 }
 
 void MovingObjects::initObj(ObjData & o) {
-	if (o.type == Ellipsoid) {
-		o.shape = new Ellipse(o.len_maj_o, o.len_min_o, NUM_VERTICES_FOR_ELLIPSOIDS);
+	if (o.type == EllipseType) {
+		o.shape = new Shapes::Ellipse(o.len_maj_o, o.len_min_o, NUM_VERTICES_FOR_ELLIPSOIDS);
 	} else {  // box, etc
-		o.shape = new Rectangle(o.len_maj_o, o.len_min_o);
+		o.shape = new Shapes::Rectangle(o.len_maj_o, o.len_min_o);
 	}
 	o.shape->position = o.pos_o;	
 }
@@ -304,12 +304,12 @@ void MovingObjects::doFrameDraw()
 					x = fv[4];
 					y = fv[5];
 					if (!didInitLen && (!eqf(r1, objLen) || !eqf(r2, objLen))) {
-						if (o.type == Ellipsoid) {
-							Ellipse *e = (Ellipse *)o.shape;
+						if (o.type == EllipseType) {
+							Shapes::Ellipse *e = (Shapes::Ellipse *)o.shape;
 							e->xradius = r1;
 							e->yradius = r2;
 						} else {
-							Rectangle *r = (Square *)o.shape;
+							Shapes::Rectangle *r = (Shapes::Rectangle *)o.shape;
 							r->width = r1;
 							r->height = r2;
 						} 
@@ -449,7 +449,7 @@ void MovingObjects::doFrameDraw()
 }
 
 void MovingObjects::wrapObject(ObjData & o, const Rect & aabb) const {
-	Shape & s = *o.shape;
+	Shapes::Shape & s = *o.shape;
 
 	// wrap right edge
 	if (aabb.left() >= canvasAABB.right()) s.position.x = (-aabb.size.w/2) + (aabb.left() - canvasAABB.right());
