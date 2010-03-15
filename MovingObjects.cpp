@@ -287,7 +287,7 @@ void MovingObjects::doFrameDraw()
 					
 					bool didInitLen = false;
 					
-					double /*ox = fv[4], oy = fv[5],*/ r1 = fv[6], r2 = fv[7];
+					double r1 = fv[6], r2 = fv[7];
 					if (!k && !frameNum) {
 						// do some required initialization if on frame 0 for this object to make sure r1, r2 and  obj type jive
 						ObjType newType = ObjType(int(fv[3]));
