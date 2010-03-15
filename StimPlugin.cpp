@@ -462,3 +462,17 @@ void StimPlugin::logBackbufferToDisk() const {
 		Error() << "QImageWriter cannot open for writing: " << writer.fileName();
 	}
 }
+
+QString StimPlugin::paramSuffix() const { 
+	if (paramSuffixStack.empty()) return "";
+	return paramSuffixStack.front();
+}
+
+void StimPlugin::paramSuffixPush(const QString & suffix) {
+	paramSuffixStack.push_front(suffix);
+}
+
+void StimPlugin::paramSuffixPop() {
+	if (paramSuffixStack.empty()) return;
+	paramSuffixStack.pop_front();
+}

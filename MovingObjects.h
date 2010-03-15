@@ -1,14 +1,15 @@
 #ifndef MovingObjects_H
 #define MovingObjects_H
 #include "StimPlugin.h"
+#include <QList>
+#include "Shapes.h"
 
-/** \brief A plugin that draws an moving target.
 
-    This plugin basically draws a moving target in the GLWindow, which has its
-    own trajectory and which bounces when it reaches the edge of the 
-    GLWindow.
+/** \brief A plugin that draws K moving objects targets.  Targets may be square boxes or 
+           ellipses (or circles).
 
-    The target may be a circle or a box.
+    This plugin basically draws K (possibly moving) shapes in the GLWindow, 
+    each having major axis r1 and minor axis r2 and phi rotation.
 
     A variety of parameters control this plugin's operation, and it is
     recommended you see the \subpage plugin_params "Plugin Parameter Documentation"  for more details.
@@ -27,36 +28,43 @@ protected:
     bool processKey(int key); ///< remiplemented
 
 private:
-    void initDisplayLists();
-    void cleanupDisplayLists();
+    void initObjs();
+    void cleanupObjs();
 	void doFrameDraw();
 
-	unsigned short *trajdata;		// image data for each ou-movie frame		
-	float x;
-	float y;
-	float vx;
-	float vy;
-	float jitterx;
-	float jittery;
-	float objLen;
-	float objLen_o;
-	float objVelx;
-	float objVely;
-	float objVelx_o;
-	float objVely_o;
-	float objXinit;
-	float objYinit;
-	int objUnits;
-	int targetcycle;
-	int speedcycle;
-	int tcyclecount;
-	int delay;
-	float objcolor;
-	float mon_x_cm;
+	Rect canvasAABB;
+
+	enum ObjType { 
+		Box=0, Ellipsoid
+	};
+	
+	static QString objTypeStrs[];
+	
+	struct ObjData {
+		ObjType type; /// box or disk or ellipse
+		Shape *shape; ///< pointer to object's geometry drawing implementation (see Shapes.h)
+		float jitterx, jittery;
+		float len_maj_o, len_min_o; ///< original lengths: for box, len_maj == len_min.  for ellipse, len_maj is the xradius, len_min the yradius..
+		float phi_o; ///< phi and original phi, or rotation
+		Vec2 v, vel,  // working velocity and real velocity?
+		     vel_o, pos_o; // original velocity, position, for targetcycle stuff
+		float spin; // default is 0.. otherwise spin is applied to object per-frame
+		int tcyclecount, targetcycle, speedcycle, delay;
+		float color; // intensity value
+		
+		ObjData(); // init all to 0
+		void initDefaults();
+	};
+
+	void initObj(ObjData & o);
+	
+	void wrapObject(ObjData & o, const Rect & aabb) const;
+
+	QList<ObjData> objs;
+	int numObj;
+	
 	float mon_x_pix;
-	float mon_y_cm;
 	float mon_y_pix;
-	float mon_z_cm;
 	float max_x_pix;
 	float min_x_pix;
 	float max_y_pix;
@@ -64,13 +72,10 @@ private:
 	bool rndtrial;
 	int tframes;
 	int rseed;
-	QString traj_data_path;
 	int jittermag;
 	bool jitterlocal;
     bool moveFlag, jitterFlag;
-        QString objType; ///< new config param -- can be 'box' or 'disk'/'circle'
-        GLuint objDL; ///< display list for the moving object
-        GLUquadric *quad; ///< valid iff objType == circle or objType == sphere
+	bool wrapEdge;
 };
 
 #endif

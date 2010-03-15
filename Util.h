@@ -8,6 +8,7 @@ class StimApp;
 #include <QColor>
 #include <QTextStream>
 #include <QString>
+#include <math.h>
 
 #define STR1(x) #x
 #define STR(x) STR1(x)
@@ -17,6 +18,14 @@ class StimApp;
 #endif
 #ifndef MAX
 #define MAX(a,b) ( (a) >= (b) ? (a) : (b) )
+#endif
+
+#ifndef DEG2RAD
+#define DEG2RAD(x) (x*(M_PI/180.0))
+#endif
+
+#ifndef RAD2DEG
+#define RAD2DEG(x) (x*(180.0/M_PI))
 #endif
 
 /// Various global utility functions used application-wide.
@@ -167,16 +176,35 @@ struct Vec2T {
 		struct { T v1, v2; };
 	};
 	Vec2T(T x = 0, T y = 0) : x(x), y(y) {}	
+	
 };
 
-typedef Vec2T<double> Vec2;
+template <typename T=double> 
+struct Vec3T {
+	union { 
+		struct { T x, y, z; };		
+		struct { T r, g, b; };		
+		struct { T v1, v2, v3; };
+	};
+	Vec3T(T v1 = 0, T v2 = 0, T v3 = 0) : v1(v1), v2(v2), v3(v3) {}	
+};
+
+typedef Vec2T<double> Vec2d;
 typedef Vec2T<float> Vec2f;
 typedef Vec2T<int> Vec2i;
-
+typedef Vec2d Vec2;	
+	
 extern const Vec2 Vec2Zero; // default 0 vec -- useful as a default argument to functions
 extern const Vec2 Vec2Unit; // unit vector, that is, (1,1) -- usefule as a default argument to functions
 extern const Vec2i Vec2iZero; // default 0 vec -- useful as a default argument to functions
 extern const Vec2i Vec2iUnit; // unit vector, that is, (1,1) -- usefule as a default argument to functions
+
+typedef Vec3T<float> Vec3;
+
+extern const Vec3 Vec3Zero; // default 0 vec -- useful as a default argument to functions
+extern const Vec3 Vec3Unit; // default unit vec -- useful as a default argument to functions
+extern const Vec3 Vec3Gray; // default .5 vec -- useful as a default argument to functions
+
 	
 } // end namespace Util
 

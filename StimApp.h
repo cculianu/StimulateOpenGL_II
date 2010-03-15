@@ -70,7 +70,7 @@ public:
 		QString DO_with_vsync;
 
 		GlobalDefaults() : mon_x_pix(800), mon_y_pix(600), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), fps_mode(2), DO_with_vsync("off") {
-			qstrncpy(color_order, "rgb", 4);
+			qstrncpy(color_order, "brg", 4);
 		}
 	} globalDefaults;
     

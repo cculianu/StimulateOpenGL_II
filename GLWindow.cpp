@@ -1,24 +1,8 @@
-#define GL_GLEXT_PROTOTYPES
-#ifdef Q_OS_WIN
-#include <windows.h>
-#endif
+#include "GLHeaders.h"
 #include "GLWindow.h"
 #include <QCloseEvent>
 #include <QResizeEvent>
 #include "Util.h"
-#ifdef Q_OS_WIN
-#include <windows.h>
-#include <wingdi.h>
-#endif
-#ifdef Q_WS_MACX
-#  include <gl.h>
-#  include <glext.h>
-#else
-#  include <GL/gl.h>
-#  ifndef Q_OS_WIN
-#    include <GL/glext.h>
-#  endif
-#endif
 #include <math.h>
 #include <QTimer>
 //-- add your plugins here
@@ -286,12 +270,13 @@ StimPlugin *GLWindow::pluginFind(const QString &name, bool casesensitive)
 
 //--- put new StimPlugins here, and then modify GLWindow::initPlugins()
 #include "CalibPlugin.h"
-#include "MovingObjects.h"
 #include "MovingGrating.h"
 #include "CheckerFlicker.h"
 #include "Flicker.h"
 #include "Flicker_RGBW.h"
 #include "Sawtooth.h"
+#include "MovingObjects_Old.h"
+#include "MovingObjects.h"
 void GLWindow::initPlugins()
 {
     Log() << "Initializing plugins...";
@@ -301,12 +286,13 @@ void GLWindow::initPlugins()
 #ifndef Q_OS_WIN
     new CalibPlugin(); 
 #endif
-    new MovingObjects();  // experiment plugin.. bouncey square!
     new MovingGrating();  // experiment plugin.. the grid!
     new CheckerFlicker(); // experiment plugin.. the checkerboard!
 	new Flicker();        // experiment plugin.. the flicker tester!
 	new Flicker_RGBW();   // experiment plugin.. the old legacy flicker for the original BRGW-style projectors 
 	new Sawtooth();       // experiment plugin.. the sawtooth generator!
+    new MovingObjects_Old();  // experiment plugin.. bouncey square!
+	new MovingObjects();
 
     // TODO: more plugins here
 

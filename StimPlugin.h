@@ -96,7 +96,14 @@ public:
 
     /// templatized function for reading parameters
     template <typename T> bool getParam(const QString & name, T & out) const;
+	/// current param suffix context -- defaults to ""
+	QString paramSuffix() const;
 
+	/// use this function to implicitly add suffix to all param names requested with getParam.  Default stack is empty.
+	void paramSuffixPush(const QString & suffix);
+	/// use this function to undo the state of a previous call to paramSuffixPush()
+	void paramSuffixPop();
+	
     /// Returns the average FPS for this plugin over the last 1-2 seconds
     double getFps() const { return fpsAvg; }
     /// Returns the latest FPS for this plugin (over the last 2 frames)    
@@ -237,6 +244,8 @@ protected:
 	
 	int b_index, r_index, g_index; ///< index of brg values in above color_order param.  
 
+	QList<QString> paramSuffixStack; ///< used in conjunction with getParam, setParam to add suffixes to the params passed to getParam()..
+	
     void notifySpikeGLAboutStart();
     void notifySpikeGLAboutStop();
 
@@ -336,14 +345,16 @@ namespace {
         }
 }
 
+
 // templatized functions for reading parameters
 template <typename T> 
 bool StimPlugin::getParam(const QString & name, T & out) const
 {        
+        QString suffix = paramSuffix();
         QMutexLocker l(&mut);
         StimParams::const_iterator it;
         for (it = params.begin(); it != params.end(); ++it)
-            if (QString::compare(it.key(), name, Qt::CaseInsensitive) == 0)
+            if (QString::compare(it.key(), name + suffix, Qt::CaseInsensitive) == 0)
                 break;
 
         if (it != params.end()) { // found it!
