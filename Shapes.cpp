@@ -24,8 +24,9 @@ Shape::~Shape()
 void Shape::drawBegin() {
 	glPushMatrix();
 	glPushAttrib(GL_CURRENT_BIT);
-	glTranslated(position.x, position.y, 0.0);	
-	glRotated(angle,0.,0.,1.);
+	glTranslated(position.x, position.y, 0.0);
+	// try and not do a glRotate call if angle is 0. (no rotation).  Hopefully this guard useful performance-wise..
+	if (!eqf(angle, 0.)) glRotated(angle,0.,0.,1.);
 	glScaled(scale.x, scale.y, 1.0);
 	glColor3d(color.r,color.g,color.b);
 }
