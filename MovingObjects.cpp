@@ -12,12 +12,7 @@
 #define DEFAULT_TFRAMES 120*60*60*10 /* 120fps*s */
 #define DEFAULT_JITTERMAG 2
 #define DEFAULT_RSEED -1
-#define NUM_VERTICES_FOR_ELLIPSOIDS 128 /* number of vertices used to approximate ellipsoids (circles, ellipses)
-                                           higher number is better resolution, but sacrifices performance. */
 #define NUM_FRAME_VARS 10
-
-#define EPSILON 0.0000001
-#define eqf(x,y) (fabs(x-y) < EPSILON)
 
 MovingObjects::MovingObjects()
     : StimPlugin("MovingObjects")
@@ -141,12 +136,18 @@ bool MovingObjects::init()
 	canvasAABB = Rect(Vec2(min_x_pix, min_y_pix), Vec2(max_x_pix-min_x_pix, max_y_pix-min_y_pix)); 
 
 	frameVars->setVariableNames(QString("frameNum objNum subFrameNum objType(0=box,1=ellipse) x y r1 r2 phi color").split(QString(" ")));
+	
+	// NB: the below is a performance optimization for Shapes such as Ellipse and Rectangle which create 1 display list per 
+	// object -- the below ensures that the shared static display list is compiled after init is done so that we don't have to compile one later
+	// while the plugin is running
+	Shapes::DoPerformanceHackInit();
+	
 	return true;
 }
 
 void MovingObjects::initObj(ObjData & o) {
 	if (o.type == EllipseType) {
-		o.shape = new Shapes::Ellipse(o.len_maj_o, o.len_min_o, NUM_VERTICES_FOR_ELLIPSOIDS);
+		o.shape = new Shapes::Ellipse(o.len_maj_o, o.len_min_o);
 	} else {  // box, etc
 		o.shape = new Shapes::Rectangle(o.len_maj_o, o.len_min_o);
 	}
@@ -313,7 +314,7 @@ void MovingObjects::doFrameDraw()
 							r->width = r1;
 							r->height = r2;
 						} 
-						o.shape->applyChanges();
+						o.shape->applyChanges(); ///< essentialy a NOOP
 					}
 					
 					objPhi = fv[8];
@@ -436,8 +437,9 @@ void MovingObjects::doFrameDraw()
 						glVertex2f(r.origin.x,r.origin.y+r.size.h);	
 						glEnd();
 						glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-						phi += 1.;
-					}*/
+						objPhi += 1.;
+					}
+					*/
 					
 					if (!fv.size()) 
 						// nb: push() needs to take all doubles as args!

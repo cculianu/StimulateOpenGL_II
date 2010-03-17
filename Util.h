@@ -32,6 +32,10 @@ class StimApp;
 #define RAD2DEG(x) (x*(180.0/M_PI))
 #endif
 
+#define EPSILON 0.0000001
+// since == isn't reliable for floats, use this instead
+#define eqf(x,y) (fabs(x-y) < EPSILON)
+
 /// Various global utility functions used application-wide.
 namespace Util 
 {

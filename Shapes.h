@@ -10,7 +10,7 @@
 #define Shapes_H
 #include "Util.h"
 #include <vector>
-
+#include "GLHeaders.h"
 
 struct Rect {
 	Vec2 origin; // bottom-left corner
@@ -35,7 +35,6 @@ public:
 	     scale;        ///< basically, X/Y glScale
 	Vec3 color;        ///< defaults to gray
 	double angle; ///< the angle of rotation about the Z axis, in degrees
-	double savedColor[4];
 	
 public:
 	Shape();
@@ -59,13 +58,11 @@ public:
 	double width, height;
 	
 protected:
-	std::vector<Vec2> vertices;
+	static GLuint dl; ///< shared display list for all rectangles since it's just a unit square and we do out magic in the scaling
 	
 public:
 	Rectangle(double width, double height);
 	
-	void applyChanges(); ///< call this if you change length to apply and regenerate vertices
-
 	/// not as trivial as it seems since we have to account for rotation of the box!
 	Rect AABB() const;
 	
@@ -80,21 +77,22 @@ public:
 class Ellipse : public Shape {
 public:
 	double xradius,yradius;
-	const unsigned numVertices;
+	static const unsigned numVertices;
 	
 protected:
-	std::vector<Vec2> sinCosTable;
-	std::vector<Vec2> vertices;
+	static GLuint dl; ///< shared display list for _ALL_ ellipses since we use a unit circle at 0,0 with 128 vertices globally!
 	
 public:
-	Ellipse(double radiusX, double radiusY, unsigned numVertices);
-	
-	void applyChanges(); ///< call this for class properties/parameters changes to take effect, before calling draw
+	Ellipse(double radiusX, double radiusY);
 	
 	void draw();
 	
 	Rect AABB() const;
 };
+
+	
+/// call this to pre-create the display lists for Rectangle and Ellipses so that it's ready for us and primed
+void DoPerformanceHackInit();
 
 } // end namespace Shapes
 

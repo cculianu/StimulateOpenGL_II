@@ -9,6 +9,9 @@
 #include "Shapes.h"
 #include "GLHeaders.h"
 
+#define NUM_VERTICES_FOR_ELLIPSOIDS 128 /* number of vertices used to approximate ellipsoids (circles, ellipses)
+higher number is better resolution, but sacrifices performance. */
+
 namespace Shapes {
 	
 Shape::Shape() 
@@ -20,53 +23,51 @@ Shape::~Shape()
 
 void Shape::drawBegin() {
 	glPushMatrix();
+	glPushAttrib(GL_CURRENT_BIT);
 	glTranslated(position.x, position.y, 0.0);	
-	glScaled(scale.x, scale.y, 1.0);
 	glRotated(angle,0.,0.,1.);
-	glGetDoublev(GL_CURRENT_COLOR, savedColor);
+	glScaled(scale.x, scale.y, 1.0);
 	glColor3d(color.r,color.g,color.b);
 }
 
 void Shape::applyChanges() { /* nothing.. */ }
 
 void Shape::drawEnd() {
-	glColor4d(savedColor[0], savedColor[1], savedColor[2], savedColor[3]);
+	glPopAttrib();
 	glPopMatrix();
-}
-
-Ellipse::Ellipse(double rx, double ry, unsigned numv)
-	: xradius(rx), yradius(ry), numVertices(numv)
-{
-	sinCosTable.reserve(numVertices);
-	const double incr = DEG2RAD(360.0) / numVertices;
-	double radian = 0.;
-	for (unsigned i = 0; i < numVertices; ++i) {
-		sinCosTable.push_back(Vec2(cos(radian), sin(radian)));
-		radian += incr;
-	}
-	vertices.resize(numVertices);
-	applyChanges();
-}
-
-void Ellipse::applyChanges()
-{
-	//const Vec2 v0 (xradius, yradius); // anchor ellipse at bottom-left by offsetting all points by 'radius'
 	
-	for (unsigned i = 0; i < numVertices; ++i) {
-		const Vec2 & tableval = sinCosTable[i];
-		Vec2 & v = vertices[i];
-		v.x = /*v0.x +*/ tableval.x*xradius;
-		v.y = /*v0.y +*/ tableval.y*yradius;
-	}
 }
 
+/* static */ GLuint Ellipse::dl = 0;
+const unsigned Ellipse::numVertices = NUM_VERTICES_FOR_ELLIPSOIDS;
+	
+Ellipse::Ellipse(double rx, double ry)
+	: xradius(rx), yradius(ry)
+{
+	if (!dl) {
+		const double incr = DEG2RAD(360.0) / numVertices;
+		double radian = 0.;
+		dl = glGenLists(1);
+		glNewList(dl, GL_COMPILE);
+		glBegin(GL_POLYGON);
+		for (unsigned i = 0; i < numVertices; ++i) {
+			glVertex2d(cos(radian), sin(radian));
+			radian += incr;
+		}
+		glEnd();
+		glEndList();
+	}	
+}
+	
 void Ellipse::draw() {
+	Vec2 scale_saved = scale;
+	// emulate the xradius,yradius thing with just a glScale.. muahahaha!
+	scale.x *= xradius;
+	scale.y *= yradius;
 	drawBegin();
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(2, GL_DOUBLE, 0, &vertices[0]);
-	glDrawArrays(/*GL_LINE_LOOP*/GL_POLYGON, 0, numVertices);
-	glDisableClientState(GL_VERTEX_ARRAY);		
+	glCallList(dl);
 	drawEnd();
+	scale = scale_saved;
 }
 
 Rect Ellipse::AABB() const { 
@@ -81,59 +82,81 @@ Rect Ellipse::AABB() const {
 }
 
 
+/* static */ GLuint Rectangle::dl = 0; ///< shared display list for all rectangles!
+	
 Rectangle::Rectangle(double w, double h)
 : width(w), height(h)
 {
-	applyChanges();
+	if (!dl) {
+		dl = glGenLists(1);
+		// put the unit square in a display list
+		glNewList(dl, GL_COMPILE);
+		glBegin(GL_QUADS);	
+			glVertex2d(-.5, -.5);
+			glVertex2d(.5, -.5);
+			glVertex2d(.5, .5);
+			glVertex2d(-.5, .5);
+		glEnd();
+		glEndList();
+	}
 }
 
-void Rectangle::applyChanges()
-{
-	vertices.resize(4);
-/*  BOTTOM LEFT ANCHORING:
-    vertices[0] = Vec2(0., 0.);
-	vertices[1] = Vec2(width,  0.);
-	vertices[2] = Vec2(width,  height);
-	vertices[3] = Vec2(0, height);
- */
-	// CENTER anchoring!
-    vertices[0] = Vec2(-width/2., -height/2.);
-	vertices[1] = Vec2(width/2.,  -height/2.);
-	vertices[2] = Vec2(width/2.,  height/2.);
-	vertices[3] = Vec2(-width/2., height/2.);
-}
 
 void Rectangle::draw() {
+	Vec2 scale_saved = scale;
+	// emulate the width and height thing with just a glScale.. muahahaha!
+	scale.x *= width;
+	scale.y *= height;
 	drawBegin();
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(2, GL_DOUBLE, 0, &vertices[0]);
-	glDrawArrays(GL_QUADS, 0, vertices.size());
-	glDisableClientState(GL_VERTEX_ARRAY);		
+	glCallList(dl);
 	drawEnd();
+	scale = scale_saved;
 }
 
 
 
 Rect Rectangle::AABB() const {
-	const double theta = DEG2RAD(angle);
-	const int n = vertices.size();
-	double minx = 1e6, miny = 1e6, maxx = -1e6, maxy = -1e6;
-	const double & x0 = position.x;
-	const double & y0 = position.y;
-	for (int i = 0; i < n; ++i) {
-		const double & x = vertices[i].x+position.x;
-		const double & y = vertices[i].y+position.y;
-		const double dx = scale.x * (x-x0), dy = scale.y * (y-y0);
-		double x2 = x0+dx*cos(theta)+dy*sin(theta);
-		double y2 = y0-dx*sin(theta)+dy*cos(theta);
-		if (x2 > maxx) maxx = x2;
-		if (y2 > maxy) maxy = y2;
-		if (x2 < minx) minx = x2;
-		if (y2 < miny) miny = y2;
+	if (!eqf(fmod(angle, 360.0),0.0)) {
+		// we are rotated, do this complicated thing to account for rotation!
+
+		const double theta = DEG2RAD(angle);
+		const int n = 4;
+		const Vec2 vertices[n] = {  Vec2( -.5*width, -.5*height ),
+									Vec2( .5*width, -.5*height ),
+									Vec2( .5*width, .5*height ),
+									Vec2( -.5*width, .5*height ) };
+			
+		double minx = 1e6, miny = 1e6, maxx = -1e6, maxy = -1e6;
+		const double & x0 = position.x;
+		const double & y0 = position.y;
+		for (int i = 0; i < n; ++i) {
+			const double & x = vertices[i].x+position.x;
+			const double & y = vertices[i].y+position.y;
+			const double dx = scale.x * (x-x0), dy = scale.y * (y-y0);
+			double x2 = x0+dx*cos(theta)+dy*sin(theta);
+			double y2 = y0-dx*sin(theta)+dy*cos(theta);
+			if (x2 > maxx) maxx = x2;
+			if (y2 > maxy) maxy = y2;
+			if (x2 < minx) minx = x2;
+			if (y2 < miny) miny = y2;
+		}
+		return Rect(Vec2(minx, miny), Vec2(maxx-minx, maxy-miny));
 	}
-	return Rect(Vec2(minx, miny), Vec2(maxx-minx, maxy-miny));
+	
+	// else.. we are not rotatated
+	// since we are aligned to origin, return *this rectangle* (scaled)
+	return Rect(Vec2(-width/2. * scale.x, -height/2. * scale.y), Vec2(width*scale.x, height*scale.y));
 }
 
+void DoPerformanceHackInit() {
+	Ellipse a(3,4);
+	Rectangle b(4,5);
+	
+	// noops, but call it to ensure above isn't compile out or warned against
+	a.applyChanges(); 
+	b.applyChanges();	
+}
+	
 } // end namespace Shapes
 
 bool Rect::intersects(const Rect & r) const {
