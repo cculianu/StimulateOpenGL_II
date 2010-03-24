@@ -15,15 +15,17 @@ higher number is better resolution, but sacrifices performance. */
 namespace Shapes {
 	
 Shape::Shape() 
-	: position(Vec2Zero), scale(Vec2Unit), color(Vec3Gray), angle(0.)
+	: position(Vec2Zero), scale(Vec2Unit), color(Vec3Gray), angle(0.), noMatrixAttribPush(false)
 {}
 
 Shape::~Shape() 
 {}
 
 void Shape::drawBegin() {
-	glPushMatrix();
-	glPushAttrib(GL_CURRENT_BIT);
+	if (!noMatrixAttribPush) {
+		glPushMatrix();
+		glPushAttrib(GL_CURRENT_BIT);
+	}
 	glTranslated(position.x, position.y, 0.0);
 	// try and not do a glRotate call if angle is 0. (no rotation).  Hopefully this guard useful performance-wise..
 	if (!eqf(angle, 0.)) glRotated(angle,0.,0.,1.);
@@ -34,9 +36,11 @@ void Shape::drawBegin() {
 void Shape::applyChanges() { /* nothing.. */ }
 
 void Shape::drawEnd() {
-	glPopAttrib();
-	glPopMatrix();
-	
+	if (!noMatrixAttribPush) {
+		glPopAttrib();
+		glPopMatrix();
+	} else
+		glLoadIdentity();
 }
 
 /* static */ GLuint Ellipse::dl = 0;

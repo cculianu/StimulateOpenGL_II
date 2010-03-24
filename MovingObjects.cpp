@@ -150,6 +150,7 @@ void MovingObjects::initObj(ObjData & o) {
 		o.shape = new Shapes::Rectangle(o.len_maj_o, o.len_min_o);
 	}
 	o.shape->position = o.pos_o;	
+	o.shape->noMatrixAttribPush = true; ///< performance hack
 }
 
 void MovingObjects::initObjs() {
