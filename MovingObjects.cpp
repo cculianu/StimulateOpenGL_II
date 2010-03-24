@@ -56,20 +56,19 @@ bool MovingObjects::init()
 		if (i > 0)	paramSuffixPush(QString::number(i+1)); // make the additional obj params end in a number
        	objs.push_back(!i ? ObjData() : objs.front()); // get defaults from first object
 		ObjData & o = objs.back();
-		
-		o.shape = 0;
-		
+			
 		// if any of the params below are missing, the defaults in initDefaults() above are taken
 		
 		QString otype; 
-		getParam( "objType"     , otype);
-		otype = otype.trimmed().toLower();
-		
-		if (otype == "ellipse" || otype == "ellipsoid" || otype == "circle" || otype == "disk" || otype == "sphere") {
-			if (otype == "sphere") Warning() << "`sphere' objType not supported, defaulting to ellipsoid.";
-			o.type = EllipseType;
-		} else
-			o.type = BoxType;
+		if (getParam( "objType"     , otype)) {
+			otype = otype.trimmed().toLower();
+			
+			if (otype == "ellipse" || otype == "ellipsoid" || otype == "circle" || otype == "disk" || otype == "sphere") {
+				if (otype == "sphere") Warning() << "`sphere' objType not supported, defaulting to ellipsoid.";
+				o.type = EllipseType;
+			} else
+				o.type = BoxType;
+		}
 		
 		// be really tolerant with object maj/minor length variable names 
 		getParam( "rx"          , o.len_maj_o) 
@@ -79,13 +78,12 @@ bool MovingObjects::init()
 		|| getParam( "objLenMajor" , o.len_maj_o)
 		|| getParam( "objMajorLen" , o.len_maj_o)
 		|| getParam( "objMajLen" , o.len_maj_o);
-		if (   !getParam( "ry"          , o.len_min_o)
-			&& !getParam( "r2"          , o.len_min_o)
-			&& !getParam( "objLenMinor" , o.len_min_o) 
-			&& !getParam( "objLenMin"   , o.len_min_o)
-			&& !getParam( "objMinorLen" , o.len_min_o)
-			&& !getParam( "objMinLen"   , o.len_min_o) ) 
-			o.len_min_o = o.len_maj_o;
+		getParam( "ry"          , o.len_min_o)
+		|| getParam( "r2"          , o.len_min_o)
+		|| getParam( "objLenMinor" , o.len_min_o) 
+		|| getParam( "objLenMin"   , o.len_min_o)
+		|| getParam( "objMinorLen" , o.len_min_o)
+		|| getParam( "objMinLen"   , o.len_min_o);
 		
 		getParam( "objSpin"     , o.spin);
 		getParam( "objPhi" , o.phi_o) || getParam( "phi", o.phi_o );  
@@ -287,14 +285,13 @@ void MovingObjects::doFrameDraw()
 
 					
 					bool didInitLen = false;
-					
+					const ObjType otype = ObjType(int(fv[3]));
 					double r1 = fv[6], r2 = fv[7];
 					if (!k && !frameNum) {
 						// do some required initialization if on frame 0 for this object to make sure r1, r2 and  obj type jive
-						ObjType newType = ObjType(int(fv[3]));
-						if (newType != o.type || !eqf(r1, objLen) || !eqf(r2, objLen_min)) {
+						if (otype != o.type || !eqf(r1, objLen) || !eqf(r2, objLen_min)) {
 							delete o.shape;							
-							o.type = newType;
+							o.type = otype;
 							o.len_maj_o = r1;
 							o.len_min_o = r2;
 							didInitLen = true;
@@ -304,6 +301,7 @@ void MovingObjects::doFrameDraw()
 					
 					x = fv[4];
 					y = fv[5];
+					// handle length changes mid-plugin-run
 					if (!didInitLen && (!eqf(r1, objLen) || !eqf(r2, objLen))) {
 						if (o.type == EllipseType) {
 							Shapes::Ellipse *e = (Shapes::Ellipse *)o.shape;
@@ -315,6 +313,18 @@ void MovingObjects::doFrameDraw()
 							r->height = r2;
 						} 
 						o.shape->applyChanges(); ///< essentialy a NOOP
+					}
+					// handle type change mid-plugin-run
+					if (o.type != otype) {
+						Shapes::Shape *oldshape = o.shape;
+						o.shape = 0;
+						o.type = otype;
+						initObj(o);
+						o.shape->position = oldshape->position;
+						o.shape->scale = oldshape->scale;
+						o.shape->color = oldshape->color;
+						o.shape->angle = oldshape->angle;
+						delete oldshape;
 					}
 					
 					objPhi = fv[8];
