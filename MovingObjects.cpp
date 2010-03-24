@@ -42,7 +42,7 @@ void MovingObjects::ObjData::initDefaults() {
 bool MovingObjects::init()
 {
     moveFlag = true;
-
+	
 	// set up pixel color blending to enable 480Hz monitor mode
 
 	// set default parameters
@@ -128,6 +128,9 @@ bool MovingObjects::init()
 	if (!getParam("wrapEdge", wrapEdge) && !getParam("wrap", wrapEdge)) 
 			wrapEdge = false;
 
+	if (!getParam("debugAABB", debugAABB))
+			debugAABB = false;
+
 	initObjs();
 	
     // the object area AABB -- a rect constrained by min_x_pix,min_y_pix and max_x_pix,max_y_pix
@@ -135,6 +138,13 @@ bool MovingObjects::init()
 
 	frameVars->setVariableNames(QString("frameNum objNum subFrameNum objType(0=box,1=ellipse) x y r1 r2 phi color").split(QString(" ")));
 	
+	
+	if (ftChangeEvery <= -1 && tframes > 0) {
+		Log() << "Auto-set ftrack_change variable: FT_Change will be asserted every " << tframes << " frames.";		
+		ftChangeEvery = tframes;
+	} else if (ftChangeEvery > -1 && tframes > 0 && ftChangeEvery != tframes) {
+		Warning() << "ftrack_change was defined in configuration and so was tframes (target cycle / speed cycle) but ftrack_change != tframes!";
+	}
 	// NB: the below is a performance optimization for Shapes such as Ellipse and Rectangle which create 1 display list per 
 	// object -- the below ensures that the shared static display list is compiled after init is done so that we don't have to compile one later
 	// while the plugin is running
@@ -394,6 +404,7 @@ void MovingObjects::doFrameDraw()
 								vx = ran1Gen()*objVelx*2 - objVelx;
 								vy = ran1Gen()*objVely*2 - objVely; 
 							}
+							
 						}
 
 						// update position after delay period
@@ -435,9 +446,8 @@ void MovingObjects::doFrameDraw()
 					o.shape->color = Vec3(r, g, b);
 					o.shape->draw();
 					
-					///DEBUG HACK FOR AABB VERIFICATION
-					/*
-					if (k==0) {
+					///DEBUG HACK FOR AABB VERIFICATION					
+					if (debugAABB && k==0) {
 						Rect r = aabb;
 						glColor3f(0.,1.,0); 
 						glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -448,9 +458,8 @@ void MovingObjects::doFrameDraw()
 						glVertex2f(r.origin.x,r.origin.y+r.size.h);	
 						glEnd();
 						glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-						objPhi += 1.;
-					}
-					*/
+						//objPhi += 1.;
+					}					
 					
 					if (!fv.size()) 
 						// nb: push() needs to take all doubles as args!

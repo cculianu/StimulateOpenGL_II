@@ -233,7 +233,15 @@ protected:
     GLWindow *parent;
 
     volatile bool initted;
-    unsigned frameNum; ///< starts at 0 and gets incremented for each frame (each time drawFrame() is called)
+    unsigned frameNum; ///< starts at -1, 0 is first frame, gets incremented for each frame (each time drawFrame() is called)
+	unsigned nFrames, /**< the number of frames per loop cycle.  
+					       If nFrames == 0, infinite number of frames (no loop cycle)
+	                       If nFrames >0, then we display nFrames frames, then we loop that nLoops times.  Each
+						   loops will assert the FT_End frametrack flag (each loop begin will assert the 
+					       FT_Start frametrack flag). */
+	         nLoops, ///< the number of times we do the nFrames above.  0 is infinite, 1 means once, etc
+	         loopCt; ///< counter for above
+	
     double fps, fpsAvg, fpsMin, fpsMax;
     double cycleTimeLeft; ///< the number of seconds left in this cycle -- updated by glWindow before calling afterVSync
     bool needNotifyStart; ///< iff true, we will notify LeoDAQGL of plugin start on unpause
@@ -244,6 +252,26 @@ protected:
 	
 	int b_index, r_index, g_index; ///< index of brg values in above color_order param.  
 
+	enum FTState {
+		// NB: if changing order of these or number of these please update the 
+		//     'ftColorParamNames' local variable in the StimPlugin::start() 
+		//     function in StimPlugin.cpp!
+		FT_Track = 0,
+		FT_Off,
+		FT_Change,
+		FT_Start,
+		FT_End,
+		N_FTStates
+	};
+	
+	GLfloat ftStateColors[N_FTStates][3];
+	FTState currentFTState;
+	bool ftAssertions[N_FTStates]; ///< child plugins assert these flags for a particular frame to override default off/on behavior. These flags only last for 1 frame.
+	int ftChangeEvery; ///< if > -1, auto-assert FT_Change when (frameNum % ftChangeEvery) == 0
+	
+	/// handle FTState transitions.. called right before drawing the frame track box.  Takes into account ftAssertions
+	virtual void advanceFTState(); 
+	
 	QList<QString> paramSuffixStack; ///< used in conjunction with getParam, setParam to add suffixes to the params passed to getParam()..
 	
     void notifySpikeGLAboutStart();

@@ -73,7 +73,7 @@ void StimPlugin::stop(bool doSave, bool useGui)
 bool StimPlugin::start(bool startUnpaused)
 {
     initted = false;
-
+	
     parent->pluginStarted(this);
 
     emit started();
@@ -85,6 +85,9 @@ bool StimPlugin::start(bool startUnpaused)
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     frameNum = 0;
+	nLoops = 0;
+	nFrames = 0;
+	loopCt = 0;
     fps = fpsAvg = 0;
     fpsMin = 9e9;
     fpsMax = 0;
@@ -93,8 +96,38 @@ bool StimPlugin::start(bool startUnpaused)
     missedFrames.clear();
     missedFrameTimes.clear();
     if (!missedFrames.capacity()) missedFrames.reserve(4096);
-    if (!missedFrameTimes.capacity()) missedFrameTimes.reserve(4096);
+    if (!missedFrameTimes.capacity()) missedFrameTimes.reserve(4096);	
     customStatusBarString = "";
+	
+	// setup ft state colors initially to be all white for all states, except off where it's black
+	const char *ftColorParamNames[N_FTStates] = {
+		// NB: order of these MUST match the FTState enum!!
+		"ftrack_track_color",  // FT_Track
+		"ftrack_off_color",    // FT_Off
+		"ftrack_change_color", // FT_Change
+		"ftrack_start_color",  // FT_Start
+		"ftrack_end_color",    // FT_End		
+	};
+	for (int i = 0; i < N_FTStates; ++i) {
+		GLfloat c;
+		QString n = ftColorParamNames[i];
+		c = getParam(n, c) 
+			? c  // yes, we had a param in the config file for this color, use it
+			: (i == FT_Off ? 0.f : 1.f); // no, we didn't.. do default which is Off is 0, everything else is 1.
+		
+		for (int j = 0; j < 3; ++j) {
+			GLfloat thisc = c;
+			getParam(n + QString("_%1").arg("rgb"[j]), thisc); // just in case they did an _r _g or _b override
+			if (thisc >= 1.01f) // oops, they specified a value from 0->255, scale it back from 0->1
+				thisc /= 255.f;
+			ftStateColors[i][j] = thisc;
+		}
+		ftAssertions[i] = false;
+	}
+	if (!getParam("ft_change_frame_cycle", ftChangeEvery) && !getParam("ftrack_change_frame_cycle",ftChangeEvery) 
+		&& !getParam("ftrack_change_cycle",ftChangeEvery) && !getParam("ftrack_change",ftChangeEvery)) 
+		ftChangeEvery = -1;
+	
 	// frametrack box info
 	if(!getParam("ftrackbox_x" , ftrackbox_x) || ftrackbox_x < 0)  ftrackbox_x = 0;
 	if(!getParam("ftrackbox_y" , ftrackbox_y) || ftrackbox_y < 0)  ftrackbox_y = 10;
@@ -160,6 +193,9 @@ bool StimPlugin::start(bool startUnpaused)
 		return false;
 	}
 
+	getParam( "nFrames", nFrames );
+	getParam( "nLoops", nLoops );
+	
     if ( !startUnpaused ) parent->pauseUnpause();
     if (!(init())) { 
         stop(); 
@@ -219,6 +255,45 @@ void StimPlugin::computeFPS()
     }
 }
 
+void StimPlugin::advanceFTState()
+{
+	if (nFrames && frameNum+1 >= nFrames) {
+		// if we are the last frame in the loop, assert FT_End
+		ftAssertions[FT_End] = true;
+	} else if (ftChangeEvery > -1 && frameNum && 0 == frameNum % ftChangeEvery ) {
+		// if ftChangeEvery is defined, assert FT_Change every ftChangeEvery frames
+		ftAssertions[FT_Change] = true;
+	} else if (0 == frameNum)
+		// on frameNum == 0, always assert FT_Start
+		ftAssertions[FT_Start] = true;
+	
+	// detect first asserted ft flag, remember it, and clear them all
+	int ftAsserted = -1;
+	for (int i = 0; i < N_FTStates; ++i) {
+		if (ftAsserted < 0 && ftAssertions[i])
+			ftAsserted = i;
+		ftAssertions[i] = false; // clear flags
+	}
+	// if an ft flag was asserted, use it, otherwise do the normal 'track' on even, 'off' on odd
+	if (ftAsserted > -1) 
+		currentFTState = static_cast<FTState>(ftAsserted);
+	else
+		currentFTState = (!(frameNum % 2)) ? FT_Track : FT_Off;
+}
+
+void StimPlugin::drawFTBox()
+{
+	if (!initted) return;
+	if (ftrackbox_w) {		
+		glColor3fv(ftStateColors[currentFTState]);
+		glRecti(ftrackbox_x, ftrackbox_y, ftrackbox_x+ftrackbox_w, ftrackbox_y+ftrackbox_w);
+	}
+}
+
+/* 
+
+ // OLD ft code, here for historical purposes so that new code emulates its behavior, plus taking into account ft states.
+ 
 void StimPlugin::drawFTBox()
 {
 	if (!initted) return;
@@ -229,6 +304,7 @@ void StimPlugin::drawFTBox()
 		glRecti(ftrackbox_x, ftrackbox_y, ftrackbox_x+ftrackbox_w, ftrackbox_y+ftrackbox_w);
 	}
 }
+*/
 
 void StimPlugin::afterVSync(bool b) { (void)b; /* nothing.. */ }
 

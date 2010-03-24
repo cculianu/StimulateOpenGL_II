@@ -76,6 +76,8 @@ private:
 	bool jitterlocal;
     bool moveFlag, jitterFlag;
 	bool wrapEdge;
+	
+	bool debugAABB; ///< comes from param file -- if true draw a green box around each shape's AABB to debug AABB
 };
 
 #endif

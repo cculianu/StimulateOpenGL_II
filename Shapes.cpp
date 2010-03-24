@@ -54,12 +54,12 @@ Ellipse::Ellipse(double rx, double ry)
 		double radian = 0.;
 		dl = glGenLists(1);
 		glNewList(dl, GL_COMPILE);
-		glBegin(GL_POLYGON);
-		for (unsigned i = 0; i < numVertices; ++i) {
-			glVertex2d(cos(radian), sin(radian));
-			radian += incr;
-		}
-		glEnd();
+			glBegin(GL_POLYGON);
+				for (unsigned i = 0; i < numVertices; ++i) {
+					glVertex2d(cos(radian), sin(radian));
+					radian += incr;
+				}
+			glEnd();
 		glEndList();
 	}	
 }
@@ -76,13 +76,15 @@ void Ellipse::draw() {
 }
 
 Rect Ellipse::AABB() const { 
-	const double r_max = xradius;
-	const double r_min = yradius;
+	const double & r_max (xradius);
+	const double & r_min (yradius);
 	const double rot = DEG2RAD(angle);
+	const double sin_rot = sin(rot);
+	const double cos_rot = cos(rot);
 	double t_nil = atan( -r_min * tan(rot) / r_max);
-	double t_inf = atan(r_min * (cos(rot) / sin(rot)) / r_max);
-	double rect_width = scale.x * fabs(2. * (r_max * cos(t_nil) * cos(rot) - r_min * sin(t_nil) * sin(rot)));
-	double rect_height = scale.y * fabs(2. * (r_min * sin(t_inf) * cos(rot) + r_max * cos(t_inf) * sin(rot)));
+	double t_inf = atan(r_min * (cos_rot / sin_rot) / r_max);
+	double rect_width = scale.x * fabs(2. * (r_max * cos(t_nil) * cos_rot - r_min * sin(t_nil) * sin_rot));
+	double rect_height = scale.y * fabs(2. * (r_min * sin(t_inf) * cos_rot + r_max * cos(t_inf) * sin_rot));
 	return Rect(Vec2(position.x-rect_width/2.,position.y-rect_height/2.),Vec2(rect_width,rect_height));
 }
 
@@ -96,12 +98,12 @@ Rectangle::Rectangle(double w, double h)
 		dl = glGenLists(1);
 		// put the unit square in a display list
 		glNewList(dl, GL_COMPILE);
-		glBegin(GL_QUADS);	
-			glVertex2d(-.5, -.5);
-			glVertex2d(.5, -.5);
-			glVertex2d(.5, .5);
-			glVertex2d(-.5, .5);
-		glEnd();
+			glBegin(GL_QUADS);	
+				glVertex2d(-.5, -.5);
+				glVertex2d(.5, -.5);
+				glVertex2d(.5, .5);
+				glVertex2d(-.5, .5);
+			glEnd();
 		glEndList();
 	}
 }
@@ -125,6 +127,8 @@ Rect Rectangle::AABB() const {
 		// we are rotated, do this complicated thing to account for rotation!
 
 		const double theta = DEG2RAD(angle);
+		const double cos_theta = cos(theta);
+		const double sin_theta = sin(theta);
 		const int n = 4;
 		const Vec2 vertices[n] = {  Vec2( -.5*width, -.5*height ),
 									Vec2( .5*width, -.5*height ),
@@ -138,8 +142,8 @@ Rect Rectangle::AABB() const {
 			const double & x = vertices[i].x+position.x;
 			const double & y = vertices[i].y+position.y;
 			const double dx = scale.x * (x-x0), dy = scale.y * (y-y0);
-			double x2 = x0+dx*cos(theta)+dy*sin(theta);
-			double y2 = y0-dx*sin(theta)+dy*cos(theta);
+			double x2 = x0+dx*cos_theta+dy*sin_theta;
+			double y2 = y0-dx*sin_theta+dy*cos_theta;
 			if (x2 > maxx) maxx = x2;
 			if (y2 > maxy) maxy = y2;
 			if (x2 < minx) minx = x2;

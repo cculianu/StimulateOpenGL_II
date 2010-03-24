@@ -168,12 +168,28 @@ void GLWindow::paintGL()
                 // indicate the frame was skipped
                 running->putMissedFrame(static_cast<unsigned>((tThisFrame-tLastFrame)*1e3));
             running->cycleTimeLeft = 1.0/getHWRefreshRate();
-            running->computeFPS(); 
-			running->drawFrame();
+            running->computeFPS();
+
+			// if nFrames mode and frameNum >= nFrames.. loop plugin by stopping then restarting
+			if (running->nFrames && running->frameNum >= running->nFrames) {
+				const unsigned loopCt = running->loopCt + 1, nLoops = running->nLoops;
+				StimPlugin * const p = running;
+				p->stop();
+				if (!nLoops || loopCt < nLoops) {
+					p->start(true);
+					p->loopCt = loopCt;
+				}
+			}
+			// note: code above may have stopped plugin, check if it's still running
+			if (running) {
+				running->drawFrame();
+			}
+			
 			if (running) { // NB: drawFrame may have called stop(), thus NULLing this pointer
+				running->advanceFTState(); // NB: this asserts FT_Start/FT_Change/FT_End flag, if need be, etc, and otherwise decides whith FT color to us.  Looks at running->nFrames, etc
 				running->drawFTBox();
 				if (debugLogFrames) running->logBackbufferToDisk();
-				++running->frameNum;
+				++running->frameNum;				
 				doBufSwap = true;
 			} 			
         }
@@ -191,7 +207,7 @@ void GLWindow::paintGL()
     if (doBufSwap) {// doBufSwap is normally true either if we don't have aMode or if we have a plugin and it is running and not paused
 
 		swapBuffers();// should wait for vsync...   
-
+		
 		QString devChan;
 		if (running && !paused && running->frameNum == 1 && running->getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {
 			DAQ::WriteDO(devChan, true);
