@@ -119,7 +119,7 @@ bool MovingObjects::init()
 		// rndtrial=1 new start point and speed every tframes; start=rnd(mon_x_pix,mon_y_pix); speed= +-objVelx, objVely
 	if(!getParam( "rseed" , rseed))              rseed = -1;  //set start point of rnd seed;
         ran1Gen.reseed(rseed);
-	if(!getParam( "tframes" , tframes))          tframes = DEFAULT_TFRAMES; 
+	if(!getParam( "tframes" , tframes) || tframes <= 0) tframes = DEFAULT_TFRAMES, ftChangeEvery = -1; 
 
 	if(!getParam( "jitterlocal" , jitterlocal))  jitterlocal = false;
 	if(!getParam( "jittermag" , jittermag))	     jittermag = DEFAULT_JITTERMAG;
@@ -148,7 +148,7 @@ bool MovingObjects::init()
 	// NB: the below is a performance optimization for Shapes such as Ellipse and Rectangle which create 1 display list per 
 	// object -- the below ensures that the shared static display list is compiled after init is done so that we don't have to compile one later
 	// while the plugin is running
-	Shapes::DoPerformanceHackInit();
+	Shapes::InitStaticDisplayLists();
 	
 	return true;
 }
@@ -183,6 +183,9 @@ void MovingObjects::cleanupObjs() {
 void MovingObjects::cleanup()
 {
     cleanupObjs();
+	if (!softCleanup) {
+		Shapes::CleanupStaticDisplayLists();
+	}
 }
 
 bool MovingObjects::processKey(int key)

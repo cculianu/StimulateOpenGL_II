@@ -175,7 +175,8 @@ void GLWindow::paintGL()
 				const unsigned loopCt = running->loopCt + 1, nLoops = running->nLoops;
 				StimPlugin * const p = running;
 				const bool doRestart = !nLoops || loopCt < nLoops;
-				p->stop(false,false,doRestart);
+				p->softCleanup = doRestart;
+				p->stop(false,false);
 				if (doRestart) {
 					p->start(true);
 					p->loopCt = loopCt;

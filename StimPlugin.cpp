@@ -41,7 +41,7 @@ bool StimPlugin::saveData(bool use_gui)
     return true;
 }
 
-void StimPlugin::stop(bool doSave, bool useGui, bool noClear)
+void StimPlugin::stop(bool doSave, bool useGui)
 {
     endtime = QDateTime::currentDateTime();
     if (doSave) {
@@ -59,7 +59,7 @@ void StimPlugin::stop(bool doSave, bool useGui, bool noClear)
     parent->pluginStopped(this);
     emit stopped();
     parent->makeCurrent();
-	if (!noClear) {
+	if (!softCleanup) {
 		glClearColor(0.5, 0.5,  0.5, 1.);
 		glColor4f(0.5, 0.5,  0.5, 1.);
 		glClear( GL_COLOR_BUFFER_BIT );    
@@ -101,6 +101,7 @@ bool StimPlugin::start(bool startUnpaused)
     if (!missedFrames.capacity()) missedFrames.reserve(4096);
     if (!missedFrameTimes.capacity()) missedFrameTimes.reserve(4096);	
     customStatusBarString = "";
+	softCleanup = false;
 	
 	// setup ft state colors initially to be all white for all states, except off where it's black
 	const char *ftColorParamNames[N_FTStates] = {

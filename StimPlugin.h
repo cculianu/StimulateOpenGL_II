@@ -82,7 +82,7 @@ public:
     /// start the plugin -- marks the plugin as 'running' with the GLWindow and calls init(), then emits 'started' signal.  If reimplementing, call super.
     virtual bool start(bool startUnpaused = false);
     /// stop the plugin -- marks the plugin as 'not running' with the GLWindow, calls cleanup(), then emits 'stopped' signal.  If reimplementig, call super
-    virtual void stop(bool doSave = false, bool use_gui = false, bool dontDoGLClearOnStop = false);
+    virtual void stop(bool doSave = false, bool use_gui = false);
 
     /// just calls QObject::objectName()
     QString name() const { return objectName(); }
@@ -268,6 +268,7 @@ protected:
 	FTState currentFTState;
 	bool ftAssertions[N_FTStates]; ///< child plugins assert these flags for a particular frame to override default off/on behavior. These flags only last for 1 frame.
 	int ftChangeEvery; ///< if > -1, auto-assert FT_Change when (frameNum % ftChangeEvery) == 0
+	bool softCleanup; ///< flag used by some plugins internally when they are being restarted. normally always false
 	
 	/// handle FTState transitions.. called right before drawing the frame track box.  Takes into account ftAssertions
 	virtual void advanceFTState(); 

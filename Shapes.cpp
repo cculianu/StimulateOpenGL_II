@@ -30,7 +30,7 @@ void Shape::drawBegin() {
 	// try and not do a glRotate call if angle is 0. (no rotation).  Hopefully this guard useful performance-wise..
 	if (!eqf(angle, 0.)) glRotated(angle,0.,0.,1.);
 	glScaled(scale.x, scale.y, 1.0);
-	glColor3d(color.r,color.g,color.b);
+	glColor3f(color.r,color.g,color.b);
 }
 
 void Shape::applyChanges() { /* nothing.. */ }
@@ -157,7 +157,7 @@ Rect Rectangle::AABB() const {
 	return Rect(Vec2(-width/2. * scale.x, -height/2. * scale.y), Vec2(width*scale.x, height*scale.y));
 }
 
-void DoPerformanceHackInit() {
+void InitStaticDisplayLists() {
 	Ellipse a(3,4);
 	Rectangle b(4,5);
 	
@@ -165,6 +165,19 @@ void DoPerformanceHackInit() {
 	a.applyChanges(); 
 	b.applyChanges();	
 }
+
+static void DLCleanup(GLuint & dl) {
+	if (dl) {
+		glDeleteLists(dl,1);
+		dl = 0;
+	}
+}
+	
+void CleanupStaticDisplayLists() {
+	DLCleanup(Ellipse::dl);
+	DLCleanup(Rectangle::dl);
+}
+
 	
 } // end namespace Shapes
 

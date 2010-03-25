@@ -55,6 +55,7 @@ protected:
 };
 
 class Rectangle : public Shape {
+	friend void CleanupStaticDisplayLists();
 public: 
 	double width, height;
 	
@@ -76,6 +77,7 @@ public:
 };
 
 class Ellipse : public Shape {
+	friend void CleanupStaticDisplayLists();
 public:
 	double xradius,yradius;
 	static const unsigned numVertices;
@@ -93,7 +95,8 @@ public:
 
 	
 /// call this to pre-create the display lists for Rectangle and Ellipses so that it's ready for us and primed
-void DoPerformanceHackInit();
+void InitStaticDisplayLists();
+void CleanupStaticDisplayLists();
 
 } // end namespace Shapes
 
