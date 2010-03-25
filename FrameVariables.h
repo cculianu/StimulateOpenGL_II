@@ -41,6 +41,9 @@ public:
 	bool readInput(const QString & fileName);
 	QVector<double> readNext() { return inp.getNextRow(); }
 	void readReset() { inp.curr_row = 0; }
+	
+	/// called by GLWindow when nLoops and looptCt > 0
+	void closeAndRemoveOutput();
 
 private:
 	static QStringList splitHeader(const QString & ln);

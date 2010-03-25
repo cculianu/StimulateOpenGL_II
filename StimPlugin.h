@@ -82,7 +82,7 @@ public:
     /// start the plugin -- marks the plugin as 'running' with the GLWindow and calls init(), then emits 'started' signal.  If reimplementing, call super.
     virtual bool start(bool startUnpaused = false);
     /// stop the plugin -- marks the plugin as 'not running' with the GLWindow, calls cleanup(), then emits 'stopped' signal.  If reimplementig, call super
-    virtual void stop(bool doSave = false, bool use_gui = false);
+    virtual void stop(bool doSave = false, bool use_gui = false, bool dontDoGLClearOnStop = false);
 
     /// just calls QObject::objectName()
     QString name() const { return objectName(); }
@@ -264,7 +264,7 @@ protected:
 		N_FTStates
 	};
 	
-	GLfloat ftStateColors[N_FTStates][3];
+	Vec3 ftStateColors[N_FTStates];
 	FTState currentFTState;
 	bool ftAssertions[N_FTStates]; ///< child plugins assert these flags for a particular frame to override default off/on behavior. These flags only last for 1 frame.
 	int ftChangeEvery; ///< if > -1, auto-assert FT_Change when (frameNum % ftChangeEvery) == 0
@@ -362,8 +362,8 @@ namespace {
                 return s; 
             }
         template <> MyTxtStream & operator>>(MyTxtStream &s, bool & b) {
-            if (!QString::compare(s.str, "true", Qt::CaseInsensitive)) b = true;
-            else if (!QString::compare(s.str, "false", Qt::CaseInsensitive)) b = false;
+            if (!QString::compare(s.str.trimmed(), "true", Qt::CaseInsensitive)) b = true;
+            else if (!QString::compare(s.str.trimmed(), "false", Qt::CaseInsensitive)) b = false;
             else {
                 int i;
                 static_cast<QTextStream &>(s) >> i;
@@ -373,6 +373,9 @@ namespace {
         }
 }
 
+
+// specialization for strings
+template <> bool StimPlugin::getParam<QString>(const QString & name, QString & out) const;
 
 // templatized functions for reading parameters
 template <typename T> 

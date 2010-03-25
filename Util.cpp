@@ -133,5 +133,22 @@ const Vec2i Vec2iUnit(1,1); // unit vector, that is, (1,1) -- usefule as a defau
 const Vec3 Vec3Zero(0.,0.,0.);
 const Vec3 Vec3Unit(1.,1.,1.);
 const Vec3 Vec3Gray(.5,.5,.5); // default .5 vec -- useful as a default argument to functions
+
 	
+QVector<double> parseCSV(const QString & text, const QRegExp & sepre)
+{
+	QVector<double> ret;
+	QStringList l = text.split(sepre, QString::SkipEmptyParts);
+	ret.reserve(l.count());
+	for (QStringList::const_iterator it = l.begin(); it != l.end(); ++it) {
+		bool ok;
+		double d = (*it).toDouble(&ok);
+		if (ok) {
+			ret.push_back(d);
+		} else
+			break; // give up on first non-parsed item
+	}
+	return ret;
+}
+
 }

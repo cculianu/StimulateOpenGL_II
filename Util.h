@@ -8,6 +8,8 @@ class StimApp;
 #include <QColor>
 #include <QTextStream>
 #include <QString>
+#include <QVector>
+#include <QRegExp>
 #include <math.h>
 
 #define STR1(x) #x
@@ -108,6 +110,10 @@ extern unsigned getUpTime();
 /// returns 0 on error, or the previous mask on success.
 extern unsigned setCurrentThreadAffinityMask(unsigned cpu_mask);
 
+/// Pass in a block of CSV text, and you will get back a vector of all the 
+/// doubles that were parsed by separating out the CSV values.  
+extern QVector<double> parseCSV(const QString & text, const QRegExp & sepre = QRegExp("(\\s+)|,"));
+	
 /// Super class of Debug, Warning, Error classes.  
 class Log 
 {

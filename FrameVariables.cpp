@@ -29,13 +29,24 @@ void FrameVariables::setVariableNames(const QStringList &fields)
 	var_names = fields;
 
 }
+
+/// called by GLWindow when looping
+void FrameVariables::closeAndRemoveOutput() {	
+	if (f.remove()) {
+		Log() << "Removed reduntant frame var file at `" << f.fileName() << "'";
+	}
+	f.setFileName("");
+}
+
 void FrameVariables::push(double varval0...) ///< all vars must be doubles, and they must be the same number of parameters as the variableNames() list length!
 {
+	if (!f.fileName().length()) return; ///< no filename specified.. means file was closed intentionally.. silently ignore
+	
 	if (!n_fields) {
 		Error() << "INTERNAL ERROR: FrameVariables::push() called with no variable names (column names) specified!  Did you forget to call FrameVars::setVariableNames?";
 		return;
 	}
-
+	
 	if (!f.isOpen()) {
 		if (!f.open(QIODevice::WriteOnly|QIODevice::Text|QIODevice::Truncate)) {
 			if (cantOpenComplainCt < 3) {

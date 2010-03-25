@@ -41,7 +41,7 @@ bool StimPlugin::saveData(bool use_gui)
     return true;
 }
 
-void StimPlugin::stop(bool doSave, bool useGui)
+void StimPlugin::stop(bool doSave, bool useGui, bool noClear)
 {
     endtime = QDateTime::currentDateTime();
     if (doSave) {
@@ -59,9 +59,11 @@ void StimPlugin::stop(bool doSave, bool useGui)
     parent->pluginStopped(this);
     emit stopped();
     parent->makeCurrent();
-    glClearColor(0.5, 0.5,  0.5, 1.);
-    glColor4f(0.5, 0.5,  0.5, 1.);
-    glClear( GL_COLOR_BUFFER_BIT );    
+	if (!noClear) {
+		glClearColor(0.5, 0.5,  0.5, 1.);
+		glColor4f(0.5, 0.5,  0.5, 1.);
+		glClear( GL_COLOR_BUFFER_BIT );    
+	}
     cleanup();
     // restore original matrices from matrix stack
     glMatrixMode(GL_MODELVIEW);
@@ -79,6 +81,7 @@ bool StimPlugin::start(bool startUnpaused)
     emit started();
 	if (frameVars) delete frameVars;
 	frameVars = new FrameVariables(FrameVariables::makeFileName(stimApp()->outputDirectory() + "/" + name()));
+	
     parent->makeCurrent();
 
     // start out with identity matrix
@@ -109,18 +112,30 @@ bool StimPlugin::start(bool startUnpaused)
 		"ftrack_end_color",    // FT_End		
 	};
 	for (int i = 0; i < N_FTStates; ++i) {
-		GLfloat c;
+		QString c;
 		QString n = ftColorParamNames[i];
 		c = getParam(n, c) 
 			? c  // yes, we had a param in the config file for this color, use it
-			: (i == FT_Off ? 0.f : 1.f); // no, we didn't.. do default which is Off is 0, everything else is 1.
-		
+			: (i == FT_Off ? "0,0,0" : "1,1,1"); // no, we didn't.. do default which is Off is 0, everything else is 1.
+
+		QVector<double> cv = parseCSV(c);
+		if (cv.size() != 3) {
+			if (cv.size() == 1) {
+				cv.resize(3);
+				cv[2] = cv[1] = cv[0];
+			} else {
+				QString errc = c;
+				c = (i == FT_Off ? "0,0,0" : "1,1,1");
+				Warning() << "Error parsing `" << n << "' of " << errc << ", defaulting to " << c;
+				cv = parseCSV(c);
+			}
+		}
+		Debug() << "Got " << n << " of " << c;
 		for (int j = 0; j < 3; ++j) {
-			GLfloat thisc = c;
-			getParam(n + QString("_%1").arg("rgb"[j]), thisc); // just in case they did an _r _g or _b override
+			float thisc = cv[j];
 			if (thisc >= 1.01f) // oops, they specified a value from 0->255, scale it back from 0->1
 				thisc /= 255.f;
-			ftStateColors[i][j] = thisc;
+			reinterpret_cast<float *>(&ftStateColors[i])[j] = thisc;
 		}
 		ftAssertions[i] = false;
 	}
@@ -285,7 +300,7 @@ void StimPlugin::drawFTBox()
 {
 	if (!initted) return;
 	if (ftrackbox_w) {		
-		glColor3fv(ftStateColors[currentFTState]);
+		glColor3fv(reinterpret_cast<GLfloat *>(&ftStateColors[currentFTState]));
 		glRecti(ftrackbox_x, ftrackbox_y, ftrackbox_x+ftrackbox_w, ftrackbox_y+ftrackbox_w);
 	}
 }
@@ -551,4 +566,21 @@ void StimPlugin::paramSuffixPush(const QString & suffix) {
 void StimPlugin::paramSuffixPop() {
 	if (paramSuffixStack.empty()) return;
 	paramSuffixStack.pop_front();
+}
+
+// specialization for strings
+template <> bool StimPlugin::getParam<QString>(const QString & name, QString & out) const
+{        
+	QString suffix = paramSuffix();
+	QMutexLocker l(&mut);
+	StimParams::const_iterator it;
+	for (it = params.begin(); it != params.end(); ++it)
+		if (QString::compare(it.key(), name + suffix, Qt::CaseInsensitive) == 0)
+			break;
+	
+	if (it != params.end()) { // found it!
+		out = (*it).toString().trimmed();
+		return true;
+	}
+	return false;        
 }

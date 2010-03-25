@@ -366,7 +366,7 @@ void MovingObjects::doFrameDraw()
 						
 							// update target size if size-series
 							if ((targetcycle > 0) && (frameNum > 0)) {
-								if (tcyclecount++ == targetcycle) {
+								if (++tcyclecount == targetcycle) {
 									tcyclecount = 0;
 									objLen = objLen_o; // if targetcycle done, reset objLen
 									objLen_min = objLen_min_o;
@@ -381,7 +381,7 @@ void MovingObjects::doFrameDraw()
 							}
 						
 							if ((speedcycle > 0) && (frameNum > 0)) {
-								if (tcyclecount++ == speedcycle) {
+								if (++tcyclecount == speedcycle) {
 									tcyclecount = 0;
 									objVelx = objVelx_o; // if targetcycle done, reset velocity
 									objVely = objVely_o; // if targetcycle done, reset velocity

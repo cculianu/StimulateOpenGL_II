@@ -350,6 +350,11 @@ void StimApp::loadSettings()
 	defs.ftrackbox_x = settings.value("ftrackbox_x", defs.ftrackbox_x).toInt();
 	defs.ftrackbox_y = settings.value("ftrackbox_y", defs.ftrackbox_y).toInt();
 	defs.ftrackbox_w = settings.value("ftrackbox_w", defs.ftrackbox_w).toInt();
+	defs.ftrack_track_color = settings.value("ftrack_track_color", defs.ftrack_track_color).toString();
+	defs.ftrack_off_color = settings.value("ftrack_off_color", defs.ftrack_off_color).toString();
+	defs.ftrack_change_color = settings.value("ftrack_change_color", defs.ftrack_change_color).toString();
+	defs.ftrack_start_color = settings.value("ftrack_start_color", defs.ftrack_start_color).toString();
+	defs.ftrack_end_color = settings.value("ftrack_end_color", defs.ftrack_end_color).toString();
 	qstrncpy(defs.color_order, settings.value("color_order", defs.color_order).toString().toAscii().constData(), 4);
 	defs.fps_mode = settings.value("fps_mode", defs.fps_mode).toInt();
 	defs.DO_with_vsync = settings.value("DO_with_vsync", defs.DO_with_vsync).toString();
@@ -381,6 +386,11 @@ void StimApp::saveSettings()
 	settings.setValue("ftrackbox_x", defs.ftrackbox_x);
 	settings.setValue("ftrackbox_y", defs.ftrackbox_y);
 	settings.setValue("ftrackbox_w", defs.ftrackbox_w);
+	settings.setValue("ftrack_track_color", defs.ftrack_track_color);
+	settings.setValue("ftrack_off_color", defs.ftrack_off_color);
+	settings.setValue("ftrack_change_color", defs.ftrack_change_color);
+	settings.setValue("ftrack_start_color", defs.ftrack_start_color);
+	settings.setValue("ftrack_end_color", defs.ftrack_end_color);
 	settings.setValue("color_order", QString(defs.color_order));
 	settings.setValue("fps_mode", defs.fps_mode);
 	settings.setValue("DO_with_vsync", defs.DO_with_vsync);
@@ -499,6 +509,11 @@ void StimApp::loadStim()
 			params["ftrackbox_x"] = defs.ftrackbox_x;
 			params["ftrackbox_y"] = defs.ftrackbox_y;
 			params["ftrackbox_w"] = defs.ftrackbox_w;
+			params["ftrack_track_color"] = defs.ftrack_track_color;
+			params["ftrack_off_color"] = defs.ftrack_off_color;
+			params["ftrack_change_color"] = defs.ftrack_change_color;
+			params["ftrack_start_color"] = defs.ftrack_start_color;
+			params["ftrack_end_color"] = defs.ftrack_end_color;
 			params["fps_mode"] = defs.fps_mode == 0 ? "single" : (defs.fps_mode == 1 ? "double" : "triple");
 			params["color_order"] = defs.color_order;
 			params["DO_with_vsync"] = defs.DO_with_vsync;
@@ -703,6 +718,11 @@ void StimApp::globalDefaultsDialog()
 	controls.sb_ftrackbox_x->setValue(g.ftrackbox_x);
 	controls.sb_ftrackbox_y->setValue(g.ftrackbox_y);
 	controls.sb_ftrackbox_w->setValue(g.ftrackbox_w);
+	controls.le_ftrack_track->setText(g.ftrack_track_color);
+	controls.le_ftrack_off->setText(g.ftrack_off_color);
+	controls.le_ftrack_change->setText(g.ftrack_change_color);
+	controls.le_ftrack_start->setText(g.ftrack_start_color);
+	controls.le_ftrack_end->setText(g.ftrack_end_color);
 	DAQ::DeviceChanMap chanMap (DAQ::ProbeAllDOChannels());
 	int selected = 0;
 	for (DAQ::DeviceChanMap::const_iterator it = chanMap.begin(); it != chanMap.end(); ++it) {
@@ -725,6 +745,11 @@ void StimApp::globalDefaultsDialog()
 		g.ftrackbox_y = controls.sb_ftrackbox_y->value();
 		g.ftrackbox_w = controls.sb_ftrackbox_w->value();
 		g.DO_with_vsync = controls.cb_do_with_vsync->currentText();
+		g.ftrack_track_color = controls.le_ftrack_track->text();
+		g.ftrack_off_color = controls.le_ftrack_off->text();
+		g.ftrack_change_color = controls.le_ftrack_change->text();
+		g.ftrack_start_color = controls.le_ftrack_start->text();
+		g.ftrack_end_color = controls.le_ftrack_end->text();
     }
     saveSettings();
 }

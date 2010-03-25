@@ -174,10 +174,12 @@ void GLWindow::paintGL()
 			if (running->nFrames && running->frameNum >= running->nFrames) {
 				const unsigned loopCt = running->loopCt + 1, nLoops = running->nLoops;
 				StimPlugin * const p = running;
-				p->stop();
-				if (!nLoops || loopCt < nLoops) {
+				const bool doRestart = !nLoops || loopCt < nLoops;
+				p->stop(false,false,doRestart);
+				if (doRestart) {
 					p->start(true);
 					p->loopCt = loopCt;
+					p->frameVars->closeAndRemoveOutput(); /// remove redundant frame var file!
 				}
 			}
 			// note: code above may have stopped plugin, check if it's still running
