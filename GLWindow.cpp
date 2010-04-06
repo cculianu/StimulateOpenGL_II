@@ -256,7 +256,7 @@ void GLWindow::paintGL()
 		// no plugin running, draw default .5 gray bg without ft box
         glClear( GL_COLOR_BUFFER_BIT );
         doBufSwap = true;		
-    } else if (running && running->getFrameNum() < 0 && delayCtr <= 0) { 
+    } else if (running && running->getFrameNum() < 0 && (paused || delayCtr <= 0)) { 
 		// running but paused and before plugin started (and not delay mode because that's handled above!)
 		// if so, draw plugin bg with ftrack_end box
 		drawEndStateBlankScreen(running);
