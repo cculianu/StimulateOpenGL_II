@@ -30,6 +30,12 @@ ConsoleWindow::ConsoleWindow(QWidget *p, Qt::WindowFlags f)
     QAction *action = m->addAction("&Debug Mode D", stimApp(), SLOT(setDebugMode(bool)));
     action->setCheckable(true);
     action->setChecked(stimApp()->isDebugMode());
+	action = m->addAction("&No Dropped Frame Warnings", stimApp(), SLOT(setNoDropFrameWarn(bool)));
+    action->setCheckable(true);
+    action->setChecked(stimApp()->isNoDropFrameWarn());
+	action = m->addAction("&Save Frame Vars", stimApp(), SLOT(setSaveFrameVars(bool)));
+	action->setCheckable(true);
+	action->setChecked(stimApp()->isSaveFrameVars());
 	action = m->addAction("Dump Frames To Disk (SLOW!)", stimApp(), SLOT(setFrameDumpMode(bool)));
 	action->setCheckable(true);
 	action->setChecked(stimApp()->isFrameDumpMode());

@@ -207,7 +207,6 @@ void StimApp::quitCleanup()
 
 bool StimApp::isDebugMode() const
 {
-    // always true for now..
     return debug;
 }
 
@@ -215,6 +214,26 @@ void StimApp::setDebugMode(bool d)
 {
     debug = d;
     saveSettings();
+}
+
+bool StimApp::isSaveFrameVars() const
+{
+    return saveFrameVars;
+}
+
+void StimApp::setSaveFrameVars(bool b)
+{
+    saveFrameVars = b;
+    saveSettings();
+}
+
+void StimApp::setNoDropFrameWarn(bool b) {
+	noDropFrameWarn = b;
+	saveSettings();
+}
+
+bool StimApp::isNoDropFrameWarn() const {
+	return noDropFrameWarn;
 }
 
 bool StimApp::isFrameDumpMode() const
@@ -328,7 +347,9 @@ void StimApp::loadSettings()
     QSettings settings("janelia.hhmi.org", "StimulateOpenGL_II");
 
     settings.beginGroup("StimApp");
-    debug = settings.value("debug", true).toBool();
+    debug = settings.value("debug", false).toBool();
+	noDropFrameWarn = settings.value("noDropFrameWarn", false).toBool();
+	saveFrameVars = settings.value("saveFrameVars", false).toBool();
     lastFile = settings.value("lastFile", "").toString();
     mut.lock();
 #ifdef Q_OS_WIN
@@ -343,6 +364,7 @@ void StimApp::loadSettings()
     leoDaq.hostname = settings.value("LeoDAQGL_Notify_Host", "localhost").toString();
     leoDaq.port = settings.value("LeoDAQGL_Notify_Port",  LEODAQ_GL_NOTIFY_DEFAULT_PORT).toUInt();
     leoDaq.timeout_ms = settings.value("LeoDAQGL_Notify_TimeoutMS", LEODAQ_GL_NOTIFY_DEFAULT_TIMEOUT_MSECS ).toInt();    
+	leoDaq.nloopsNotifyPerIter = settings.value("LeoDAQGL_Notify_NLoopsPerIter", false).toBool();
 
 	struct GlobalDefaults & defs (globalDefaults);
 	defs.mon_x_pix = settings.value("mon_x_pix", defs.mon_x_pix).toInt();
@@ -369,6 +391,8 @@ void StimApp::saveSettings()
 
     settings.beginGroup("StimApp");
     settings.setValue("debug", debug);
+	settings.setValue("noDropFrameWarn", noDropFrameWarn);
+	settings.setValue("saveFrameVars", saveFrameVars);
     settings.setValue("lastFile", lastFile);
     mut.lock();
     settings.setValue("outDir", outDir);
@@ -379,6 +403,7 @@ void StimApp::saveSettings()
     settings.setValue("LeoDAQGL_Notify_Host", leoDaq.hostname);
     settings.setValue("LeoDAQGL_Notify_Port",  leoDaq.port);
     settings.setValue("LeoDAQGL_Notify_TimeoutMS", leoDaq.timeout_ms);    
+	settings.setValue("LeoDAQGL_Notify_NLoopsPerIter", leoDaq.nloopsNotifyPerIter);
 
 	struct GlobalDefaults & defs (globalDefaults);
 	settings.setValue("mon_x_pix", defs.mon_x_pix);
@@ -692,11 +717,13 @@ void StimApp::leoDAQGLIntegrationDialog()
     controls.hostNameLE->setText(p.hostname);
     controls.portSB->setValue(p.port);
     controls.timeoutSB->setValue(p.timeout_ms);    
+	controls.nloopsNotifyCB->setChecked(p.nloopsNotifyPerIter);
     if ( dlg.exec() == QDialog::Accepted ) {
         p.enabled = controls.enabledGB->isChecked();
         p.hostname = controls.hostNameLE->text();
         p.port = controls.portSB->value();
         p.timeout_ms = controls.timeoutSB->value();
+		p.nloopsNotifyPerIter = controls.nloopsNotifyCB->isChecked();
     }
     saveSettings();
 }

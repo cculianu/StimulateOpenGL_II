@@ -58,6 +58,7 @@ public:
     /// Some parameters related to the external LeoDAQGL program notification
     struct LeoDAQGLNotifyParams {
         bool enabled;  ///< if true, LeoDAQGL is notified on plugin start/stop
+		bool nloopsNotifyPerIter;
         QString hostname;
         unsigned short port;
         int timeout_ms;
@@ -92,6 +93,10 @@ public:
     /// Returns true iff the application's console window has debug output printing enabled
     bool isDebugMode() const;
 
+	bool isNoDropFrameWarn() const;
+	
+	bool isSaveFrameVars() const;
+	
 	bool isFrameDumpMode() const;
 	
     /// Returns the directory under which all plugin data files are to be saved.
@@ -132,7 +137,11 @@ public slots:
     /// Set/unset the application-wide 'debug' mode setting.  If the application is in debug mode, Debug() messages are printed to the console window, otherwise they are not
     void setDebugMode(bool); 
 	
-	void setFrameDumpMode(bool);
+	void setNoDropFrameWarn(bool);
+	
+	void setSaveFrameVars(bool);
+	
+	void setFrameDumpMode(bool);	
 	
     /// Pops up a UI so that the user can select a stim. config file to load.
     void loadStim();
@@ -182,7 +191,7 @@ private:
     mutable QMutex mut; ///< used to lock outDir param for now
     ConsoleWindow *consoleWindow;
     GLWindow *glWindow;
-    bool glWinHasFrame, debug;
+    bool glWinHasFrame, debug, noDropFrameWarn, saveFrameVars;
     QString lastFile;
     volatile bool initializing;
     QColor defaultLogColor;

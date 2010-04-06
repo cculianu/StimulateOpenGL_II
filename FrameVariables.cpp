@@ -4,12 +4,13 @@
 #include <QTextStream>
 #include <QDate>
 
-QString FrameVariables::lastFileName;
+QStringList FrameVariables::lastFileNames;
+#define MAX_LAST_FILENAMES 10
 
 FrameVariables::FrameVariables(const QString &of, const QStringList & varnames)
 : cnt(0), fname(of), f(of), cantOpenComplainCt(0)
 {
-	lastFileName = fname;
+	pushLastFileName(fname);
 	setVariableNames(varnames);
 	readReset();
 }
@@ -30,13 +31,29 @@ void FrameVariables::setVariableNames(const QStringList &fields)
 
 }
 
+
+/*static*/ QString FrameVariables::lastFileName() { return lastFileNames.count() ? lastFileNames.front() : QString(""); }
+/*static*/ void FrameVariables::pushLastFileName(const QString & fn) {
+	lastFileNames.push_front(fn);
+	while (lastFileNames.count() >= MAX_LAST_FILENAMES) lastFileNames.pop_back();		
+}
+
 /// called by GLWindow when looping
 void FrameVariables::closeAndRemoveOutput() {	
 	if (f.remove()) {
 		Log() << "Removed reduntant frame var file at `" << f.fileName() << "'";
 	}
+	if (lastFileNames.count() && lastFileNames.front() == f.fileName()) 
+		// not valid so get rid of it from our history
+		lastFileNames.pop_front();
 	f.setFileName("");
 }
+
+bool FrameVariables::readAllFromLast(QVector<double> & out, int * nrows_out, int * ncols_out,bool matlab) 
+{ 
+	return readAllFromFile(lastFileName(), out, nrows_out, ncols_out, matlab); 
+}
+
 
 void FrameVariables::push(double varval0...) ///< all vars must be doubles, and they must be the same number of parameters as the variableNames() list length!
 {
@@ -171,8 +188,8 @@ void FrameVariables::finalize()
 }
 
 QStringList FrameVariables::readHeaderFromLast()
-{
-	QFile fin(lastFileName);
+{	
+	QFile fin(lastFileName());
 	if (fin.open(QIODevice::ReadOnly)) 
 		return splitHeader(fin.readLine());
 	return QStringList();

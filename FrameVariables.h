@@ -27,8 +27,10 @@ public:
 
 	/// read back the contents of the file to a vector and return it
 	static bool readAllFromFile(const QString & filename, QVector<double> & out, int * nrows_out = 0, int * ncols_out = 0, bool matlab = true);
+
+	
 	/// read the last plugin that ran from file
-	static bool readAllFromLast(QVector<double> & out, int * nrows_out = 0, int * ncols_out = 0,bool matlab = true) { return readAllFromFile(lastFileName, out, nrows_out, ncols_out, matlab); }
+	static bool readAllFromLast(QVector<double> & out, int * nrows_out = 0, int * ncols_out = 0,bool matlab = true);
 	/// reads the header from the last file written and returns a list of strings...
 	static QStringList readHeaderFromLast();
 	
@@ -47,14 +49,16 @@ public:
 
 private:
 	static QStringList splitHeader(const QString & ln);
-	static QString lastFileName;
 	unsigned n_fields, cnt;
 	QString fname;
 	mutable QFile f;
 	mutable QTextStream ts;
 	QStringList var_names;
 	int cantOpenComplainCt;
-
+	static QStringList lastFileNames;
+	static QString lastFileName();
+	static void pushLastFileName(const QString & fn);
+	
 	// lastread stuff
 	struct Input {
 		Input() : nrows(0), ncols(0), curr_row(0) {}

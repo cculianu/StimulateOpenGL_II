@@ -9,6 +9,7 @@
 #include <iostream>
 #include <math.h>
 #include <QImageWriter>
+#include "DAQ.h"
 
 StimPlugin::StimPlugin(const QString &name)
     : QObject(StimApp::instance()->glWin()), parent(StimApp::instance()->glWin()), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0)
@@ -17,6 +18,7 @@ StimPlugin::StimPlugin(const QString &name)
     needNotifyStart = true;
     initted = false;
     frameNum = 0x7fffffff;
+	loopCt = 0;
     setObjectName(name);
     parent->pluginCreated(this);    
 }
@@ -41,7 +43,7 @@ bool StimPlugin::saveData(bool use_gui)
     return true;
 }
 
-void StimPlugin::stop(bool doSave, bool useGui)
+void StimPlugin::stop(bool doSave, bool useGui, bool softStop)
 {
     endtime = QDateTime::currentDateTime();
     if (doSave) {
@@ -52,10 +54,16 @@ void StimPlugin::stop(bool doSave, bool useGui)
 
     // Notify LeoDAQGL via a socket.. if possible..
     // Notify LeoDAQGL via a socket.. if possible..
-    if (stimApp()->leoDAQGLNotifyParams.enabled) {
+    if (stimApp()->leoDAQGLNotifyParams.enabled
+		&& (!softStop ||  stimApp()->leoDAQGLNotifyParams.nloopsNotifyPerIter	|| loopCt+1 >= nLoops) ) {
         notifySpikeGLAboutStop();
     }
-    
+	// Next, write to DO that we stopped...
+	QString devChan;
+	if (getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {
+		DAQ::WriteDO(devChan, false);
+	}
+	    
     parent->pluginStopped(this);
     emit stopped();
     parent->makeCurrent();
@@ -69,6 +77,7 @@ void StimPlugin::stop(bool doSave, bool useGui)
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     frameNum = 0;
+	loopCt = 0; // we clear it here so it's always at 0 for next restart, unless GLWindow.cpp set it to the previous counter.  Confusing!!
     initted = false;
 }
 
@@ -90,10 +99,11 @@ bool StimPlugin::start(bool startUnpaused)
     frameNum = 0;
 	nLoops = 0;
 	nFrames = 0;
-	loopCt = 0;
+	//loopCt = 0; // NB: don't set this here!  we need to keep this variable around for plugin restart stuff
     fps = fpsAvg = 0;
     fpsMin = 9e9;
     fpsMax = 0;
+	delay = 0;
     begintime = QDateTime::currentDateTime();
     endtime = QDateTime(); // set to null datetime
     missedFrames.clear();
@@ -180,6 +190,10 @@ bool StimPlugin::start(bool startUnpaused)
 	} else
 		have_fv_input_file = false;
 		
+	if (!stimApp()->isSaveFrameVars()) {
+		frameVars->closeAndRemoveOutput(); // suppress frame var output if disabled in GUI
+	}
+	
 	if (fpsParm.startsWith("s" ,Qt::CaseInsensitive)) fps_mode = FPS_Single;
 	else if (fpsParm.startsWith("d", Qt::CaseInsensitive)) fps_mode = FPS_Dual;
 	else if (fpsParm.startsWith("t", Qt::CaseInsensitive)
@@ -211,6 +225,7 @@ bool StimPlugin::start(bool startUnpaused)
 
 	getParam( "nFrames", nFrames );
 	getParam( "nLoops", nLoops );
+	getParam( "delay", delay);
 	
     if ( !startUnpaused ) parent->pauseUnpause();
     if (!(init())) { 
@@ -225,6 +240,9 @@ bool StimPlugin::start(bool startUnpaused)
 	} else {
 		initDone(); 
 	}
+	
+	parent->pluginDidFinishInit(this);
+
 	return true;
 }
 
@@ -235,12 +253,12 @@ void StimPlugin::initDone()
     // Notify LeoDAQGL via a socket.. if possible..
     needNotifyStart = false;
     if (stimApp()->leoDAQGLNotifyParams.enabled) {
-        if (!parent->isPaused()) {
+        if (!parent->isPaused() && (stimApp()->leoDAQGLNotifyParams.nloopsNotifyPerIter || loopCt == 0)) {
             notifySpikeGLAboutStart();
         } else {
             needNotifyStart = true;
         }
-    }
+    }	
 }
 
 unsigned StimPlugin::width() const
@@ -276,12 +294,16 @@ void StimPlugin::advanceFTState()
 	if (nFrames && frameNum+1 >= nFrames) {
 		// if we are the last frame in the loop, assert FT_End
 		ftAssertions[FT_End] = true;
-	} else if (ftChangeEvery > -1 && frameNum && 0 == frameNum % ftChangeEvery ) {
+		Log() << "FrameTrack End asserted for frame " << frameNum;
+	} else if (ftChangeEvery > 0 && frameNum && 0 == frameNum % ftChangeEvery ) {
 		// if ftChangeEvery is defined, assert FT_Change every ftChangeEvery frames
 		ftAssertions[FT_Change] = true;
-	} else if (0 == frameNum)
+		Log() << "FrameTrack Change asserted for frame " << frameNum;
+	} else if (0 == frameNum) {
 		// on frameNum == 0, always assert FT_Start
 		ftAssertions[FT_Start] = true;
+		Log() << "FrameTrack Start asserted for frame " << frameNum;
+	}
 	
 	// detect first asserted ft flag, remember it, and clear them all
 	int ftAsserted = -1;
@@ -299,7 +321,7 @@ void StimPlugin::advanceFTState()
 
 void StimPlugin::drawFTBox()
 {
-	if (!initted) return;
+//	if (!initted) return;
 	if (ftrackbox_w) {		
 		glColor3fv(reinterpret_cast<GLfloat *>(&ftStateColors[currentFTState]));
 		glRecti(ftrackbox_x, ftrackbox_y, ftrackbox_x+ftrackbox_w, ftrackbox_y+ftrackbox_w);

@@ -830,7 +830,7 @@ void CheckerFlicker::afterVSync(bool isSimulated)
             if ( fc->nWaiting()+fc->createMore.available() < nQMax )
                 fc->createMore.release();
             glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[idx]);
-			Debug() << "Texidx: " << idx << " framenum " << frameNum;
+			//Debug() << "Texidx: " << idx << " framenum " << frameNum;
             glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, Nx, Ny, fmt, type, f->texels);
 			disps[idx] = f->displacement;
             glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);

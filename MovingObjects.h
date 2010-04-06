@@ -49,7 +49,7 @@ private:
 		Vec2 v, vel,  // working velocity and real velocity?
 		     vel_o, pos_o; // original velocity, position, for targetcycle stuff
 		float spin; // default is 0.. otherwise spin is applied to object per-frame
-		int tcyclecount, targetcycle, speedcycle, delay;
+		int tcyclecount, targetcycle, speedcycle;
 		float color; // intensity value
 		
 		ObjData(); // init all to 0

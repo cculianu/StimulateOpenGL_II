@@ -36,7 +36,7 @@ void MovingObjects::ObjData::initDefaults() {
 	spin = 0.;
 	vel_o = Vec2(DEFAULT_VEL,DEFAULT_VEL), pos_o = Vec2(DEFAULT_POS_X,DEFAULT_POS_Y),
 	v = vel_o, vel = vel_o,
-	tcyclecount = 0, targetcycle = 0, speedcycle = 0, delay = 0, color = DEFAULT_OBJCOLOR;
+	tcyclecount = 0, targetcycle = 0, speedcycle = 0, color = DEFAULT_OBJCOLOR;
 }
 
 bool MovingObjects::init()
@@ -71,18 +71,21 @@ bool MovingObjects::init()
 		}
 		
 		// be really tolerant with object maj/minor length variable names 
-		getParam( "rx"          , o.len_maj_o) 
+		getParam( "objLenX" , o.len_maj_o)
+		|| getParam( "rx"          , o.len_maj_o) 
 		|| getParam( "r1"          , o.len_maj_o) 
 	    || getParam( "objLen"   , o.len_maj_o)
 		|| getParam( "objLenMaj", o.len_maj_o)
 		|| getParam( "objLenMajor" , o.len_maj_o)
 		|| getParam( "objMajorLen" , o.len_maj_o)
 		|| getParam( "objMajLen" , o.len_maj_o);
-		getParam( "ry"          , o.len_min_o)
+		getParam( "objLenY" , o.len_maj_o)
+		|| getParam( "ry"          , o.len_min_o)
 		|| getParam( "r2"          , o.len_min_o)
 		|| getParam( "objLenMinor" , o.len_min_o) 
 		|| getParam( "objLenMin"   , o.len_min_o)
 		|| getParam( "objMinorLen" , o.len_min_o)
+
 		|| getParam( "objMinLen"   , o.len_min_o);
 		
 		getParam( "objSpin"     , o.spin);
@@ -93,7 +96,6 @@ bool MovingObjects::init()
 		getParam( "objYinit"    , o.pos_o.y); 
 		getParam( "targetcycle" , o.targetcycle);
 		getParam( "speedcycle"  , o.speedcycle);
-		getParam( "delay"       , o.delay);  // delay from start of tr to stim onset;
 		getParam( "objcolor"    , o.color);
 									
 		paramSuffixPop();
@@ -124,6 +126,10 @@ bool MovingObjects::init()
 	if(!getParam( "jitterlocal" , jitterlocal))  jitterlocal = false;
 	if(!getParam( "jittermag" , jittermag))	     jittermag = DEFAULT_JITTERMAG;
 
+	if (!getParam("ft_change_frame_cycle", ftChangeEvery) && !getParam("ftrack_change_frame_cycle",ftChangeEvery) 
+		&& !getParam("ftrack_change_cycle",ftChangeEvery) && !getParam("ftrack_change",ftChangeEvery)) 
+		ftChangeEvery = 0; // override default for movingobjects it is 0 which means autocompute
+	
 
 	if (!getParam("wrapEdge", wrapEdge) && !getParam("wrap", wrapEdge)) 
 			wrapEdge = false;
@@ -139,10 +145,10 @@ bool MovingObjects::init()
 	frameVars->setVariableNames(QString("frameNum objNum subFrameNum objType(0=box,1=ellipse) x y r1 r2 phi color").split(QString(" ")));
 	
 	
-	if (ftChangeEvery <= -1 && tframes > 0) {
+	if (ftChangeEvery == 0 && tframes > 0) {
 		Log() << "Auto-set ftrack_change variable: FT_Change will be asserted every " << tframes << " frames.";		
 		ftChangeEvery = tframes;
-	} else if (ftChangeEvery > -1 && tframes > 0 && ftChangeEvery != tframes) {
+	} else if (ftChangeEvery > 0 && tframes > 0 && ftChangeEvery != tframes) {
 		Warning() << "ftrack_change was defined in configuration and so was tframes (target cycle / speed cycle) but ftrack_change != tframes!";
 	}
 	// NB: the below is a performance optimization for Shapes such as Ellipse and Rectangle which create 1 display list per 
@@ -252,9 +258,7 @@ void MovingObjects::doFrameDraw()
 		
 		double objLen (o.shape->scale.x * objLen_o), objLen_min (o.shape->scale.y * objLen_min_o); 
 		int & tcyclecount(o.tcyclecount);
-		const int & targetcycle(o.targetcycle),
-		          & speedcycle(o.speedcycle),
-		          & delay(o.delay);
+		const int & targetcycle(o.targetcycle), & speedcycle(o.speedcycle);
 
 		// local target jitter
 		if (jitterlocal) {
@@ -407,12 +411,13 @@ void MovingObjects::doFrameDraw()
 								vx = ran1Gen()*objVelx*2 - objVelx;
 								vy = ran1Gen()*objVely*2 - objVely; 
 							}
+							objPhi = o.phi_o;
 							
 						}
 
 						// update position after delay period
 						// if jitter pushes us outside of motion box then do not jitter this frame
-						if ((int(frameNum)%tframes - delay) > 0) { 
+						if ((int(frameNum)%tframes /*- delay*/) > 0) { 
 							if (!wrapEdge && ((x + vx + aabb.size.w/2 + jitterx > max_x_pix) 
 											  ||  (x + vx - aabb.size.w/2 + jitterx < min_x_pix)))
 								x += vx;
@@ -433,7 +438,7 @@ void MovingObjects::doFrameDraw()
 				} //  end !have_fv_input_file
 
 				// draw stim if out of delay period
-				if (fv.size() || (int(frameNum)%tframes - delay) >= 0) {
+				if (fv.size() || (int(frameNum)%tframes /*- delay*/) >= 0) {
 					float r,g,b;
 
 					if (fps_mode == FPS_Triple || fps_mode == FPS_Dual) {

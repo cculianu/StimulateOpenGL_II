@@ -56,6 +56,8 @@ protected:
     void pluginCreated(StimPlugin *plugin);
     /// Plugins call this method when they want to tell the execution engine that they have been started
     void pluginStarted(StimPlugin *plugin);
+	/// Plugins call this method at the end of their start() method to signal that they have just finished initialization
+	void pluginDidFinishInit(StimPlugin *plugin);
     /// Plugins call this method when they want to tell the execution engine that they have been stopped
     void pluginStopped(StimPlugin *plugin);
     /// Plugins call this method to inform the execution engine that they are being deleted and should be dereferenced from any internal data structures.
@@ -91,11 +93,14 @@ private:
      QList<StimPlugin *> pluginsList;
      QTimer *timer;
 
-     void initPlugins();     
+     void initPlugins(); 
+	 void drawEndStateBlankScreen(StimPlugin *);
+	 void drawEndStateBlankScreenImmediately(StimPlugin *);
 
      bool paused, tooFastWarned;
      unsigned lastHWFC; ///< last hardware frame count, only iff platform has an accurate hwfc
      double tThisFrame, tLastFrame, tLastLastFrame;
+ 	 int delayCtr;
 	
 	bool debugLogFrames;
 };

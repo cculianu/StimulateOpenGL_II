@@ -82,7 +82,7 @@ public:
     /// start the plugin -- marks the plugin as 'running' with the GLWindow and calls init(), then emits 'started' signal.  If reimplementing, call super.
     virtual bool start(bool startUnpaused = false);
     /// stop the plugin -- marks the plugin as 'not running' with the GLWindow, calls cleanup(), then emits 'stopped' signal.  If reimplementig, call super
-    virtual void stop(bool doSave = false, bool use_gui = false);
+    virtual void stop(bool doSave = false, bool use_gui = false, bool softStop = false);
 
     /// just calls QObject::objectName()
     QString name() const { return objectName(); }
@@ -248,6 +248,7 @@ protected:
 	int ftrackbox_x, ftrackbox_y, ftrackbox_w;
 	FPS_Mode fps_mode; ///< one of FPS_Single, FPS_Dual, FPS_Triple, FPS_Quad (this currently means triple!)
 	float bgcolor;
+	int delay;
 	char color_order[3]; ///< "bgr" or "rgb" or "brg" or "gbr" or "grb" or "rbg"  -- defaults to "rgb" if not specified.
 	
 	int b_index, r_index, g_index; ///< index of brg values in above color_order param.  
@@ -267,7 +268,7 @@ protected:
 	Vec3 ftStateColors[N_FTStates];
 	FTState currentFTState;
 	bool ftAssertions[N_FTStates]; ///< child plugins assert these flags for a particular frame to override default off/on behavior. These flags only last for 1 frame.
-	int ftChangeEvery; ///< if > -1, auto-assert FT_Change when (frameNum % ftChangeEvery) == 0
+	int ftChangeEvery; ///< if > 0, auto-assert FT_Change when (frameNum % ftChangeEvery) == 0.  0 means auto-computer (only movingobjects support auto-compute) and <0 means off
 	bool softCleanup; ///< flag used by some plugins internally when they are being restarted. normally always false
 	
 	/// handle FTState transitions.. called right before drawing the frame track box.  Takes into account ftAssertions

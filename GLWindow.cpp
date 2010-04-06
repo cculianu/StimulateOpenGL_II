@@ -16,7 +16,7 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 #ifdef Q_OS_WIN														
 															Qt::MSWindowsOwnDC|
 #endif
-															(frameless ? Qt::FramelessWindowHint : 0))), aMode(false), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.), debugLogFrames(false)
+															(frameless ? Qt::FramelessWindowHint : 0))), aMode(false), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.), delayCtr(0), debugLogFrames(false)
 {
     QSize s(w, h);
     setMaximumSize(s);
@@ -99,6 +99,29 @@ void GLWindow::resizeGL(int w, int h)
     gluOrtho2D( 0.0, (GLdouble)w, 0.0, (GLdouble) h );
 }
 
+
+void GLWindow::drawEndStateBlankScreen(StimPlugin *p) {
+	float color[4];
+	GLboolean blend;
+	const float graylevel = p->bgcolor;	
+	glGetFloatv(GL_COLOR_CLEAR_VALUE, color);
+	glGetBooleanv(GL_BLEND, &blend);
+	
+	glClearColor(graylevel, graylevel, graylevel, 1.0f);
+	if (blend) glDisable(GL_BLEND);
+	glClear(GL_COLOR_BUFFER_BIT);
+	p->currentFTState = StimPlugin::FT_End;
+	p->drawFTBox();
+	if (blend) glEnable(GL_BLEND);
+	glClearColor(color[0], color[1], color[2], color[3]);	
+}
+
+void GLWindow::drawEndStateBlankScreenImmediately(StimPlugin *p)
+{	
+	drawEndStateBlankScreen(p);
+	swapBuffers(); ///< wait for vsync..
+}
+
 // draw each frame
 void GLWindow::paintGL()
 {
@@ -144,7 +167,7 @@ void GLWindow::paintGL()
     }
     tooFastWarned = false;
 
-    if (tooSlow) {
+    if (tooSlow && !stimApp()->isNoDropFrameWarn()) {
         Warning() << "Dropped frame " << getHWFrameCount();
     }
                
@@ -159,6 +182,8 @@ void GLWindow::paintGL()
 	} else
 		glClearColor(0.5, 0.5, 0.5, 1.0);
 
+	///bool dframe = false;
+	
     if (!paused) {
         // NB: don't clear here, let the plugin do clearing as an optimization
         // glClear( GL_COLOR_BUFFER_BIT );
@@ -169,40 +194,74 @@ void GLWindow::paintGL()
                 running->putMissedFrame(static_cast<unsigned>((tThisFrame-tLastFrame)*1e3));
             running->cycleTimeLeft = 1.0/getHWRefreshRate();
             running->computeFPS();
-
+				
 			// if nFrames mode and frameNum >= nFrames.. loop plugin by stopping then restarting
 			if (running->nFrames && running->frameNum >= running->nFrames) {
 				const unsigned loopCt = running->loopCt + 1, nLoops = running->nLoops;
 				StimPlugin * const p = running;
 				const bool doRestart = !nLoops || loopCt < nLoops;
+				const bool hadDelay = (delayCtr = p->delay) > 0;
 				p->softCleanup = doRestart;
-				p->stop(false,false);
+				p->stop(false,false,doRestart);
 				if (doRestart) {
+					if (delayCtr-- > 0) {
+						// force screen clear *NOW* as per Anthony's specs, so that we don't hang on last frame forever..
+						drawEndStateBlankScreenImmediately(p);
+						/*
+						/// XXX
+						Warning() << "looped, drew delayframe, hwfc=" << getHWFrameCount();
+						dframe = true;
+						 */
+					}
+					const double t0 = getTime();
+					const int saved_delayCtr = delayCtr;
+					p->loopCt = loopCt;
 					p->start(true);
+					delayCtr = saved_delayCtr;
+					const double tRestart = getTime() - t0;
+					delayCtr -= int( tRestart * getHWRefreshRate() ); ///< this many frames have elapsed during startup, so reduce our delay Ctr by that much
+					if (hadDelay && delayCtr < 0) {
+						Warning() << "Inter-loop restart/setup time of " << tRestart << "s took longer than delay=" << p->delay << " frames!  Increase `delay' to avoid this situation!";
+					}
+					/*
+					/// XXX
+					Warning() << "reinitted, tRestart=" << tRestart << ", hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
+					dframe = true;
+					 */
+					
 					p->loopCt = loopCt;
 					p->frameVars->closeAndRemoveOutput(); /// remove redundant frame var file!
-				}
+				} else
+					delayCtr = 0;
 			}
-			// note: code above may have stopped plugin, check if it's still running
-			if (running) {
-				running->drawFrame();
-			}
-			
-			if (running) { // NB: drawFrame may have called stop(), thus NULLing this pointer
-				running->advanceFTState(); // NB: this asserts FT_Start/FT_Change/FT_End flag, if need be, etc, and otherwise decides whith FT color to us.  Looks at running->nFrames, etc
-				running->drawFTBox();
-				if (debugLogFrames) running->logBackbufferToDisk();
-				++running->frameNum;				
+			if (running && delayCtr > 0) {
+				drawEndStateBlankScreen(running); ///< this draws the FT box in the end state
+				--delayCtr;
 				doBufSwap = true;
-			} 			
+			} else if (running) { // note: code above may have stopped plugin, check if it's still running
+			
+				running->drawFrame();
+				
+				if (running) { // NB: drawFrame may have called stop(), thus NULLing this pointer, so check it again
+					running->advanceFTState(); // NB: this asserts FT_Start/FT_Change/FT_End flag, if need be, etc, and otherwise decides whith FT color to us.  Looks at running->nFrames, etc
+					running->drawFTBox();
+					if (debugLogFrames) running->logBackbufferToDisk();
+					++running->frameNum;				
+					doBufSwap = true;
+				} 			
+			}
         }
     }
-    if (!running /* if we aren't running, always clear!*/
-        || (running && running->getFrameNum() < 0) ) /* paused, before we drew anything */
-    { 
+	if (!running) {  
+		// no plugin running, draw default .5 gray bg without ft box
         glClear( GL_COLOR_BUFFER_BIT );
-        doBufSwap = true;
-    }
+        doBufSwap = true;		
+    } else if (running && running->getFrameNum() < 0 && delayCtr <= 0) { 
+		// running but paused and before plugin started (and not delay mode because that's handled above!)
+		// if so, draw plugin bg with ftrack_end box
+		drawEndStateBlankScreen(running);
+		doBufSwap = true;
+	}
 
     tLastLastFrame = tLastFrame;
     tLastFrame = tThisFrame;
@@ -210,6 +269,11 @@ void GLWindow::paintGL()
     if (doBufSwap) {// doBufSwap is normally true either if we don't have aMode or if we have a plugin and it is running and not paused
 
 		swapBuffers();// should wait for vsync...   
+		
+		/// XXX
+		/*if (dframe) {
+			Warning() << " dframe, after buf swap hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
+		}*/
 		
 		QString devChan;
 		if (running && !paused && running->frameNum == 1 && running->getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {
@@ -256,16 +320,15 @@ void GLWindow::pluginStarted(StimPlugin *p)
 
 }
 
+void GLWindow::pluginDidFinishInit(StimPlugin *p) {
+	delayCtr = p->delay;
+}
+
 void GLWindow::pluginStopped(StimPlugin *p)
 {
 	if (running != p)
 		Error() << "pluginStopped() but running != p";
     if (running == p) {
-		
-		QString devChan;
-		if (running && running->getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {
-			DAQ::WriteDO(devChan, false);
-		}
 		
         running = 0;
         paused = false;
@@ -370,7 +433,8 @@ void GLWindow::pauseUnpause()
     if (!running) return;
     paused = !paused;
     Log() << (paused ? "Paused" : "Unpaused");
-    if (!paused && !running->frameNum && running->needNotifyStart) 
+    if (!paused && !running->frameNum && running->needNotifyStart
+		&& ((stimApp()->leoDAQGLNotifyParams.nloopsNotifyPerIter || running->loopCt == 0)) ) 
         running->notifySpikeGLAboutStart();  
 }
 

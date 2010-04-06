@@ -65,7 +65,7 @@ extern bool hasExt(const char *gl_ext);
 /// -- implemented in osdep.cpp
 extern void setVSyncMode(); 
 
-/// retrieve a time value from the system's high resolution timer
+/// retrieve a time value from the system's high resolution timer, in seconds
 extern double getTime();
 
 /// retrieve the frame count from the GLX_SGI_video_sync ext
