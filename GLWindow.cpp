@@ -201,7 +201,6 @@ void GLWindow::paintGL()
 				StimPlugin * const p = running;
 				const bool doRestart = !nLoops || loopCt < nLoops;
 				const bool hadDelay = (delayCtr = p->delay) > 0;
-				p->softCleanup = doRestart;
 				p->stop(false,false,doRestart);
 				if (doRestart) {
 					if (delayCtr-- > 0) {
@@ -209,7 +208,7 @@ void GLWindow::paintGL()
 						drawEndStateBlankScreenImmediately(p);
 						/*
 						/// XXX
-						Warning() << "looped, drew delayframe, hwfc=" << getHWFrameCount();
+						Debug() << "looped, drew delayframe, hwfc=" << getHWFrameCount();
 						dframe = true;
 						 */
 					}
@@ -225,7 +224,7 @@ void GLWindow::paintGL()
 					}
 					/*
 					/// XXX
-					Warning() << "reinitted, tRestart=" << tRestart << ", hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
+					Debug() << "reinitted, tRestart=" << tRestart << ", hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
 					dframe = true;
 					 */
 					
@@ -272,7 +271,7 @@ void GLWindow::paintGL()
 		
 		/// XXX
 		/*if (dframe) {
-			Warning() << " dframe, after buf swap hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
+			Debug() << " dframe, after buf swap hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
 		}*/
 		
 		QString devChan;

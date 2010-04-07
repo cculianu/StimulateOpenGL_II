@@ -45,6 +45,7 @@ bool StimPlugin::saveData(bool use_gui)
 
 void StimPlugin::stop(bool doSave, bool useGui, bool softStop)
 {
+	softCleanup = softStop;
     endtime = QDateTime::currentDateTime();
     if (doSave) {
         saveData(useGui);

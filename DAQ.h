@@ -22,6 +22,10 @@
 
 namespace DAQ
 {
+	
+	/// Call this to determine if DAQ drivers and hardware is available on this platform.  If false, you should not do any DAQ calls and gray out GUI functionality, etc for NI stuff..
+	bool Available(); 
+	
     struct Range {
         double min, max;
         Range() : min(0.), max(0.) {}
@@ -81,6 +85,7 @@ namespace DAQ
     double   MinimumSampleRate(const QString & devname);
 
     QString  GetProductName(const QString &devname);
+	
     //-------- END NI DAQmx helper methods -------------
 
 } // end namespace DAQ
