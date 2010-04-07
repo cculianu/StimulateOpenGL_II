@@ -78,16 +78,17 @@ bool MovingObjects::init()
 		|| getParam( "objLenMaj", o.len_maj_o)
 		|| getParam( "objLenMajor" , o.len_maj_o)
 		|| getParam( "objMajorLen" , o.len_maj_o)
-		|| getParam( "objMajLen" , o.len_maj_o);
+		|| getParam( "objMajLen" , o.len_maj_o)
+		|| getParam( "xradius"   , o.len_maj_o);
 		getParam( "objLenY" , o.len_maj_o)
 		|| getParam( "ry"          , o.len_min_o)
 		|| getParam( "r2"          , o.len_min_o)
 		|| getParam( "objLenMinor" , o.len_min_o) 
 		|| getParam( "objLenMin"   , o.len_min_o)
 		|| getParam( "objMinorLen" , o.len_min_o)
+		|| getParam( "objMinLen"   , o.len_min_o)
+		|| getParam( "yradius"   , o.len_min_o);
 
-		|| getParam( "objMinLen"   , o.len_min_o);
-		
 		getParam( "objSpin"     , o.spin);
 		getParam( "objPhi" , o.phi_o) || getParam( "phi", o.phi_o );  
 		getParam( "objVelx"     , o.vel_o.x); 

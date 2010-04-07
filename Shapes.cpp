@@ -154,7 +154,7 @@ Rect Rectangle::AABB() const {
 	
 	// else.. we are not rotatated
 	// since we are aligned to origin, return *this rectangle* (scaled)
-	return Rect(Vec2(-width/2. * scale.x, -height/2. * scale.y), Vec2(width*scale.x, height*scale.y));
+	return Rect(Vec2(-width/2. * scale.x + position.x, -height/2. * scale.y + position.y), Vec2(width*scale.x, height*scale.y));
 }
 
 void InitStaticDisplayLists() {

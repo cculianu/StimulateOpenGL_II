@@ -60,7 +60,7 @@ void StimPlugin::stop(bool doSave, bool useGui, bool softStop)
     }
 	// Next, write to DO that we stopped...
 	QString devChan;
-	if (getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {
+	if (!softStop && getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {
 		DAQ::WriteDO(devChan, false);
 	}
 	    
