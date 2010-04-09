@@ -270,7 +270,7 @@ protected:
 	bool ftAssertions[N_FTStates]; ///< child plugins assert these flags for a particular frame to override default off/on behavior. These flags only last for 1 frame.
 	int ftChangeEvery; ///< if > 0, auto-assert FT_Change when (frameNum % ftChangeEvery) == 0.  0 means auto-computer (only movingobjects support auto-compute) and <0 means off
 	bool softCleanup; ///< flag used by some plugins internally when they are being restarted. normally always false
-	
+		
 	/// handle FTState transitions.. called right before drawing the frame track box.  Takes into account ftAssertions
 	virtual void advanceFTState(); 
 	
@@ -378,6 +378,9 @@ namespace {
 
 // specialization for strings
 template <> bool StimPlugin::getParam<QString>(const QString & name, QString & out) const;
+
+// specialization for QVector of doubles -- a comma-separated list
+template <> bool StimPlugin::getParam<QVector<double> >(const QString & name, QVector<double> & out) const;
 
 // templatized functions for reading parameters
 template <typename T> 

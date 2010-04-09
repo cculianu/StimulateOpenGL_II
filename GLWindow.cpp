@@ -196,7 +196,8 @@ void GLWindow::paintGL()
             running->computeFPS();
 				
 			// if nFrames mode and frameNum >= nFrames.. loop plugin by stopping then restarting
-			if (running->nFrames && running->frameNum >= running->nFrames) {
+			if ((running->nFrames && running->frameNum >= running->nFrames)
+				|| (running->have_fv_input_file && running->frameVars->atEnd())) { /// or if reading framevar file and it ended..
 				const unsigned loopCt = running->loopCt + 1, nLoops = running->nLoops;
 				StimPlugin * const p = running;
 				const bool doRestart = !nLoops || loopCt < nLoops;

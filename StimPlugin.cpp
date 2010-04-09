@@ -608,3 +608,21 @@ template <> bool StimPlugin::getParam<QString>(const QString & name, QString & o
 	}
 	return false;        
 }
+
+// specialization for QVector of doubles -- a comma-separated list
+template <> bool StimPlugin::getParam<QVector<double> >(const QString & name, QVector<double> & out) const
+{
+	QString s;
+	bool b = getParam(name, s);
+	if (b) {
+		QStringList comps = s.split(QRegExp("\\s*(,|\\s)\\s*"), QString::SkipEmptyParts);
+		out.resize(comps.count());
+		int i = 0;
+		for (QStringList::const_iterator it = comps.begin(); it != comps.end(); ++it, ++i) {
+			bool ok;
+			out[i] = (*it).toDouble(&ok);
+			if (!ok) out[i] = 0.;
+		}
+	}
+	return b;
+}

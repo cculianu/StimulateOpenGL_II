@@ -44,12 +44,12 @@ private:
 		ObjType type; /// box or disk or ellipse
 		Shapes::Shape *shape; ///< pointer to object's geometry drawing implementation (see Shapes.h)
 		float jitterx, jittery;
-		float len_maj_o, len_min_o; ///< original lengths: for box, len_maj == len_min.  for ellipse, len_maj is the xradius, len_min the yradius..
 		float phi_o; ///< phi and original phi, or rotation
 		Vec2 v, vel,  // working velocity and real velocity?
-		     vel_o, pos_o; // original velocity, position, for targetcycle stuff
+		     pos_o; // original velocity, position, for targetcycle stuff
 		float spin; // default is 0.. otherwise spin is applied to object per-frame
-		int tcyclecount, targetcycle, speedcycle;
+		QVector<Vec2> len_vec, vel_vec; ///< new targetcycle/speedcycle support for length and velocity vectors		
+		int len_vec_i, vel_vec_i;
 		float color; // intensity value
 		
 		ObjData(); // init all to 0

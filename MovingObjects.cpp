@@ -30,13 +30,17 @@ MovingObjects::ObjData::ObjData() : shape(0) { initDefaults(); }
 void MovingObjects::ObjData::initDefaults() {
 	if (shape) delete shape, shape = 0;
 	type = DEFAULT_TYPE, jitterx = 0, jittery = 0, 
-	len_maj_o = DEFAULT_LEN, 
-	len_min_o = DEFAULT_LEN,
 	phi_o = 0.;
 	spin = 0.;
-	vel_o = Vec2(DEFAULT_VEL,DEFAULT_VEL), pos_o = Vec2(DEFAULT_POS_X,DEFAULT_POS_Y),
-	v = vel_o, vel = vel_o,
-	tcyclecount = 0, targetcycle = 0, speedcycle = 0, color = DEFAULT_OBJCOLOR;
+	vel_vec_i = -1;
+	len_vec_i = 0;
+	len_vec.resize(1);
+	vel_vec.resize(1);
+	len_vec[0] = Vec2(DEFAULT_LEN, DEFAULT_LEN);
+	vel_vec[0] = Vec2(DEFAULT_VEL,DEFAULT_VEL);
+	pos_o = Vec2(DEFAULT_POS_X,DEFAULT_POS_Y);
+	v = vel_vec[0], vel = vel_vec[0];
+	color = DEFAULT_OBJCOLOR;
 }
 
 bool MovingObjects::init()
@@ -51,6 +55,8 @@ bool MovingObjects::init()
 	
 	if (!getParam("numObj", numObj)
 		&& !getParam("numObjs", numObj) ) numObj = 1;
+	
+	int numSizes = -1, numSpeeds = -1;
 	
 	for (int i = 0; i < numObj; ++i) {
 		if (i > 0)	paramSuffixPush(QString::number(i+1)); // make the additional obj params end in a number
@@ -70,33 +76,72 @@ bool MovingObjects::init()
 				o.type = BoxType;
 		}
 		
+		QVector<double> r1, r2;
 		// be really tolerant with object maj/minor length variable names 
-		getParam( "objLenX" , o.len_maj_o)
-		|| getParam( "rx"          , o.len_maj_o) 
-		|| getParam( "r1"          , o.len_maj_o) 
-	    || getParam( "objLen"   , o.len_maj_o)
-		|| getParam( "objLenMaj", o.len_maj_o)
-		|| getParam( "objLenMajor" , o.len_maj_o)
-		|| getParam( "objMajorLen" , o.len_maj_o)
-		|| getParam( "objMajLen" , o.len_maj_o)
-		|| getParam( "xradius"   , o.len_maj_o);
-		getParam( "objLenY" , o.len_maj_o)
-		|| getParam( "ry"          , o.len_min_o)
-		|| getParam( "r2"          , o.len_min_o)
-		|| getParam( "objLenMinor" , o.len_min_o) 
-		|| getParam( "objLenMin"   , o.len_min_o)
-		|| getParam( "objMinorLen" , o.len_min_o)
-		|| getParam( "objMinLen"   , o.len_min_o)
-		|| getParam( "yradius"   , o.len_min_o);
-
+		getParam( "objLenX" , r1)
+		|| getParam( "rx"          , r1) 
+		|| getParam( "r1"          , r1) 
+	    || getParam( "objLen"   , r1)
+		|| getParam( "objLenMaj", r1)
+		|| getParam( "objLenMajor" , r1)
+		|| getParam( "objMajorLen" , r1)
+		|| getParam( "objMajLen" , r1)
+		|| getParam( "xradius"   , r1);
+		getParam( "objLenY" , r2)
+		|| getParam( "ry"          , r2)
+		|| getParam( "r2"          , r2)
+		|| getParam( "objLenMinor" , r2) 
+		|| getParam( "objLenMin"   , r2)
+		|| getParam( "objMinorLen" , r2)
+		|| getParam( "objMinLen"   , r2)
+		|| getParam( "yradius"   , r2);
+		
+		if (!r2.size()) r2 = r1;
+		if (r1.size() != r2.size()) {
+			Error() << "Target size vectors mismatch for object " << i+1 << ": Specify two comma-separated lists (of the same length):  objLenX and objLenY, to create the targetSize vector!";
+			return false;
+		}
+		o.len_vec.resize(r1.size());
+		for (int j = 0; j < r1.size(); ++j)
+			o.len_vec[j] = Vec2(r1[j], r2[j]);
+		
+		if (!o.len_vec.size()) {
+			if (i) o.len_vec = objs.front().len_vec; // grab the lengths from predecessor if not specified
+			else { o.len_vec.resize(1); o.len_vec[0] = Vec2Zero; }
+		}
+		if (numSizes < 0) numSizes = o.len_vec.size();
+		else if (numSizes != o.len_vec.size()) {
+			Error() << "Object " << i+1 << " has a lengths vector of size " << o.len_vec.size() << " but size " << numSizes << " was expected. All objects should have the same-sized lengths vector!";
+			return false;
+		}
+		
 		getParam( "objSpin"     , o.spin);
 		getParam( "objPhi" , o.phi_o) || getParam( "phi", o.phi_o );  
-		getParam( "objVelx"     , o.vel_o.x); 
-		getParam( "objVely"     , o.vel_o.y); o.vel = o.vel_o;
+		QVector<double> vx, vy;
+		getParam( "objVelx"     , vx); 
+		getParam( "objVely"     , vy); 
+		if (!vy.size()) vy = vx;
+		if (vx.size() != vy.size()) {
+			Error() << "Target velocity vectors mismatch for object " << i+1 << ": Specify two comma-separated lists (of the same length):  objVelX and objVelY, to create the targetVelocities vector!";
+			return false;			
+		}
+		o.vel_vec.resize(vx.size());
+		for (int j = 0; j < vx.size(); ++j) {
+			o.vel_vec[j] = Vec2(vx[j], vy[j]);
+		}
+		if (!o.vel_vec.size()) {
+			if (i) o.vel_vec = objs.front().vel_vec;
+			else { o.vel_vec.resize(1); o.vel_vec[0] = Vec2Zero; }
+		}
+		if (numSpeeds < 0) numSpeeds = o.vel_vec.size();
+		else if (numSpeeds != o.vel_vec.size()) {
+			Error() << "Object " << i+1 << " has a velocities vector of size " << o.vel_vec.size() << " but size " << numSpeeds << " was expected. All objects should have the same-sized velocities vector!";
+			return false;
+		}
+		o.vel = o.vel_vec[0];
+		o.v = Vec2Zero;
 		getParam( "objXinit"    , o.pos_o.x); 
 		getParam( "objYinit"    , o.pos_o.y); 
-		getParam( "targetcycle" , o.targetcycle);
-		getParam( "speedcycle"  , o.speedcycle);
 		getParam( "objcolor"    , o.color);
 									
 		paramSuffixPop();
@@ -123,7 +168,11 @@ bool MovingObjects::init()
 	if(!getParam( "rseed" , rseed))              rseed = -1;  //set start point of rnd seed;
         ran1Gen.reseed(rseed);
 	if(!getParam( "tframes" , tframes) || tframes <= 0) tframes = DEFAULT_TFRAMES, ftChangeEvery = -1; 
-
+	if (tframes <= 0 && (numSpeeds > 1 || numSizes > 1)) {
+		Error() << "tframes needs to be specified because either the lengths vector or the speeds vector has length > 1!";
+		return false;	
+	}
+	
 	if(!getParam( "jitterlocal" , jitterlocal))  jitterlocal = false;
 	if(!getParam( "jittermag" , jittermag))	     jittermag = DEFAULT_JITTERMAG;
 
@@ -140,6 +189,12 @@ bool MovingObjects::init()
 
 	initObjs();
 	
+	QString dummy;
+	if (getParam("targetcycle", dummy) || getParam("speedcycle", dummy)) {
+		Error() << "targetcycle and speedcycle params are no longer supported!  Instead, pass a comma-separated-list for the velocities and object sizes!";
+		return false;
+	}
+	
     // the object area AABB -- a rect constrained by min_x_pix,min_y_pix and max_x_pix,max_y_pix
 	canvasAABB = Rect(Vec2(min_x_pix, min_y_pix), Vec2(max_x_pix-min_x_pix, max_y_pix-min_y_pix)); 
 
@@ -152,6 +207,11 @@ bool MovingObjects::init()
 	} else if (ftChangeEvery > 0 && tframes > 0 && ftChangeEvery != tframes) {
 		Warning() << "ftrack_change was defined in configuration and so was tframes (target cycle / speed cycle) but ftrack_change != tframes!";
 	}
+	if (!have_fv_input_file && int(nFrames) != tframes * numSizes * numSpeeds) {
+		int oldnFrames = nFrames;
+		nFrames = tframes * numSpeeds * numSizes;
+		Warning() << "nFrames was " << oldnFrames << ", auto-set to match tframes*length(speeds)*length(sizes) = " << nFrames << "!";
+	}
 	// NB: the below is a performance optimization for Shapes such as Ellipse and Rectangle which create 1 display list per 
 	// object -- the below ensures that the shared static display list is compiled after init is done so that we don't have to compile one later
 	// while the plugin is running
@@ -162,9 +222,9 @@ bool MovingObjects::init()
 
 void MovingObjects::initObj(ObjData & o) {
 	if (o.type == EllipseType) {
-		o.shape = new Shapes::Ellipse(o.len_maj_o, o.len_min_o);
+		o.shape = new Shapes::Ellipse(o.len_vec[0].x, o.len_vec[0].y);
 	} else {  // box, etc
-		o.shape = new Shapes::Rectangle(o.len_maj_o, o.len_min_o);
+		o.shape = new Shapes::Rectangle(o.len_vec[0].x, o.len_vec[0].y);
 	}
 	o.shape->position = o.pos_o;	
 	o.shape->noMatrixAttribPush = true; ///< performance hack
@@ -245,12 +305,10 @@ void MovingObjects::doFrameDraw()
 		       & objVelx (o.vel.x),
 		       & objVely (o.vel.y);
 		const double
-		       & objVelx_o (o.vel_o.x),
-		       & objVely_o (o.vel_o.y),
 		       & objXinit (o.pos_o.x),
 			   & objYinit (o.pos_o.y);
 		
-		const float  & objLen_o (o.len_maj_o), & objLen_min_o (o.len_min_o);
+		const double  & objLen_o (o.len_vec[0].x), & objLen_min_o (o.len_vec[0].y);
 		double  & objPhi (o.shape->angle); 
 		
 		float  & jitterx (o.jitterx), & jittery (o.jittery);
@@ -258,8 +316,6 @@ void MovingObjects::doFrameDraw()
 		float  & objcolor (o.color);
 		
 		double objLen (o.shape->scale.x * objLen_o), objLen_min (o.shape->scale.y * objLen_min_o); 
-		int & tcyclecount(o.tcyclecount);
-		const int & targetcycle(o.targetcycle), & speedcycle(o.speedcycle);
 
 		// local target jitter
 		if (jitterlocal) {
@@ -311,8 +367,7 @@ void MovingObjects::doFrameDraw()
 						if (otype != o.type || !eqf(r1, objLen) || !eqf(r2, objLen_min)) {
 							delete o.shape;							
 							o.type = otype;
-							o.len_maj_o = r1;
-							o.len_min_o = r2;
+							o.len_vec[0] = Vec2(r1,r2);
 							didInitLen = true;
 							initObj(o);
 						}		
@@ -371,40 +426,29 @@ void MovingObjects::doFrameDraw()
 
 						// initialize position iff k==0 and frameNum is a multiple of tframes
 						if ( !k && !(frameNum%tframes)) {
-						
-							// update target size if size-series
-							if ((targetcycle > 0) && (frameNum > 0)) {
-								if (++tcyclecount == targetcycle) {
-									tcyclecount = 0;
-									objLen = objLen_o; // if targetcycle done, reset objLen
-									objLen_min = objLen_min_o;
-								} else {
-									objLen *= 2.; // double target size every tframes
-									objLen_min *= 2.;
-								}
+							if (++o.vel_vec_i >= o.vel_vec.size()) {
+								o.vel_vec_i = 0;
+								++o.len_vec_i;
+							}
+							if (o.len_vec_i >= o.len_vec.size()) o.len_vec_i = 0;
+							
+							objLen = o.len_vec[o.len_vec_i].x;
+							objLen_min = o.len_vec[o.len_vec_i].y;
+							
 								
-								// apply new length by adjusting object scale
-								o.shape->scale.x = objLen / objLen_o;
-								o.shape->scale.y = objLen_min / objLen_min_o;
-							}
+							// apply new length by adjusting object scale
+							o.shape->scale.x = objLen / objLen_o;
+							o.shape->scale.y = objLen_min / objLen_min_o;
+							
+							objVelx = o.vel_vec[o.vel_vec_i].x;
+							objVely = o.vel_vec[o.vel_vec_i].y;
 						
-							if ((speedcycle > 0) && (frameNum > 0)) {
-								if (++tcyclecount == speedcycle) {
-									tcyclecount = 0;
-									objVelx = objVelx_o; // if targetcycle done, reset velocity
-									objVely = objVely_o; // if targetcycle done, reset velocity
-								}
-								else {
-									objVelx = objVelx*2; // double target velocity every tframes
-									objVely = objVely*2; // double target velocity every tframes
-								}
-							}
 							// init position
 							if (!rndtrial) {
 								x = objXinit;
 								y = objYinit;
-								vx = objVelx; //ran1( seed ) * 10;
-								vy = objVely; //ran1( seed ) * 10;
+								vx = objVelx; 
+								vy = objVely; 
 							}
 							else {
 								x = ran1Gen()*mon_x_pix;

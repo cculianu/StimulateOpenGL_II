@@ -46,6 +46,8 @@ public:
 	
 	/// called by GLWindow when nLoops and looptCt > 0
 	void closeAndRemoveOutput();
+	
+	bool atEnd() const { return inp.curr_row >= inp.nrows; }
 
 private:
 	static QStringList splitHeader(const QString & ln);
