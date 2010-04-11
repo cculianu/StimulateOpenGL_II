@@ -319,10 +319,6 @@ bool CheckerFlicker::init()
 		else contrast = 0.3f;
 	}
 
-	if( !getParam("lmargin", lmargin) ) lmargin = 0;
-	if( !getParam("rmargin", rmargin) ) rmargin = 0;
-	if( !getParam("bmargin", bmargin) ) bmargin = 0;
-	if( !getParam("tmargin", tmargin) ) tmargin = 0;
         if( !getParam("fbo", fbo) ) fbo = 0;
         if( !fbo && !getParam("prerender", fbo) ) fbo = 0;        
         fbos = 0;

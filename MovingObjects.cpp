@@ -148,16 +148,6 @@ bool MovingObjects::init()
 		
 	}
 
-	// use these for setting angular size and speed
-	if(!getParam( "mon_x_pix" , mon_x_pix))	     mon_x_pix = width();
-	if(!getParam( "mon_y_pix" , mon_y_pix))	     mon_y_pix = height();
-
-	// bounding box for motion
-	if(!getParam( "max_x_pix" , max_x_pix))	     max_x_pix = mon_x_pix;
-	if(!getParam( "min_x_pix" , min_x_pix))	     min_x_pix = 0;
-	if(!getParam( "max_y_pix" , max_y_pix))	     max_y_pix = mon_y_pix;
-	if(!getParam( "min_y_pix" , min_y_pix))	     min_y_pix = 0;
-
 	// note bgcolor already set in StimPlugin, re-default it to 1.0 if not set in data file
 	if(!getParam( "bgcolor" , bgcolor))	     bgcolor = 1.;
 
@@ -194,7 +184,18 @@ bool MovingObjects::init()
 		Error() << "targetcycle and speedcycle params are no longer supported!  Instead, pass a comma-separated-list for the velocities and object sizes!";
 		return false;
 	}
-	
+
+	if ( getParam( "max_x_pix" , dummy) || getParam( "min_x_pix" , dummy) 
+		|| getParam( "max_y_pix" , dummy) || getParam( "min_y_pix" , dummy) ) {
+		Error() << "min_x_pix/max_x_pix/min_y_pix/max_y_pix no longer supported in MovingObjects.  Use the lmargin,rmargin,bmargin,tmargin params instead!";
+		return false;
+	}
+	// these affect bounding box for motion
+	max_x_pix = width() - rmargin;
+	min_x_pix = lmargin;
+	min_y_pix = bmargin;
+	max_y_pix = height() - tmargin;
+		
     // the object area AABB -- a rect constrained by min_x_pix,min_y_pix and max_x_pix,max_y_pix
 	canvasAABB = Rect(Vec2(min_x_pix, min_y_pix), Vec2(max_x_pix-min_x_pix, max_y_pix-min_y_pix)); 
 
@@ -275,10 +276,11 @@ void MovingObjects::drawFrame()
 	glClear( GL_COLOR_BUFFER_BIT ); 
         
     if (fps_mode != FPS_Single) {
-            glEnable(GL_BLEND);
-            if (bgcolor >  0.5)
-                glBlendFunc(GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR);
-            else glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
+		glEnable(GL_BLEND);
+		
+		if (bgcolor >  0.5)
+			glBlendFunc(GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR);
+		else glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
     }
 
 	doFrameDraw();
@@ -287,7 +289,8 @@ void MovingObjects::drawFrame()
 		if (bgcolor >  0.5)
 			glBlendFunc(GL_DST_COLOR,GL_ONE);
         else glBlendFunc(GL_SRC_COLOR,GL_ONE);
-			glDisable(GL_BLEND);
+
+		glDisable(GL_BLEND);
     }
 
 }
@@ -451,8 +454,8 @@ void MovingObjects::doFrameDraw()
 								vy = objVely; 
 							}
 							else {
-								x = ran1Gen()*mon_x_pix;
-								y = ran1Gen()*mon_y_pix;
+								x = ran1Gen()*canvasAABB.size.x + min_x_pix;
+								y = ran1Gen()*canvasAABB.size.y + min_y_pix;
 								vx = ran1Gen()*objVelx*2 - objVelx;
 								vy = ran1Gen()*objVely*2 - objVely; 
 							}
@@ -462,7 +465,7 @@ void MovingObjects::doFrameDraw()
 
 						// update position after delay period
 						// if jitter pushes us outside of motion box then do not jitter this frame
-						if ((int(frameNum)%tframes /*- delay*/) > 0) { 
+						if ((int(frameNum)%tframes /*- delay*/) >= 0) { 
 							if (!wrapEdge && ((x + vx + aabb.size.w/2 + jitterx > max_x_pix) 
 											  ||  (x + vx - aabb.size.w/2 + jitterx < min_x_pix)))
 								x += vx;
@@ -527,11 +530,11 @@ void MovingObjects::wrapObject(ObjData & o, const Rect & aabb) const {
 	Shapes::Shape & s = *o.shape;
 
 	// wrap right edge
-	if (aabb.left() >= canvasAABB.right()) s.position.x = (-aabb.size.w/2) + (aabb.left() - canvasAABB.right());
+	if (aabb.left() >= canvasAABB.right()) s.position.x = (canvasAABB.left()-aabb.size.w/2) + (aabb.left() - canvasAABB.right());
 	// wrap left edge
 	if (aabb.right() <= canvasAABB.left()) s.position.x = (canvasAABB.right()+aabb.size.w/2) - (canvasAABB.left()-aabb.right());
 	// wrap top edge
-	if (aabb.bottom() >= canvasAABB.top()) s.position.y = (-aabb.size.h/2) + (aabb.bottom() - canvasAABB.top());
+	if (aabb.bottom() >= canvasAABB.top()) s.position.y = (canvasAABB.bottom()-aabb.size.h/2) + (aabb.bottom() - canvasAABB.top());
 	// wrap bottom edge
 	if (aabb.top() <= canvasAABB.bottom()) s.position.y = (canvasAABB.top()+aabb.size.h/2) - (canvasAABB.bottom()-aabb.top());
 }

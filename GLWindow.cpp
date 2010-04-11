@@ -240,7 +240,9 @@ void GLWindow::paintGL()
 				doBufSwap = true;
 			} else if (running) { // note: code above may have stopped plugin, check if it's still running
 			
+				glEnable(GL_SCISSOR_TEST); /// < the frame happens within our scissor rect, (lmargin, etc support)
 				running->drawFrame();
+				glDisable(GL_SCISSOR_TEST);
 				
 				if (running) { // NB: drawFrame may have called stop(), thus NULLing this pointer, so check it again
 					running->advanceFTState(); // NB: this asserts FT_Start/FT_Change/FT_End flag, if need be, etc, and otherwise decides whith FT color to us.  Looks at running->nFrames, etc

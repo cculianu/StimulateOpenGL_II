@@ -9,17 +9,13 @@ Flicker_RGBW::Flicker_RGBW()
 
 bool Flicker_RGBW::init()
 {
-	int lmargin,rmargin,bmargin,tmargin,max_active_frames_per_cycle;
+	int max_active_frames_per_cycle;
 
 	//if (getHWRefreshRate() != 120) {
 	//	Error() << "Flicker plugin requires running on a monitor that is locked at 120Hz refresh rate!  Move the window to a monitor running at 120Hz and try again!";
 	//	return false;
 	//}
 	if (!getParam("hz", hz)) hz = 120;
-	if (!getParam("lmargin", lmargin)) lmargin = 0;
-	if (!getParam("rmargin", rmargin)) rmargin = 0;
-	if (!getParam("bmargin", bmargin)) bmargin = 0;
-	if (!getParam("tmargin", tmargin)) tmargin = 0;
 	// default duty_cycle for 240 Hz is 1, 120Hz 2, and everything else
 	if (!getParam("duty_cycle", duty_cycle)) duty_cycle = (hz > 120 ? 1 : (hz > 60 ? 2 : 3) );  
 	if (!getParam("intensity", intensity_f)) intensity_f = 1.0;
@@ -79,10 +75,10 @@ bool Flicker_RGBW::init()
 
 	for (int i = 0; i < 4; ++i) memcpy(colors[i], color, sizeof(color));
 	GLint v[4][2] = {
-		{ lmargin         ,  bmargin          },
-		{ lmargin         ,  height()-tmargin },
-		{ width()-rmargin ,  height()-tmargin },
-		{ width()-rmargin ,  bmargin          },
+		{ 0         ,  0          },
+		{ 0         ,  height()   },
+		{ width()   ,  height()   },
+		{ width()   ,  0          },
 	};
 	memcpy(vertices, v, sizeof(v));
 

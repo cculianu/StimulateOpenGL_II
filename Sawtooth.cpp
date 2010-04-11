@@ -16,8 +16,6 @@ Sawtooth::Sawtooth()
 
 bool Sawtooth::init()
 {
-	int lmargin,rmargin,bmargin,tmargin;
-
 	//if (getHWRefreshRate() != 120) {
 	//	Error() << "Flicker plugin requires running on a monitor that is locked at 120Hz refresh rate!  Move the window to a monitor running at 120Hz and try again!";
 	//	return false;
@@ -26,10 +24,6 @@ bool Sawtooth::init()
 	if (!Nloops) Nloops = -1;
 	if (!getParam("Nblinks", Nblinks)) Nblinks = 1;
 	if (Nblinks <= 0) Nblinks = 1;	
-	if (!getParam("lmargin", lmargin)) lmargin = 0;
-	if (!getParam("rmargin", rmargin)) rmargin = 0;
-	if (!getParam("bmargin", bmargin)) bmargin = 0;
-	if (!getParam("tmargin", tmargin)) tmargin = 0;
 	float intensity_lof, intensity_hif;
 	if (!getParam("intensity_low", intensity_lof)) intensity_lof = 0.0;
 	// deal with 0->255 spec
@@ -57,12 +51,11 @@ bool Sawtooth::init()
 	if (!getParam("bgcolor", bgcolor)) bgcolor = 0.0; // re-default bgcolor to 0.0
 
 	// verify params
-
 	GLint v[4][2] = {
-		{ lmargin         ,  bmargin          },
-		{ lmargin         ,  height()-tmargin },
-		{ width()-rmargin ,  height()-tmargin },
-		{ width()-rmargin ,  bmargin          },
+		{ 0         ,  0          },
+		{ 0         ,  height()   },
+		{ width()   ,  height()   },
+		{ width()   ,  0          },
 	};
 	memcpy(vertices, v, sizeof(v));
 

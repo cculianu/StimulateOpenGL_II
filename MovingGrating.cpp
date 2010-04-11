@@ -1,5 +1,9 @@
 #include "MovingGrating.h"
 
+static double squarewave(double x) {
+	if (sin(x) > 0.) return 1.0;
+	return -1.0;
+}
 
 MovingGrating::MovingGrating()
     : GridPlugin("MovingGrating"), xscale(1.f), yscale(1.f)
@@ -17,8 +21,25 @@ bool MovingGrating::init()
 
 	if( !getParam("ccw", ccw) )			ccw = 0;
 	if( !getParam("tframes", tframes) )	tframes = -1;
+	
+	if ( !getParam("min_color", min_color)) min_color = 0.;
+	if ( !getParam("max_color", max_color)) max_color = 1.;
 
+	if (min_color < 0. || max_color < 0.) {
+		Error() << "min_color and max_color need to be > 0!";
+		return false;
+	}
+	if (min_color > 1.9 || max_color > 1.9) {
+		Warning() << "min_color/max_color should be in the range [0,1].  You specified numbers outside this range.  We are assuming you mean unsigned byte values, so we will scale your input based on the range [0,255]!";
+		min_color /= 255.;
+		max_color /= 255.;
+	}
 
+	QString wave;
+	if (!getParam("wave", wave)) wave = "sin";
+	if (wave.toLower().startsWith("sq")) waveFunc = &squarewave;
+	else waveFunc = &sin;
+	
     xscale = width()/800.0;
     yscale = height()/600.0;
 
@@ -78,7 +99,7 @@ void MovingGrating::drawFrame()
 		for (int i = 0; i < 1600; ++i) {
 			float r = 0., g = 0., b = 0.;
 			for (int ff = 0; ff < (fps_mode == FPS_Dual ? 2 : 3); ++ff) {
-				const float val = 0.5+0.5*sin(2*3.14159*(i+totalTranslations[ff])/period);
+				const float val = scaleIntensity(0.5+0.5*waveFunc(2.*M_PI*(i+totalTranslations[ff])/period));
 				if (ff == r_index) r = val;
 				if (ff == g_index) g = val;
 				if (ff == b_index) b = val;
@@ -116,7 +137,7 @@ void MovingGrating::drawFrame()
 			frameVars->push(double(frameNum), double(totalTranslation)/double(period));
 
 		for( int i=0; i<1600; i++ )
-			setGrayLevel( i, 0, 0.5+0.5*sin(2*3.14159*(i+totalTranslation)/period) );
+			setGrayLevel( i, 0, scaleIntensity(0.5+0.5*waveFunc(2.*M_PI*(i+totalTranslation)/period)) );
 	}
 
 

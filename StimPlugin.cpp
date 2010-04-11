@@ -12,7 +12,7 @@
 #include "DAQ.h"
 
 StimPlugin::StimPlugin(const QString &name)
-    : QObject(StimApp::instance()->glWin()), parent(StimApp::instance()->glWin()), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0)
+    : QObject(StimApp::instance()->glWin()), parent(StimApp::instance()->glWin()), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), lmargin(0), rmargin(0), bmargin(0), tmargin(0), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0)
 {
 	frameVars = 0;
     needNotifyStart = true;
@@ -105,6 +105,7 @@ bool StimPlugin::start(bool startUnpaused)
     fpsMin = 9e9;
     fpsMax = 0;
 	delay = 0;
+	lmargin = rmargin = bmargin = tmargin = 0;
     begintime = QDateTime::currentDateTime();
     endtime = QDateTime(); // set to null datetime
     missedFrames.clear();
@@ -113,6 +114,17 @@ bool StimPlugin::start(bool startUnpaused)
     if (!missedFrameTimes.capacity()) missedFrameTimes.reserve(4096);	
     customStatusBarString = "";
 	softCleanup = false;
+	
+	getParam("lmargin", lmargin);
+	getParam("rmargin", rmargin);
+	getParam("bmargin", bmargin);
+	getParam("tmargin", tmargin);
+	
+	if (lmargin > 0 || rmargin > 0 || bmargin > 0 || tmargin > 0) {
+		glScissor(lmargin, bmargin, width()-(rmargin+lmargin), height() - (bmargin+tmargin));
+	} else {
+		glScissor(0,0,width(),height());
+	}
 	
 	// setup ft state colors initially to be all white for all states, except off where it's black
 	const char *ftColorParamNames[N_FTStates] = {
@@ -446,6 +458,19 @@ bool StimPlugin::readBackBuffer(QByteArray & dest, const Vec2i & o, const Vec2i 
 	glPixelStorei(GL_PACK_ROW_LENGTH, 0);// etc...
 	glReadBuffer(bufwas);	
 	return true;
+}
+
+void StimPlugin::renderFrame() { 
+	// unconditionally setup the clear color here
+	switch(fps_mode) {
+		case FPS_Dual: glClearColor(0.f, bgcolor, bgcolor, 1.0); break; // dual mode has blank RED channel (RED channel is first frame)
+		default: glClearColor(bgcolor, bgcolor, bgcolor, 1.0); break;
+	}	
+	glEnable(GL_SCISSOR_TEST);
+	drawFrame(); 
+	glDisable(GL_SCISSOR_TEST);
+	advanceFTState();
+	drawFTBox(); 
 }
 
 QList<QByteArray> StimPlugin::getFrameDump(unsigned num, unsigned numframes, 

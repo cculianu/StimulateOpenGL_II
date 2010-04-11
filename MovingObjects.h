@@ -63,19 +63,15 @@ private:
 	QList<ObjData> objs;
 	int numObj;
 	
-	float mon_x_pix;
-	float mon_y_pix;
-	float max_x_pix;
-	float min_x_pix;
-	float max_y_pix;
-	float min_y_pix;
 	bool rndtrial;
 	int tframes;
 	int rseed;
-	int jittermag;
+	int jittermag;	
 	bool jitterlocal;
     bool moveFlag, jitterFlag;
 	bool wrapEdge;
+	
+	float min_x_pix,max_x_pix,min_y_pix,max_y_pix;
 	
 	bool debugAABB; ///< comes from param file -- if true draw a green box around each shape's AABB to debug AABB
 };

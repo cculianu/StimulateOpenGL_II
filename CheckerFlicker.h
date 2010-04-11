@@ -37,10 +37,6 @@ class CheckerFlicker : public StimPlugin
     float contrast;	 ///< defined as Michelsen contrast for black/white mode
     // and as std/mean for gaussian mode
     const int w, h;           ///< window width/height cached here
-    int lmargin;	///< number of pixels left blank at left
-    int rmargin;	///< number of pixels left blank at right
-    int bmargin;	///< number of pixels left blank at bottom
-    int tmargin;	///< number of pixels left blank at top
     int originalSeed;	///< seed for random number generator at initialization
     int Nblinks;	///< number of blinks (i.e. how often each frame is repeated)
     int blinkCt;

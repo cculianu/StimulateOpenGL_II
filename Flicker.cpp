@@ -16,8 +16,6 @@ Flicker::Flicker()
 
 bool Flicker::init()
 {
-	int lmargin,rmargin,bmargin,tmargin;
-
 	//if (getHWRefreshRate() != 120) {
 	//	Error() << "Flicker plugin requires running on a monitor that is locked at 120Hz refresh rate!  Move the window to a monitor running at 120Hz and try again!";
 	//	return false;
@@ -27,10 +25,6 @@ bool Flicker::init()
 		Error() << "hz parameter " << hz << " specified is invalid.  Must be one of 180, 120, 90, 60, 50, etc.";
 		return false;
 	}
-	if (!getParam("lmargin", lmargin)) lmargin = 0;
-	if (!getParam("rmargin", rmargin)) rmargin = 0;
-	if (!getParam("bmargin", bmargin)) bmargin = 0;
-	if (!getParam("tmargin", tmargin)) tmargin = 0;
 	// default duty_cycle for 180 Hz is 1, 120Hz == 2, and below == 3
 	if (!getParam("duty_cycle", duty_cycle)) duty_cycle = ( hz >= 180 ? 1 : (hz == 120 ? 2 : 3) );  
 	if (!validateDutyCycle()) {
@@ -55,12 +49,11 @@ bool Flicker::init()
 	
 
 	// verify params
-
 	GLint v[4][2] = {
-		{ lmargin         ,  bmargin          },
-		{ lmargin         ,  height()-tmargin },
-		{ width()-rmargin ,  height()-tmargin },
-		{ width()-rmargin ,  bmargin          },
+		{ 0         ,  0          },
+		{ 0         ,  height()   },
+		{ width()   ,  height()   },
+		{ width()   ,  0          },
 	};
 	memcpy(vertices, v, sizeof(v));
 

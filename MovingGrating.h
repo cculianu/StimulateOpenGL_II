@@ -18,6 +18,8 @@ class GLWindow;
 */ 
 class MovingGrating : public GridPlugin
 {
+	friend class GLWindow;
+
     float period;
     float speed;
     float angle;
@@ -28,14 +30,18 @@ class MovingGrating : public GridPlugin
 	int tframes;
 
     float xscale,yscale;
-	friend class GLWindow;
+	
+	float min_color,max_color; ///< actual intensities used scaled to this range. This param should be clamped between [0,1]
 
+	inline float scaleIntensity(float c) const { return c*(max_color-min_color) + min_color; }
+	
+	double (*waveFunc)(double);
+	
 protected:
     MovingGrating(); ///< can only be constructed by our friend class
 
     void drawFrame();
     bool init();
-
 
 };
 

@@ -211,7 +211,7 @@ protected:
 	virtual void drawFTBox();
 
 	/// Convenience method that just calls drawFrame() and drawFTBox() for you, in that order
-	inline void renderFrame() { drawFrame(); drawFTBox(); }
+	void renderFrame();
 
     /// \brief Called immediately after a vsync (if not paused).  
     ///
@@ -270,6 +270,9 @@ protected:
 	bool ftAssertions[N_FTStates]; ///< child plugins assert these flags for a particular frame to override default off/on behavior. These flags only last for 1 frame.
 	int ftChangeEvery; ///< if > 0, auto-assert FT_Change when (frameNum % ftChangeEvery) == 0.  0 means auto-computer (only movingobjects support auto-compute) and <0 means off
 	bool softCleanup; ///< flag used by some plugins internally when they are being restarted. normally always false
+	
+	///< margins, used for scissor testing
+	int lmargin,rmargin,bmargin,tmargin;
 		
 	/// handle FTState transitions.. called right before drawing the frame track box.  Takes into account ftAssertions
 	virtual void advanceFTState(); 
