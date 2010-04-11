@@ -17,13 +17,16 @@ bool MovingGrating::init()
 	if( !getParam("period", period) ) returnvalue = false;
 	if( !getParam("speed",  speed) ) returnvalue = false;
 	if( !getParam("angle", angle) ) returnvalue = false;
-	dangle = angle;
+	if( !getParam("dangle", dangle) ) dangle = angle;	
 
-	if( !getParam("ccw", ccw) )			ccw = 0;
+	if( !getParam("ccw", ccw) )			ccw = false;
 	if( !getParam("tframes", tframes) )	tframes = -1;
 	
 	if ( !getParam("min_color", min_color)) min_color = 0.;
 	if ( !getParam("max_color", max_color)) max_color = 1.;
+	if ( !getParam("max_color2", max_color2)) max_color2 = max_color;
+	if ( !getParam("reversal", reversal) ) reversal = 0;
+	if (reversal < 0) reversal = 0;
 
 	if (min_color < 0. || max_color < 0.) {
 		Error() << "min_color and max_color need to be > 0!";
@@ -54,6 +57,19 @@ bool MovingGrating::init()
 
 	return returnvalue;    
 }
+
+inline float MovingGrating::scaleIntensity(float c) const 
+{ 
+	float ret = c*(max_color-min_color) + min_color; 
+	if (reversal > 0 && int(frameNum % (reversal*2)) >= reversal) {
+		float hcolor = (max_color+min_color)/2;
+		if (ret > hcolor) {
+			ret = (max_color2-hcolor)*(ret - hcolor)/(max_color-hcolor) + hcolor;
+		}
+	}
+	return ret;
+}
+
 
 void MovingGrating::drawFrame()
 {   
@@ -140,9 +156,17 @@ void MovingGrating::drawFrame()
 			setGrayLevel( i, 0, scaleIntensity(0.5+0.5*waveFunc(2.*M_PI*(i+totalTranslation)/period)) );
 	}
 
+	if (ftChangeEvery < 1 && reversal && frameNum > 0 && !(frameNum%reversal)) ftAssertions[FT_Change] = true;
+	
+	if ((frameNum > 0) && tframes > 0 && !(frameNum % tframes)) {
+		
+		if (ftChangeEvery < 1) ftAssertions[FT_Change] = true;
 
-	if ((frameNum > 0) && (ccw > 0) && !(frameNum % tframes))
-		angle = angle + dangle;
+		if (ccw) 
+			angle = angle + dangle;
+		else 
+			angle = angle - dangle;
+	}
 
 	glRotatef( angle, 0.0, 0.0, 1.0 );
 
@@ -153,3 +177,4 @@ void MovingGrating::drawFrame()
 	glPopMatrix();
 
 }
+

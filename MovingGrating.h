@@ -26,14 +26,16 @@ class MovingGrating : public GridPlugin
     float totalTranslation;
 
 	float dangle;
-	int ccw;
+	bool ccw;
 	int tframes;
 
     float xscale,yscale;
 	
-	float min_color,max_color; ///< actual intensities used scaled to this range. This param should be clamped between [0,1]
+	float min_color,max_color,max_color2; ///< actual intensities used scaled to this range. This param should be clamped between [0,1]
+	int reversal;
 
-	inline float scaleIntensity(float c) const { return c*(max_color-min_color) + min_color; }
+	/// return the scaled intensity (input [0,1] scaled to [min_color,max_color]).  also may apply 'reversal' mode, if active
+	float scaleIntensity(float c) const;
 	
 	double (*waveFunc)(double);
 	
