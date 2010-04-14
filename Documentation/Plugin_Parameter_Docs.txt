@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: February 18, 2009
+Last Updated: April 14, 2010
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -8,12 +8,25 @@ accept.  Note parameters *are not* case sensitive.
 If a parameter is missing or unspecified, it takes on the default value
 listed for that parameter.  Some parameters lack default values and
 therefore must be specified in the configuration file and/or
-configuration parameter struct given in matlab.  However, the majority of
+configuration parameter struct given in Matlab.  However, the majority of
 parameters below do have (sensible) defaults.
 
------------------------------------------------------------------------------
-Global PLUGN PARAMETERS
------------------------------------------------------------------------------
+A note about the 'global' plugin parameters: all of these parameters apply
+to all plugins.  For example, the ftrackbox_x coordinate is accepted by all 
+plugins since frame tracking is supported by all plugins.  In addition to
+that consideration, some of these parameters are intended to be 'per-workstation' 
+parameters and as such get saved into the Windows registry on Windows (or 
+the user's home directory on Unixey systems).  This is so that workstation-
+specific parameters, such as (ftrackbox_*) reside outside of the config 
+files (which may be shared amongst multiple workstations).  Of the 
+parameters that are saved in such a way (which is a subset of all the globals),
+it is not necessary to specify them explicitly in the config file, since they 
+take the defaults set in the GUI.  To see which parameters fall into this 
+category, in the GUI, go to Options -> Global Parameter Defaults.
+
+----------------------------------------------------------------------------------
+Global PLUGIN PARAMETERS
+----------------------------------------------------------------------------------
 mon_x_pix
         Synopsis:         Specifies the width in pixels of the GL window
         Datatype:         integer
@@ -58,10 +71,42 @@ fps_mode
         Default value:    'single'
 	            
 bgcolor
-        Synopis:          Specify the background (clear) color of the experiment.
+        Synopsis:         Specify the background (clear) color of the experiment.
         Datatype:         float
         Possible values:  0.0 - 1.0
         Default value:    0.5
+
+delay
+        Synopsis:         Specify the number of frames to use as a pre-delay for
+                          each iteration of a plugin.  If delay is nonzero,
+                          plugins will present the following for 'delay' frames at
+                          (re-)start: a blank canvas cleared to the bgcolor, with
+                          a frame track box using the ftrack_end_color.  Note that
+                          the 'delay' frames are considered "extra-plugin"
+                          and as such do not have a defined 'frameNum' and so
+                          cannot be dumped programmatically from Matlab.  The
+                          usefulness of this parameter is that plugin looping
+                          involves re-initializing the plugin each iteration,        
+                          which is potentially expensive (on the order of tens of
+                          milliseconds), in addition to being jittery.  Thus 
+                          setting delay to a quantity that is sufficient to 
+                          always cover the init time would mask the jitter
+                          and also have the this inter-plugin time present a 
+                          default known frame state while the plugin re-
+                          initializes.  
+        Datatype:         integer
+        Possible values:  0 - +214748647
+        Default value:    0 (off)
+
+DO_with_vsync
+        Synopsis:         Specify whether to set a digital output line high on 
+                          plugin start.  If enabled, the line is set high after
+                          the first vsync of the first plugin frame, and is set
+                          low again when the plugin terminates.
+        Datatype:         string
+        Possible values:  'off' *or* an NI path to the DIO line -- which are 
+                          strings of the form DevX/portY/lineZ (eg Dev1/port0/line0). 
+        Default value:    off
 	
 ftrackbox_x
         Synopsis:         Specifies the x-coordinate of the bottom-left
@@ -79,163 +124,108 @@ ftrackbox_y
 
 ftrackbox_w
         Synopsis:         Specifies the width of a side of the frame track 
-		                  square (photodiode square).
+                          square (photodiode square).
         Datatype:         integer
         Possible values:  0 - +2147483647
         Default value:    45
 	
-	
+ftrack_track_color
+        Synopsis:         Specifies the R,G,B color of the frame track box in the 
+                          'track' (or on) state -- this state appears every even 
+                          numbered frame.
+        Datatype:         real triplet, comma-separated (eg .7,.5,1.0)
+        Possible values:  Each number in the triplet is in the range [0,1]
+        Default value:    1.0, 1.0, 1.0 (full intensity white).
+			  	
+ftrack_off_color
+        Synopsis:         Specifies the R,G,B color of the frame track box in the 
+                          'off' state.  This state is for odd-numbered frames.
+        Datatype:         real triplet, comma-separated (eg: .7, .5, 1.0)
+        Possible values:  Each number in the triplet is in the range [0,1]
+        Default value:    0.0, 0.0, 0.0 (black).
 
-------------------------------------------------------------------------------
+ftrack_change
+        Synopsis:         Specifies the interval, in frames, to use for asserting
+                          the ftrack_change state (and thus draw the ftrack box
+                          using the ftrack_change_color).  If zero, the
+                          ftrack_change state is never asserted.  If -1, depending
+                          on the plugin, this variable will be auto-computed (in
+                          MovingObjects it will auto-set to every tframes, for
+                          example). 
+                          If positive or auto-computed, the frame track box will
+                          be drawn with the ftrack_change_color every
+                          ftrack_change frames.
+        Datatype:         integer
+        Possible values:  -1 - +2147483647
+        Default value:    -1 (auto-compute for MovingObejcts and MovingGrating, 
+                          off for others).
+
+ftrack_change_color
+        Synopsis:         Specifies the R,G,B color of the frame track box in the 
+                          'change' state -- this state is asserted every 
+                          `ftrack_change' frames.  (see the description of the 
+                          `ftrrack_change' variable).
+        Datatype:         real triplet, comma-separated (eg .7,.5,1.0)
+        Possible values:  Each number in the triplet is in the range [0,1]
+        Default value:    1.0, 1.0, 1.0 (full intensity white).
+
+ftrack_start_color
+        Synopsis:         Specifies the R,G,B color of the frame track box in the 
+                          'start' state -- this state is asserted for frames
+                          with frameNum == 0 (first frame in an iteration).
+        Datatype:         real triplet, comma-separated (eg .7,.5,1.0)
+        Possible values:  Each number in the triplet is in the range [0,1]
+        Default value:    1.0, 1.0, 1.0 (full intensity white).
+
+ftrack_end_color
+        Synopsis:         Specifies the R,G,B color of the frame track box in the 
+                          'end' state -- that is the last frame in an iteration.  
+                          If the plugin is to loop, then ftrack_end_color will be 
+                          used for each loop's end.  This ftrack box color is not 
+                          used for non-terminating plugins (plugins that to not
+                          have nFrames defined). 
+        Datatype:         real triplet, comma-separated (eg .7,.5,1.0)
+        Possible values:  Each number in the triplet is in the range [0,1]
+        Default value:    1.0, 1.0, 1.0 (full intensity white).
+
+lmargin / rmargin / tmargin / bmargin
+        Synopsis:         These four variables affect the drawable area of the
+                          plugin window.  If nonzero, then the drawable canvas of
+                          the plugin will have margins such that the plugin will
+                          draw to a sub-rectangle of the overall GL window.  The
+                          frame track box is drawn outside this area, however. 
+        Datatype:         integer 
+        Possible values:  0 - (screen dimension in X/Y)
+        Default value:    0
+
+nFrames
+        Synopsis:         Specify the number of frames for one iteration of the
+                          plugin's run.  See nLoops below.  This quantity times 
+                          nLoops equals the number of total frames in the plugin's
+                          run. In some cases, if nFrames isn't specified, it may
+                          be auto-computed (such as in MovingObjects if using 
+                          tFrames).                  
+                          If set, the plugin will run nFrames * nLoops times and
+                          auto-terminate once it has already looped nLoops times.
+                          On the last frame in a loop, the ftrack_end_color will
+                          be used for the frame track box (if visible).  
+        Datatype:         integer 
+        Possible values:  0 - +2147483647
+        Default value:    0 (no auto-termination)
+
+nLoops
+        Synopsis:         Specify the number of times to 'loop' or repeat the
+                          plugin. This variable only works properly when nFrames
+                          is defined and nonzero (in some cases nFrames is auto-
+                          computed, see `nFrames' above).
+        Datatype:         integer 
+        Possible values:  0 - +2147483647
+        Default value:    0 (no looping)
+
+
+----------------------------------------------------------------------------------
 `MovingObjects' PLUGIN PARAMETERS
-------------------------------------------------------------------------------
-
-objType
-        Synopsis:         Specifies the shape of the moving target.
-        Datatype:         string
-        Possible values: 
-               box      - Indicates you want the target to be a square whose 
-                          sizes are of objLen length (in pixels, see the objLen
-                          parameter).
-               circle   - Indicates you want the target to be a circle
-                          of objLen radius (in pixels, see the objLen param.).
-                          The circle is approximated using 128 vertices.
-        Default value:    box
-
-objLen
-        Synopsis:         Specifies the size of the moving target
-        Datatype:         integer
-        Possible values:  0 - +2147483647
-        Default value:    8
-
-objVelx
-        Synopsis:         Specifies the x-component of the velocity vector
-                          of the target.  The velocity is in units of: pixels
-                          per frame.
-        Datatype:         integer
-        Possible values:  -2147483648 - +2147483647
-        Default value:    4
-
-objVely
-        Synopsis:         Specifies the y-component of the velocity vector
-                          of the target.  The velocity is in units of: pixels
-                          per frame.
-        Datatype:         integer
-        Possible values:  -infinity - +infinity
-        Default value:    4
-
-objXinit
-        Synopsis:         Specifies the x-coordinate of the target's 
-                          initial position.
-        Datatype:         integer
-        Possible values:  -2147483648 - +2147483647
-        Default value:    400
-
-objYinit
-        Synopsis:         Specifies the y-coordinate of the target's 
-                          initial position.
-        Datatype:         integer
-        Possible values:  -2147483648 - +2147483647
-        Default value:    300
-
-targetcycle
-        Synopsis:         This parameter is used in conjunction with `tframes'.
-                          Specifies whether to double the size of the target
-                          every 'tframe' frames, and if so, this doubling will
-                          occur at most 'targetcycle' times before being reset 
-                          to initial conditions (at which point the target 
-                          doubling countdown starts anew).
-        Datatype:         integer
-        Possible values:  0 - +2147483647
-        Default value:    0
-
-speedcycle
-        Synopsis:         This parameter is used in conjunction with `tframes'.
-                          Specifies whether to double the magnitude of the
-                          target's velocity every 'tframe' frames, and if so, 
-                          this doubling will occur at most 'speedcycle'
-                          times before being reset to initial conditions 
-                          (at which point the speed doubling countdown starts
-                          anew).
-        Datatype:         integer
-        Possible values:  0 - +2147483647
-        Default value:    0
-
-objcolor
-        Synopsis:         Specifies the grayscale intensity of the target.
-        Datatype:         float
-        Possible values:  0.0 - 1.0 (black to white)
-        Default value:    0.0 (black)
-
-bgcolor
-        Synopsis:         Specifies the grayscale intensity of the background.
-        Datatype:         float
-        Possible values:  0.0 - 1.0 (black to white)
-        Default value:    1.0 (white)
-
-mon_x_pix
-        Synopsis:         Specifies the limit on the x-axis for the target to
-                          move in.  When the target's x-coordinate  crosses 
-                          mon_x_pix, it hits a virtual 'wall' and bounces.   
-                          Can be used to constrain the target to an area 
-                          smaller or larger than the actual visible window.
-        Datatype:         integer
-        Possible values:  0 - +2147483647
-        Default value:    The width of the opengl window (usually 800).
-
-mon_y_pix
-        Synopsis:         Specifies the limit on the y-axis for the target to
-                          move in.  When the target's y-coordinate  crosses 
-                          mon_y_pix, it hits a virtual 'wall' and bounces.   
-                          Can be used to constrain the target to an area 
-                          smaller or larger than the actual visible window.
-        Datatype:         integer
-        Possible values:  0 - +2147483647
-        Default value:    The width of the opengl window (usually 800).
-
-rndtrial
-        Synopsis:         This parameter is used in conjunction with `tframes'.
-                          Boolean flag specifying whether or not to randomly
-                          generate a new position and velocity for the target
-                          every `tframes' frames.  If true, then the target's
-                          position will be reset to a random value and the 
-                          target's velocity will also be a random function of 
-                          its specified velocity after `tframes' frames.
-                          If false, the target's position will be reset
-                          to its initial position after `tframes' frames
-                          expires.
-                          (see the tframes parameter)
-        Datatype:         boolean
-        Possible values:  0, 1
-        Default value:    0
-
-rseed
-        Synopsis:         Specifies the seed to use for the pseudo-random 
-                          number generator.  The sequence of random numbers
-                          generated is always the same for a particular seed.
-        Datatype:         integer
-        Possible values:  -2147483648 - +2147483647
-        Default value:    -1
-
-tframes
-        Synopsis:         Specifies the number of frames until the target's
-                          position, size, and velocity are up for being re-set
-                          or randomly perturbed. Every tframes frames, the 
-                          target's position, speed and size may get set to new
-                          and/or random values depending on other parameters
-                          such as `targetcycle', `speedcycle', and `rndtrial'.
-        Datatype:         integer
-        Possible values:  0 - +2147483647
-        Default value:    4320000 (approx 10 hours at 120fps)
-
-delay
-        Synopsis:         Specifies the number of frames to delay drawing
-                          the target.  If the delay is active, the target
-                          is invisible and not moving until delay frames
-                          have elapsed.
-        Datatype:         integer
-        Posible values:   0 - +2147483647
-        Default value:    0 (no delay)
+----------------------------------------------------------------------------------
 
 jitterlocal
         Synopsis:         Specifies whether to enable or disable local
@@ -264,24 +254,218 @@ jittermag
        Possible values:   -2147483648 - +2147483647
        Default value:     2
 
+numObj
+        Synopsis:         Specifies the number of moving targets.  Note that 
+                          targets after the first have their parameters specified 
+                          by appending the target number to the parameter name: 
+                          So target 2's params would be: objType2, objLenX2,
+                          objLenY2, objXinit2, etc, whereas the first target would
+                          use parameters of the form: objType, objLenX, objLenY,
+                          objXinit, etc.                                   
+        Datatype:         integer
+        Possible values:  0 - +2147483647
+        Default value:    REQUIRED, no default
+
+objColor
+  *or* 
+objColorN (for objects 2 through numObj)
+        Synopsis:         Specifies the grayscale intensity of the target.
+        Datatype:         float
+        Possible values:  0.0 - 1.0 (black to white)
+        Default value:    first object: 0.0 (black)
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objPhi
+  *or* 
+objPhiN (for objects 2 through numObj)
+        Synopsis:         Specifies the counterclockwise rotation, in degrees,
+                          for the object (or object N).  Useful for orienting the
+                          object as desired.
+        Datatype:         float
+        Possible values:  -inf - +inf 
+        Default value:    first object: 0.0 (unrotated)
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objSpin
+  *or* 
+objSpinN (for objects 2 through numObj)
+        Synopsis:         Specifies the spin of the object.  Or, the amount of 
+                          counterclockwise rotation to be applied to the object,
+                          in degrees, per frame.  
+        Datatype:         float
+        Possible values:  -inf - +inf 
+        Default value:    first object: 0.0 (do not spin)
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objType *or* 
+objTypeN (where N is 2 to numObj)
+        Synopsis:         Specifies the shape of the Nth moving target.  The 1st
+                          target does not use any 'N' suffix to the parameter name
+                          (objType versus objType2).
+        Datatype:         string
+        Possible values: 
+               box        - Indicates you want the target to be a square whose 
+                            sizes are of objLenX length (in pixels, see the
+                            objLenX parameter).
+               ellipse    - Indicates you want the target to be an ellipsoid
+                            of objLenX/objLenY radii (in pixels, see the 
+                            objLenX/objLenY params). The ellipsoid is approximated
+                            using 128 vertices.
+        Default value:    first object: box
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objLenX 
+  *or* 
+objLenXN (where N is 2 to numObj) 
+  *or*
+xradius 
+  *or*
+xradiusN (where N is 2 to numObj) 
+        Synopsis:         Specifies the X-dimension size of the Nth moving target 
+                          in pixels.  This is the horizontal width before
+                          rotation, basically.  The 1st target does not use any
+                          'N' suffix to the parameter name (objLenX versus
+                          objLenX2).  Note that the format for this parameter
+                          is a comma-separated list of sizes if using target size
+                          cycling,  that is, if tFrames is positive.  In this
+                          case, the plugin cycles through each target's specified
+                          size every tFrames frames (after first cycling through
+                          all of the speeds for a particular size).
+        Datatype:         integer tuple, comma (or space) delimited
+        Possible values:  0 - +2147483647 [, 0 - +0 - +2147483647 ... ]
+        Default value:    first object: 8 
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objLenY 
+  *or* 
+objLenYN (where N is 2 to numObj) 
+  *or*
+yradius 
+  *or*
+yradiusN (where N is 2 to numObj) 
+        Synopsis:         Specifies the Y-dimension size of the Nth moving target 
+                          in pixels.  This is the vertical height before
+                          rotation, basically.  The 1st target does not use any
+                          'N' suffix to the parameter name (objLenY versus
+                          objLenY2).  Note that the format for this parameter
+                          is a comma-separated list of sizes if using target size
+                          cycling,  that is, if tFrames is positive.  In this
+                          case, the plugin cycles through each target's specified
+                          size every tFrames frames (after first cycling through
+                          all of the speeds for a particular size).
+        Datatype:         integer tuple, comma (or space) delimited
+        Possible values:  0 - +2147483647 [, 0 - +0 - +2147483647 ... ]
+        Default value:    first object: 8 
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objVelX
+  *or*
+objVelXN (where N is 2 to numObj)
+        Synopsis:         Specifies the x-component of the velocity vector
+                          of the target.  The velocity is in units of: pixels
+                          per frame.  Note that a vector of values may be used 
+                          here if you want to do target speedcycling.  In which
+                          case the target speed is cycled every `tFrames' from 
+                          values in this vector. (See the 'tFrames' parameter).              
+        Datatype:         integer tuple, comma (or space) delimited
+        Possible values:  -2147483648 - +2147483647 [, -2147483648 - +2147483647 ... ]
+        Default value:    first object: 4
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objVelY
+  *or*
+objVelYN (where N is 2 to numObj)
+        Synopsis:         Specifies the y-component of the velocity vector
+                          of the target.  The velocity is in units of: pixels
+                          per frame.  Note that a vector of values may be used 
+                          here if you want to do target speedcycling.  In which
+                          case the target speed is cycled every `tFrames' from 
+                          values in this vector. (See the 'tFrames' parameter).              
+        Datatype:         integer tuple, comma (or space) delimited
+        Possible values:  -2147483648 - +2147483647 [, -2147483648 - +214748364 ... ]
+        Default value:    first object: 4
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objXinit
+objXinitN (where N is 2 to numObj)
+        Synopsis:         Specifies the x-coordinate of the target's 
+                          initial position.  The second form is for targets
+                          numbered 2 and above.
+        Datatype:         integer
+        Possible values:  -2147483648 - +2147483647
+        Default value:    first object: 400
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objYinit
+objYinitN (where N is 2 to numObj)
+        Synopsis:         Specifies the y-coordinate of the target's 
+                          initial position.  The second form is for targets
+                          numbered 2 and above.
+        Datatype:         integer
+        Possible values:  -2147483648 - +2147483647
+        Default value:    first object: 400
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+rndtrial
+        Synopsis:         This parameter is used in conjunction with `tframes'.
+                          Boolean flag specifying whether or not to randomly
+                          generate a new position and velocity for the target
+                          every `tframes' frames.  If true, then the target's
+                          position will be reset to a random value and the 
+                          target's velocity will also be a random function of 
+                          its specified velocity after `tframes' frames.
+                          If false, the target's position will be reset
+                          to its initial position after `tframes' frames
+                          expires.
+                          (see the tframes parameter)
+        Datatype:         boolean
+        Possible values:  0, 1
+        Default value:    0
+
+rseed
+        Synopsis:         Specifies the seed to use for the pseudo-random 
+                          number generator.  The sequence of random numbers
+                          generated is always the same for a particular seed.
+        Datatype:         integer
+        Possible values:  -2147483648 - +2147483647
+        Default value:    -1
+
+tFrames
+        Synopsis:         Specifies the number of frames until the target's
+                          size and velocity are up for being cycled from the 
+                          object's speed or size vectors. Every tFrames frames,
+                          for each defined size of the object, the speeds
+                          of the object are iterated through.  After the last
+                          speed, the next object size is used and the first
+                          speed is used again.  So the number of frames in 
+                          an iteration become: tFrames * size_of_speed_vec *
+                          size_of_lengths_vec.  If nFrames was not defined,
+                          it gets auto-set to this product in MovingObjects only.
+        Datatype:         integer
+        Possible values:  0 - +2147483647
+        Default value:    4320000 (approx 10 hours at 120fps)
+
+wrapEdge
+        Synopsis:         If true, objects wrap off the edge onto the opposite
+                          edge of the plugin drawing area.  If false, objects
+                          bounce off the edges.
+        Datatype:         boolean
+        Possible values:  true, false or 1, 0
+        Default value:    false (0)
+
 ------------------------------------------------------------------------------
 `MovingGrating' PLUGIN PARAMETERS
 ------------------------------------------------------------------------------
-
-period
-       Synopsis:         Specifies the width of the moving grayscale bars, 
-                         in pixels. Values below 3 seem to not generate any 
-                         visible frames.
-       Datatype:         integer
-       Possible values:  0 - +2147483647
-       Default value:    NONE (must be specified)
-
-speed
-       Synopsis:         Specifies the number of pixels per frame that the
-                         grayscale bars move.
-       Datatype:         integer
-       Possible values:  0 - +2147483647
-       Default value:    NONE (must be specified)
 
 angle
        Synopsis:         Specifies the angle in degrees that the grayscale 
@@ -293,6 +477,91 @@ angle
        Possible values:  0.0 - 359.9
        Default value:    NONE (must be specified)
 
+ccw
+       Synopsis:         If using the dangle/tFrames parameters, then `ccw'
+                         specifies whether the 'dangle' amount rotation is
+                         counter-clockwise or clockwise.  Note this parameter
+                         is superfluous as simply reversing the sign of 'dangle'
+                         has the same effect and is perhaps more elegant.                                                 
+       Datatype:         boolean
+       Possible values:  0 or 1 or true or false
+       Default value:    true (rotation is counter-clockwise)
+
+dangle
+       Synopsis:         Specifies the angle in degrees that the grayscale 
+                         bars should be rotated every tFrames.  Rotation is
+                         counter-clockwise and is applied every tFrames in an
+                         additive fashion. 
+                         0 is perfectly vertical, 90 is perfectly horizontal,
+                         etc.                        
+       Datatype:         float
+       Possible values:  0.0 - 359.9
+       Default value:    angle
+
+min_color
+       Synopsis:         Specifies the intensity to use as the minimum color.
+                         Waves are scaled to the range [min_color, max_color].
+       Datatype:         float
+       Possible values:  0 - 1.0
+       Default value:    0.0 (black)
+
+max_color
+       Synopsis:         Specifies the intensity to use as the maximum color.
+                         Waves are scaled to the range [min_color, max_color].
+       Datatype:         float
+       Possible values:  0 - 1.0
+       Default value:    1.0 (white)
+
+max_color2
+       Synopsis:         Specifies the intensity to use as the maximum color
+                         for reversal mode.  
+                         Every reversal frames, the max_color is alternated
+                         between max_color and max_color2.
+       Datatype:         float
+       Possible values:  0 - 1.0
+       Default value:    1.0 (white)
+
+period
+       Synopsis:         Specifies the width of the moving grayscale bars, 
+                         in pixels. Values below 3 seem to not generate any 
+                         visible frames.
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    NONE (must be specified)
+
+reversal
+       Synopsis:         If nonzero, do contrast reversal every 'reversal' frames.
+                         Reversal has the max_color alternate with max_color2.
+                         If using max_color2, then intensities above the halfway
+                         point get re-scaled to max_color2.  In certain parameter
+                         regimes this presents the optical illusion of a 
+                         reversal of the direction of motion of the waves.
+       Datatype:         integer
+       Possible values:  0 - +inf
+       Default value:    0 (disabled)
+
+speed
+       Synopsis:         Specifies the number of pixels per frame that the
+                         grayscale bars move.  Motion is from right to left.
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    NONE (must be specified)
+
+tFrames
+       Synopsis:         Specifies the number of frames before applying the
+                         'dangle' rotation.  FT_Change is asserted when rotation
+                         is applied.  
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    0 (off)
+
+wave
+       Synopsis:         Specifies the function to use for generating waves.    
+       Datatype:         string
+       Possible values:  `sine': generate sine waves. 
+                         `square': like a sine wave except there is no gray. 
+                         Either values are all on or all off.                     
+       Default value:    0 (off)
 
 
 ------------------------------------------------------------------------------
@@ -344,34 +613,6 @@ rand_displacement_y
        Possible values:  -2147483648 - +2147483647
        Default value:    0
                                                          
-lmargin
-       Synopsis:         Specifies the left margin of the checkerboard area
-                         in pixels.
-       Datatype:         integer
-       Possible values:  -2147483648 - +2147483647
-       Default value:    0
-
-rmargin
-       Synopsis:         Specifies the right margin of the checkerboard area
-                         in pixels.
-       Datatype:         integer
-       Possible values:  -2147483648 - +2147483647
-       Default value:    0
-
-bmargin
-       Synopsis:         Specifies the bottom margin of the checkerboard area
-                         in pixels.
-       Datatype:         integer
-       Possible values:  -2147483648 - +2147483647
-       Default value:    0
-
-tmargin
-       Synopsis:         Specifies the top margin of the checkerboard area
-                         in pixels.
-       Datatype:         integer
-       Possible values:  -2147483648 - +2147483647
-       Default value:    0
-
 fbo 
 *AKA*
 prerender
@@ -443,9 +684,9 @@ Nblinks
         Possible values:  1 - +2147483647
         Default value:    1
 
-------------------------------------------------------------------------------
+----------------------------------------------------------------------------------
 `Flicker' PLUGIN PARAMETERS
-------------------------------------------------------------------------------
+----------------------------------------------------------------------------------
 fps_mode
 		(This plugin uses this variable -- see global param)
 
@@ -471,37 +712,9 @@ duty_cycle
         Possible values:  1 - +2147483647 (maximum value depends on hz param.)
         Default value:    1 for 180 Hz, 2 for 120Hz, 3 otherwise.
         
-lmargin
-       Synopsis:         Specifies the left margin of the checkerboard area
-                         in pixels.
-       Datatype:         integer
-       Possible values:  -2147483648 - +2147483647
-       Default value:    0
-
-rmargin
-       Synopsis:         Specifies the right margin of the flicker area in 
-                         pixels.
-       Datatype:         integer
-       Possible values:  -2147483648 - +2147483647
-       Default value:    0
-
-bmargin
-       Synopsis:         Specifies the bottom margin of the flicker area
-                         in pixels.
-       Datatype:         integer
-       Possible values:  -2147483648 - +2147483647
-       Default value:    0
-
-tmargin
-       Synopsis:         Specifies the top margin of the flicker area in 
-                         pixels.
-       Datatype:         integer
-       Possible values:  -2147483648 - +2147483647
-       Default value:    0
-
-------------------------------------------------------------------------------
+----------------------------------------------------------------------------------
 `Sawtooth' PLUGIN PARAMETERS
-------------------------------------------------------------------------------
+----------------------------------------------------------------------------------
 fps_mode
 		(This plugin uses this variable -- see global param)
 
@@ -534,31 +747,3 @@ intensity_high
         Datatype:         float
         Possible values:  0.0 - 1.0
         Default value:    1.0
-        
-lmargin
-       Synopsis:         Specifies the left margin of the checkerboard area
-                         in pixels.
-       Datatype:         integer
-       Possible values:  -2147483648 - +2147483647
-       Default value:    0
-
-rmargin
-       Synopsis:         Specifies the right margin of the flicker area in 
-                         pixels.
-       Datatype:         integer
-       Possible values:  -2147483648 - +2147483647
-       Default value:    0
-
-bmargin
-       Synopsis:         Specifies the bottom margin of the flicker area
-                         in pixels.
-       Datatype:         integer
-       Possible values:  -2147483648 - +2147483647
-       Default value:    0
-
-tmargin
-       Synopsis:         Specifies the top margin of the flicker area in 
-                         pixels.
-       Datatype:         integer
-       Possible values:  -2147483648 - +2147483647
-       Default value:    0

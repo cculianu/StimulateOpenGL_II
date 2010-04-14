@@ -19,7 +19,7 @@ bool MovingGrating::init()
 	if( !getParam("angle", angle) ) returnvalue = false;
 	if( !getParam("dangle", dangle) ) dangle = angle;	
 
-	if( !getParam("ccw", ccw) )			ccw = false;
+	if( !getParam("ccw", ccw) )			ccw = true;
 	if( !getParam("tframes", tframes) )	tframes = -1;
 	
 	if ( !getParam("min_color", min_color)) min_color = 0.;

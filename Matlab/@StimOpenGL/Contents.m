@@ -1,6 +1,6 @@
 % SYNOPSIS
 %
-% The @StimOpenGL class is a matlab object with methods to access the
+% The @StimOpenGL class is a Matlab object with methods to access the
 % 'StimulateOpenGL II' program via the network.  Typically,
 % 'StimulateOpenGL II' is run on the local machine, in which case all
 % communication is via a network loopback socket.  However, true remote
@@ -18,7 +18,7 @@
 %
 % The network socket handle is used with the 'CalinsNetMex' mexFunction, 
 % which is a helper mexFunction that does all the actual socket 
-% communications for this class (since matlab lacks native network
+% communications for this class (since Matlab lacks native network
 % support).
 %
 % Users of this class merely need to construct an instance of a @StimOpenGL
@@ -194,6 +194,7 @@
 %                MovingObject and MovingGrating.
 %
 %    imgdata = DumpFrame(myobj, frameNumber)
+%    imgdata = DumpFrame(myobj, frameNumber, cropRect, downsample_pix)
 %
 %                Retrieve frame number 'frameNumber' from the currently
 %                running plugin.  The returned matrix is a matrix of
@@ -212,6 +213,45 @@
 %                Optimal use of this function would be to call DumpFrame
 %                specifying sequential frameNumbers, eg: DumpFrame(myObj,
 %                100), DumpFrame(myObj, 101), DumpFrame(myObj, 102), etc.  
+% 
+%                The second form of the function allows you to specify a
+%                crop rectangle for a sub-rectangle of the frame's window
+%                as [ origin_x origin_y width height ] with origin 0,0
+%                being at the bottom-left of the window.
+% 
+%                The downsample_pix parameter allows you to downsample the
+%                returned pixels by every [k l]'th pixel in the X and Y
+%                directions, respectively.
+%
+%     imgdata = DumpFrames(myobj, frameNumber, count)
+%     imgdata = DumpFrames(myobj, frameNumber, count, cropRect, downsample_pix)
+%
+%                Retrieve count frames starting at 'frameNumber' from the currently
+%                running plugin.  The returned matrix is a matrix of
+%                unsigned chars with dimensions: 3 x width x height x count (width
+%                and height are obtained from GetHeight and GetWidth method
+%                calls).  Note that if frameNumber is in the past (that is,
+%                lower than the current frameCount [see GetFrameCount]),
+%                then the plugin may have to be restarted internally and
+%                fast-forwarded to the specified frameNumber (a slow
+%                operation).  Also note that if 'frameNumber' is some
+%                number far in the future (much larger than frameCount) the
+%                plugin will have to compute all the frames in between the
+%                current frame and frameNumber (a slow operation).  By far
+%                the slowest possible way to read frames is in reverse or
+%                randomly, so avoid that usage pattern, if possible!
+%                Optimal use of this function would be to call DumpFrames
+%                specifying sequential frameNumbers, eg: DumpFrames(myObj,
+%                100,5), DumpFrame(myObj, 105,4), DumpFrame(myObj, 109,7), etc.
+% 
+%                The second form of the function allows you to specify a
+%                crop rectangle for a sub-rectangle of the frame's window
+%                as [ origin_x origin_y width height ] with origin 0,0
+%                being at the bottom-left of the window.
+% 
+%                The downsample_pix parameter allows you to downsample the
+%                returned pixels by every [k l]'th pixel in the X and Y
+%                directions, respectively.
 %
 %    res = DumpFrameToFile(myobj, frameNumber, 'filename_to_save.bmp')
 %              

@@ -1,5 +1,5 @@
 %    imgdata = DumpFrame(myobj, frameNumber)
-%    imgdata = DumpFrames(myobj, frameNumber,  cropRect, downsample_pix)
+%    imgdata = DumpFrame(myobj, frameNumber, cropRect, downsample_pix)
 %
 %                Retrieve frame number 'frameNumber' from the currently
 %                running plugin.  The returned matrix is a matrix of
@@ -18,6 +18,16 @@
 %                Optimal use of this function would be to call DumpFrame
 %                specifying sequential frameNumbers, eg: DumpFrame(myObj,
 %                100), DumpFrame(myObj, 101), DumpFrame(myObj, 102), etc.  
+% 
+%                The second form of the function allows you to specify a
+%                crop rectangle for a sub-rectangle of the frame's window
+%                as [ origin_x origin_y width height ] with origin 0,0
+%                being at the bottom-left of the window.
+% 
+%                The downsample_pix parameter allows you to downsample the
+%                returned pixels by every [k l]'th pixel in the X and Y
+%                directions, respectively.
+%
 function [imgdat] = DumpFrame(s, frameNum, varargin)
       if (~length(varargin)),
         imgdat = DumpFrames(s, frameNum, 1);
