@@ -26,7 +26,6 @@ class MovingGrating : public GridPlugin
     float totalTranslation;
 
 	float dangle;
-	bool ccw;
 	int tframes;
 
     float xscale,yscale;

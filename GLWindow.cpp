@@ -110,7 +110,10 @@ void GLWindow::drawEndStateBlankScreen(StimPlugin *p) {
 	glClearColor(graylevel, graylevel, graylevel, 1.0f);
 	if (blend) glDisable(GL_BLEND);
 	glClear(GL_COLOR_BUFFER_BIT);
-	p->currentFTState = StimPlugin::FT_End;
+	if (p->delay > 0 && delayCtr > 0 && !paused)
+		p->currentFTState = StimPlugin::FT_Off;		
+	else
+		p->currentFTState = StimPlugin::FT_End;
 	p->drawFTBox();
 	if (blend) glEnable(GL_BLEND);
 	glClearColor(color[0], color[1], color[2], color[3]);	
@@ -126,7 +129,7 @@ void GLWindow::drawEndStateBlankScreenImmediately(StimPlugin *p)
 void GLWindow::paintGL()
 {
     tThisFrame = getTime();
-    bool tooFast = false, tooSlow = false;
+    bool tooFast = false, tooSlow = false, signalDIOOn = false;
 
     if (timer->isActive()) return; // this was a spurious paint event
 	//    unsigned timerpd = 1000/getHWRefreshRate()/2;
@@ -202,17 +205,19 @@ void GLWindow::paintGL()
 				StimPlugin * const p = running;
 				const bool doRestart = !nLoops || loopCt < nLoops;
 				const bool hadDelay = (delayCtr = p->delay) > 0;
+				// NB: Need to draw this here as StimPlugin::stop() could potentially take FOREVAH (checkerflicker!!)
+				//     So we will do it here -- put the BG frame up as quickly as possible then worry about calling stop.
+				if (doRestart && delayCtr-- > 0) {
+					// force screen clear *NOW* as per Anthony's specs, so that we don't hang on last frame forever..
+					drawEndStateBlankScreenImmediately(p);
+					/*
+					 /// XXX
+					 Debug() << "looped, drew delayframe, hwfc=" << getHWFrameCount();
+					 dframe = true;
+					 */
+				}
 				p->stop(false,false,doRestart);
 				if (doRestart) {
-					if (delayCtr-- > 0) {
-						// force screen clear *NOW* as per Anthony's specs, so that we don't hang on last frame forever..
-						drawEndStateBlankScreenImmediately(p);
-						/*
-						/// XXX
-						Debug() << "looped, drew delayframe, hwfc=" << getHWFrameCount();
-						dframe = true;
-						 */
-					}
 					const double t0 = getTime();
 					const int saved_delayCtr = delayCtr;
 					p->loopCt = loopCt;
@@ -236,6 +241,8 @@ void GLWindow::paintGL()
 			}
 			if (running && delayCtr > 0) {
 				drawEndStateBlankScreen(running); ///< this draws the FT box in the end state
+				if (delayCtr == running->delay) 
+					signalDIOOn = true;
 				--delayCtr;
 				doBufSwap = true;
 			} else if (running) { // note: code above may have stopped plugin, check if it's still running
@@ -248,7 +255,9 @@ void GLWindow::paintGL()
 					running->advanceFTState(); // NB: this asserts FT_Start/FT_Change/FT_End flag, if need be, etc, and otherwise decides whith FT color to us.  Looks at running->nFrames, etc
 					running->drawFTBox();
 					if (debugLogFrames) running->logBackbufferToDisk();
-					++running->frameNum;				
+					++running->frameNum;
+					if (running->delay <= 0 && running->frameNum == 1)
+						signalDIOOn = true;
 					doBufSwap = true;
 				} 			
 			}
@@ -278,7 +287,7 @@ void GLWindow::paintGL()
 		}*/
 		
 		QString devChan;
-		if (running && !paused && running->frameNum == 1 && running->getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {
+		if (running && !paused && signalDIOOn && running->getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {
 			DAQ::WriteDO(devChan, true);
 		}
 		

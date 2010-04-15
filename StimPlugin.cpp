@@ -45,6 +45,12 @@ bool StimPlugin::saveData(bool use_gui)
 
 void StimPlugin::stop(bool doSave, bool useGui, bool softStop)
 {
+	// Next, write to DO that we stopped...
+	QString devChan;
+	if (!softStop && getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {
+		DAQ::WriteDO(devChan, false);
+	}
+	
 	softCleanup = softStop;
     endtime = QDateTime::currentDateTime();
     if (doSave) {
@@ -59,11 +65,6 @@ void StimPlugin::stop(bool doSave, bool useGui, bool softStop)
 		&& (!softStop ||  stimApp()->leoDAQGLNotifyParams.nloopsNotifyPerIter	|| loopCt+1 >= nLoops) ) {
         notifySpikeGLAboutStop();
     }
-	// Next, write to DO that we stopped...
-	QString devChan;
-	if (!softStop && getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {
-		DAQ::WriteDO(devChan, false);
-	}
 	    
     parent->pluginStopped(this);
     emit stopped();

@@ -19,7 +19,6 @@ bool MovingGrating::init()
 	if( !getParam("angle", angle) ) returnvalue = false;
 	if( !getParam("dangle", dangle) ) dangle = angle;	
 
-	if( !getParam("ccw", ccw) )			ccw = true;
 	if( !getParam("tframes", tframes) )	tframes = -1;
 	
 	if ( !getParam("min_color", min_color)) min_color = 0.;
@@ -162,10 +161,7 @@ void MovingGrating::drawFrame()
 		
 		if (ftChangeEvery < 1) ftAssertions[FT_Change] = true;
 
-		if (ccw) 
-			angle = angle + dangle;
-		else 
-			angle = angle - dangle;
+		angle = angle + dangle;
 	}
 
 	glRotatef( angle, 0.0, 0.0, 1.0 );

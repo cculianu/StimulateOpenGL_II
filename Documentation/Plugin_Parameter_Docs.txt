@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: April 14, 2010
+Last Updated: April 15, 2010
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -418,18 +418,23 @@ objYinitN (where N is 2 to numObj)
 
 rndtrial
         Synopsis:         This parameter is used in conjunction with `tframes'.
-                          Boolean flag specifying whether or not to randomly
-                          generate a new position and velocity for the target
-                          every `tframes' frames.  If true, then the target's
-                          position will be reset to a random value and the 
-                          target's velocity will also be a random function of 
-                          its specified velocity after `tframes' frames.
-                          If false, the target's position will be reset
-                          to its initial position after `tframes' frames
-                          expires.
+                          Rndtrial is a boolean flag specifying whether to randomly
+                          generate a new position and velocity for the target every
+                         `tframes' frames (and for frame 0).  If true, then position
+                          and velocity vectors for the target will be reset (every
+                          `tframes' frames) to random values as follows:
+                              - Position will be a uniformly distributed random 
+                                X,Y pair within the visible area of the screen
+                                (taking into account margins, etc).
+                              - Velocity will be a uniformly distributed random
+                                velocity vector from (-objVelX,-objVelY) to
+                                (+objVelX,+objVelY).  
+                          If false, the target's position will be reset to its 
+                          initial position (objXinit, objVelX, etc) after `tframes'
+                          frames expires.
                           (see the tframes parameter)
         Datatype:         boolean
-        Possible values:  0, 1
+        Possible values:  0, 1 or false, true
         Default value:    0
 
 rseed
@@ -476,16 +481,6 @@ angle
        Datatype:         float
        Possible values:  0.0 - 359.9
        Default value:    NONE (must be specified)
-
-ccw
-       Synopsis:         If using the dangle/tFrames parameters, then `ccw'
-                         specifies whether the 'dangle' amount rotation is
-                         counter-clockwise or clockwise.  Note this parameter
-                         is superfluous as simply reversing the sign of 'dangle'
-                         has the same effect and is perhaps more elegant.                                                 
-       Datatype:         boolean
-       Possible values:  0 or 1 or true or false
-       Default value:    true (rotation is counter-clockwise)
 
 dangle
        Synopsis:         Specifies the angle in degrees that the grayscale 
@@ -581,9 +576,21 @@ stixelheight
        Default value:    10
         
 rand_gen
-       Synopsis:         Specifies whether to use a gaussian, uniform, or
-                         binary random number generatior when generating 
-                         color/grayscale values for the checker squares.
+       Synopsis:         Specifies whether to use a gaussian, uniform, or binary 
+                         random number generator when generating color/grayscale
+                         values for the checker squares.  The characteristics of the
+                         generators are as follows:
+                            'uniform' - each color component or intensity is 
+                                        uniformly distributed within the range 
+                                        0 - 1.0.
+                             'gauss'  - each color component or intensity is 
+                                        distributed such that mean = the
+                                        `bgcolor'' (see bgcolor, which is a global
+                                        parameter) and variance is the `contrast'
+                                        parameter (see contrast).
+                             'binary' - each computed intensity is either all on or
+                                        all off (0 or 1.0), with a 50/50 probability
+                                        of each.
        Datatype:         string
        Possible values:  'uniform', 'gauss', or 'binary' (for pure b&w)
        Default value:    uniform
@@ -691,9 +698,16 @@ fps_mode
 		(This plugin uses this variable -- see global param)
 
 hz
-        Synopsis:         Specifies the flicker rate in Hz.  Note that values 
-                          above 120Hz are emulated using the projector 
-                          sub-frame trick.
+        Synopsis:         Specifies the flicker rate in Hz.  Note that the maximal 
+                          flicker rate is based on the refresh rate of the monitor
+                          and normally cannot exceed the monitor's refresh rate.
+                          However, on a DLP projector values above the maximal
+                          rate (for example 120Hz) are emulated using the 
+                          "projector sub-frame trick".  Values lower than the
+                          refresh rate are always emulated by displaying frames
+                          twice, three times, etc.  Thus, not all rates are
+                          mathematically possible and the exact set of possible 
+                          rates are a function of the refresh rate.
         Datatype:         integer
         Possible values:  180, 120, 90, 72, 60, 51, etc.  
                           (Bascially 1000/(k * (1000/120/3)) for all k >=2)
