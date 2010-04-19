@@ -69,6 +69,8 @@ void GLWindow::resizeEvent(QResizeEvent *evt)
             evt->ignore();
 }
 
+static const Vec3 clearColor(0.5,0.5,0.5);
+
 // Set up the rendering context, define display lists etc.:
 void GLWindow::initializeGL()
 {
@@ -82,7 +84,7 @@ void GLWindow::initializeGL()
     glDisable( GL_DITHER );
     glDrawBuffer( GL_BACK_LEFT );
 
-    glClearColor( 0.5, 0.5, 0.5, 1.0 ); //set the clearing color to be gray
+    glClearColor( clearColor.r, clearColor.g, clearColor.b, 1.0 ); //set the clearing color to be gray
     glShadeModel( GL_FLAT );
     glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
 }
@@ -100,28 +102,33 @@ void GLWindow::resizeGL(int w, int h)
 }
 
 
-void GLWindow::drawEndStateBlankScreen(StimPlugin *p) {
-	float color[4];
-	GLboolean blend;
-	const float graylevel = p->bgcolor;	
-	glGetFloatv(GL_COLOR_CLEAR_VALUE, color);
-	glGetBooleanv(GL_BLEND, &blend);
-	
-	glClearColor(graylevel, graylevel, graylevel, 1.0f);
-	if (blend) glDisable(GL_BLEND);
-	glClear(GL_COLOR_BUFFER_BIT);
-	if (p->delay > 0 && delayCtr > 0 && !paused)
-		p->currentFTState = StimPlugin::FT_Off;		
-	else
-		p->currentFTState = StimPlugin::FT_End;
-	p->drawFTBox();
-	if (blend) glEnable(GL_BLEND);
-	glClearColor(color[0], color[1], color[2], color[3]);	
+void GLWindow::drawEndStateBlankScreen(StimPlugin *p, bool isBlankBG) {
+	if (isBlankBG) {
+		glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0);
+		glClear(GL_COLOR_BUFFER_BIT);
+	} else {		
+		float color[4];
+		GLboolean blend;
+		const float graylevel = p->bgcolor;	
+		glGetFloatv(GL_COLOR_CLEAR_VALUE, color);
+		glGetBooleanv(GL_BLEND, &blend);
+		
+		glClearColor(graylevel, graylevel, graylevel, 1.0f);
+		if (blend) glDisable(GL_BLEND);
+		glClear(GL_COLOR_BUFFER_BIT);
+		if (p->delay > 0 && delayCtr > 0 && !paused)
+			p->currentFTState = StimPlugin::FT_Off;		
+		else
+			p->currentFTState = StimPlugin::FT_End;
+		p->drawFTBox();
+		if (blend) glEnable(GL_BLEND);
+		glClearColor(color[0], color[1], color[2], color[3]);	
+	}
 }
 
-void GLWindow::drawEndStateBlankScreenImmediately(StimPlugin *p)
+void GLWindow::drawEndStateBlankScreenImmediately(StimPlugin *p, bool isBlankBG)
 {	
-	drawEndStateBlankScreen(p);
+	drawEndStateBlankScreen(p, isBlankBG);
 	swapBuffers(); ///< wait for vsync..
 }
 
@@ -183,7 +190,7 @@ void GLWindow::paintGL()
 			default: glClearColor(running->bgcolor, running->bgcolor, running->bgcolor, 1.0); break;
 		}
 	} else
-		glClearColor(0.5, 0.5, 0.5, 1.0);
+		glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0);
 
 	///bool dframe = false;
 	
@@ -205,11 +212,17 @@ void GLWindow::paintGL()
 				StimPlugin * const p = running;
 				const bool doRestart = !nLoops || loopCt < nLoops;
 				const bool hadDelay = (delayCtr = p->delay) > 0;
-				// NB: Need to draw this here as StimPlugin::stop() could potentially take FOREVAH (checkerflicker!!)
+
+				--delayCtr;
+				
+				// NB: Need to draw this here as StimPlugin::stop() could potentially take FOREVER (checkerflicker!!)
 				//     So we will do it here -- put the BG frame up as quickly as possible then worry about calling stop.
-				if (doRestart && delayCtr-- > 0) {
+				//     We need to put the BG frame up in cases where we are stopping for good (in which case it's a gray
+				//     bg, no ft box) or in cases where there are delay frames and we are looping -- in which case we put
+				//     up the delay frame!
+				if (!doRestart || hadDelay) {
 					// force screen clear *NOW* as per Anthony's specs, so that we don't hang on last frame forever..
-					drawEndStateBlankScreenImmediately(p);
+					drawEndStateBlankScreenImmediately(p, !doRestart);
 					/*
 					 /// XXX
 					 Debug() << "looped, drew delayframe, hwfc=" << getHWFrameCount();
@@ -240,7 +253,7 @@ void GLWindow::paintGL()
 					delayCtr = 0;
 			}
 			if (running && delayCtr > 0) {
-				drawEndStateBlankScreen(running); ///< this draws the FT box in the end state
+				drawEndStateBlankScreen(running, false); ///< this draws the FT box in the end state
 				if (delayCtr == running->delay) 
 					signalDIOOn = true;
 				--delayCtr;
@@ -267,10 +280,10 @@ void GLWindow::paintGL()
 		// no plugin running, draw default .5 gray bg without ft box
         glClear( GL_COLOR_BUFFER_BIT );
         doBufSwap = true;		
-    } else if (running && running->getFrameNum() < 0 && (paused || delayCtr <= 0)) { 
+    } else if (running && running->getFrameNum() < 0 && (paused /*|| delayCtr <= 0*/)) { 
 		// running but paused and before plugin started (and not delay mode because that's handled above!)
 		// if so, draw plugin bg with ftrack_end box
-		drawEndStateBlankScreen(running);
+		drawEndStateBlankScreen(running, false);
 		doBufSwap = true;
 	}
 

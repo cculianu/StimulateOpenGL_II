@@ -92,10 +92,10 @@ private:
      StimPlugin *running;
      QList<StimPlugin *> pluginsList;
      QTimer *timer;
-
+	
      void initPlugins(); 
-	 void drawEndStateBlankScreen(StimPlugin *);
-	 void drawEndStateBlankScreenImmediately(StimPlugin *);
+	 void drawEndStateBlankScreen(StimPlugin *, bool isBlankBGFrame);
+	 void drawEndStateBlankScreenImmediately(StimPlugin *, bool isBlankBGFrame);
 
      bool paused, tooFastWarned;
      unsigned lastHWFC; ///< last hardware frame count, only iff platform has an accurate hwfc
