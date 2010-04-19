@@ -562,6 +562,39 @@ wave
 ------------------------------------------------------------------------------
 `CheckerFlicker' PLUGIN PARAMETERS
 ------------------------------------------------------------------------------
+
+PLUGIN NOTES  
+
+Checkerflicker is a relatively computationally expensive plugin.  This is
+because it utilizes a random number generator to create random colors per 
+'stixel'.  Random number generation, when done millions of times per second,
+starts to get noticeably taxing on even modern CPUs (as of the time of this
+writing, in 2010).  If the stixel size is small (1 or 2), the generator may not 
+be able to keep up with the screen refresh rate and so you may experience dropped
+frames.
+
+Strategies to mitigate this include playing with the 'fbo' variable as well
+as shrinking the render size (mon_x_pix/mon_y_pix) and/or adding some margins
+(lmargin, etc).  Also the 'gauss' versus 'uniform' random generators have slightly
+different costs as well.
+
+Additionally, since checkerflicker performs a whole bunch of setup to maximize 
+performance, 'looping' checkerflicker using the 'nLoops' and 'nFrames' parameters 
+is not entirely seamless.  Looping is implemented using a stop/restart call to the
+plugin, which for checkerflicker can take on the order of tens or even hundreds
+of milliseconds, depending on the stixel size and number of pregenerated frames
+(specified using 'fbo').  As such, it is advisable to use the 'delay' parameter
+with checkerflicker.  This results in a background frame being forced into the
+mix in between iterations of checkerflicker.   Not specifying a delay will result
+in the plugin *hanging* on the last frame whilst it performs a restart for the 
+subsequent iteration.  And so, 'delay' allows the system to hang on a well-defined
+duration of background frames.  This is favorable to hanging on the last stimulus 
+frame (which can perhaps have unintended effects on the experimental preparation,
+etc).
+
+For most systems a delay that is at least as large as 2/3rds of a second's worth of 
+frames is advisable.  If you are specifying nFrames and nLoops > 0 and you are not 
+specifying a delay, the plugin will warn you in the console log to that effect.
                           
 stixelwidth
        Synopsis:         Specifies the width of the checker squares in pixels.

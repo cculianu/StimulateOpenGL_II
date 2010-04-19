@@ -446,6 +446,10 @@ bool CheckerFlicker::init()
 	}        
 	frameNum = 0; // reset frame num!
 
+	if (nFrames > 0 && nLoops > 0 && delay <= 0) {
+		Warning() << "nLoops=" << nLoops << ", however delay=0.   It is strongly recommended that delay be nonzero (and at least enough to cover .6 seconds) if using plugin looping with checkerflicker.  See the plugin parameter documentation for a brief exposition on this topic.";
+	}
+	
 #ifdef Q_OS_WIN
 	Sleep(500); // sleep for 500ms to ensure init is ok
 #endif
