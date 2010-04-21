@@ -230,9 +230,9 @@ void GLWindow::paintGL()
 					 */
 				}
 				const double t0 = getTime();
+				const int saved_delayCtr = delayCtr;
 				p->stop(false,false,doRestart);
 				if (doRestart) {
-					const int saved_delayCtr = delayCtr;
 					p->loopCt = loopCt;
 					p->start(true);
 					delayCtr = saved_delayCtr;
