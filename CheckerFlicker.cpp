@@ -279,9 +279,6 @@ bool CheckerFlicker::init()
 		Error() << "Checkerflicker param `" << tmp << "' is no longer supported!  Please rename this param or get rid of it (check the docs!)";
 		return false;
 	}
-	if (getParam("contrast", contrast)) {
-		Warning() << "Param `contrast' is no longer supported in checkerflicker as it didn't jive well with the random number generators!";
-	}
 	const int xdim = w, ydim = h;
 	// find parameters
 	// if not found, either set to default value or generate warning message and abort (=return false)

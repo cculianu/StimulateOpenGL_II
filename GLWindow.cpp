@@ -192,7 +192,7 @@ void GLWindow::paintGL()
 	} else
 		glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0);
 
-	///bool dframe = false;
+	bool dframe = false;
 	
     if (!paused) {
         // NB: don't clear here, let the plugin do clearing as an optimization
@@ -223,11 +223,11 @@ void GLWindow::paintGL()
 				if (!doRestart || hadDelay) {
 					// force screen clear *NOW* as per Anthony's specs, so that we don't hang on last frame forever..
 					drawEndStateBlankScreenImmediately(p, !doRestart);
-					/*
+					/**/
 					 /// XXX
 					 Debug() << "looped, drew delayframe, hwfc=" << getHWFrameCount();
 					 dframe = true;
-					 */
+					 //*/
 				}
 				const double t0 = getTime();
 				const int saved_delayCtr = delayCtr;
@@ -244,11 +244,11 @@ void GLWindow::paintGL()
 					if (hadDelay && delayCtr < 0) {
 						Warning() << "Inter-loop restart/setup time of " << tRestart << "s took longer than delay=" << p->delay << " frames!  Increase `delay' to avoid this situation!";
 					}
-					/*
+					/**/
 					 /// XXX
 					 Debug() << "reinitted, tRestart=" << tRestart << ", hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
 					 dframe = true;
-					 */					
+					 //*/					
 				} else
 					delayCtr = 0;
 			}
@@ -295,9 +295,9 @@ void GLWindow::paintGL()
 		swapBuffers();// should wait for vsync...   
 		
 		/// XXX
-		/*if (dframe) {
+		if (dframe) {
 			Debug() << " dframe, after buf swap hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
-		}*/
+		}
 		
 		QString devChan;
 		if (running && !paused && signalDIOOn && running->getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {
