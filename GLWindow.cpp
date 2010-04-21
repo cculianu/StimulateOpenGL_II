@@ -225,7 +225,7 @@ void GLWindow::paintGL()
 					drawEndStateBlankScreenImmediately(p, !doRestart);
 					/**/
 					 /// XXX
-					 Debug() << "looped, drew delayframe, hwfc=" << getHWFrameCount();
+					 Debug() << "looped, drew delayframe, hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
 					 dframe = true;
 					 //*/
 				}
