@@ -120,7 +120,9 @@ StimApp::StimApp(int & argc, char ** argv)
 
     createAppIcon();
 
-#ifndef Q_OS_WIN
+#ifdef Q_OS_WIN
+	Log() << "Hardware reports refresh rate is " << getHWRefreshRate() << "Hz";
+#else
     if (getenv("NOCALIB")) {
 #endif
         initializing = false;

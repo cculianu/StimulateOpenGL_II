@@ -569,7 +569,12 @@ bool CheckerFlicker::initFBO()
                 //glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[i]);
                 //glGenerateMipmapEXT(GL_TEXTURE_RECTANGLE_ARB);
             }
-            if (getNProcessors() < 2) cleanupFCs(); // no frame creation threads -- do it all in main thread
+			if (getNProcessors() < 2) {
+				//Debug() << "Not enough extra processors, nixing frame creation threads.";				
+				cleanupFCs(); // no frame creation threads -- do it all in main thread
+			} else {
+				//Debug() << "Found extra processors, will use frame creation threads.";
+			}
             // Re-enable rendering to the window
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
             // re-set the drawbuffer

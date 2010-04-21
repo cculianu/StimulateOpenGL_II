@@ -230,6 +230,7 @@ void GLWindow::paintGL()
 					 //*/
 				}
 				const double t0 = getTime();
+				const unsigned f0 = getHWFrameCount();
 				const int saved_delayCtr = delayCtr;
 				p->stop(false,false,doRestart);
 				if (doRestart) {
@@ -239,14 +240,27 @@ void GLWindow::paintGL()
 					p->loopCt = loopCt;
 					p->frameVars->closeAndRemoveOutput(); /// remove redundant frame var file!
 
-					const double tRestart = getTime() - t0;
-					delayCtr -= int( tRestart * getHWRefreshRate() ); ///< this many frames have elapsed during startup, so reduce our delay Ctr by that much
-					if (hadDelay && delayCtr < 0) {
-						Warning() << "Inter-loop restart/setup time of " << tRestart << "s took longer than delay=" << p->delay << " frames!  Increase `delay' to avoid this situation!";
+					if (hasAccurateHWFrameCount()) {
+						const int hwfc_now = getHWFrameCount();
+						const int fRestart = hwfc_now - int(f0);
+						
+						delayCtr -= fRestart;
+						if (hadDelay && delayCtr < 0) {
+							Warning() << "Inter-loop restart/setup time of " << fRestart << " frames took longer than delay=" << p->delay << " frames!  Increase `delay' to avoid this situation!";
+						}
+						/// XXX
+						Debug() << "reinitted, fRestart=" << fRestart << ", hwfc=" << hwfc_now << ", delayCtr=" << delayCtr;
+					} else {
+						const double tRestart = getTime() - t0;
+						delayCtr -= int( tRestart * getHWRefreshRate() ); ///< this many frames have elapsed during startup, so reduce our delay Ctr by that much
+						if (hadDelay && delayCtr < 0) {
+							Warning() << "Inter-loop restart/setup time of " << tRestart << "s took longer than delay=" << p->delay << " frames!  Increase `delay' to avoid this situation!";
+						}
+						/// XXX
+						Debug() << "reinitted, tRestart=" << tRestart << ", hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
 					}
 					/**/
 					 /// XXX
-					 Debug() << "reinitted, tRestart=" << tRestart << ", hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
 					 dframe = true;
 					 //*/					
 				} else
