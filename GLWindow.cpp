@@ -236,19 +236,19 @@ void GLWindow::paintGL()
 					p->loopCt = loopCt;
 					p->start(true);
 					delayCtr = saved_delayCtr;
+					p->loopCt = loopCt;
+					p->frameVars->closeAndRemoveOutput(); /// remove redundant frame var file!
+
 					const double tRestart = getTime() - t0;
 					delayCtr -= int( tRestart * getHWRefreshRate() ); ///< this many frames have elapsed during startup, so reduce our delay Ctr by that much
 					if (hadDelay && delayCtr < 0) {
 						Warning() << "Inter-loop restart/setup time of " << tRestart << "s took longer than delay=" << p->delay << " frames!  Increase `delay' to avoid this situation!";
 					}
 					/*
-					/// XXX
-					Debug() << "reinitted, tRestart=" << tRestart << ", hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
-					dframe = true;
-					 */
-					
-					p->loopCt = loopCt;
-					p->frameVars->closeAndRemoveOutput(); /// remove redundant frame var file!
+					 /// XXX
+					 Debug() << "reinitted, tRestart=" << tRestart << ", hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
+					 dframe = true;
+					 */					
 				} else
 					delayCtr = 0;
 			}
