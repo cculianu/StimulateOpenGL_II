@@ -381,11 +381,15 @@ unsigned getHWFrameCount()
 		}
     }
 	if (funcNV) {
+		if (stimApp() && stimApp()->glWin())
+			stimApp()->glWin()->makeCurrent();			
 		HDC hdc = wglGetCurrentDC();
 		GLuint fc = 0;
 		funcNV(hdc, &fc);
 		return fc;
 	} else if (func) {
+		if (stimApp() && stimApp()->glWin())
+			stimApp()->glWin()->makeCurrent();			
         static INT64 f0 = 0;
         HDC hdc = wglGetCurrentDC();
         INT64 ust, msc, sbc;
@@ -429,7 +433,7 @@ unsigned getHWRefreshRate()
 
 bool hasAccurateHWRefreshRate()
 {
-    return true;
+    return false;
 }
 
 #else

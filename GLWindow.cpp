@@ -16,7 +16,7 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 #ifdef Q_OS_WIN														
 															Qt::MSWindowsOwnDC|
 #endif
-															(frameless ? Qt::FramelessWindowHint : 0))), aMode(false), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.), delayCtr(0), debugLogFrames(false)
+															(frameless ? Qt::FramelessWindowHint : 0))), aMode(false), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.), delayCtr(0), delayt0(0.), delayFPS(0.), debugLogFrames(false)
 {
     QSize s(w, h);
     setMaximumSize(s);
@@ -225,7 +225,7 @@ void GLWindow::paintGL()
 					drawEndStateBlankScreenImmediately(p, !doRestart);
 					/**/
 					 /// XXX
-					 Debug() << "looped, drew delayframe, hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
+					 //Debug() << "looped, drew delayframe, hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
 					 dframe = true;
 					 //*/
 				}
@@ -240,7 +240,7 @@ void GLWindow::paintGL()
 					p->loopCt = loopCt;
 					p->frameVars->closeAndRemoveOutput(); /// remove redundant frame var file!
 
-					if (hasAccurateHWFrameCount()) {
+					if (hasAccurateHWFrameCount()) { // true only on Linux or systems with the HWFC functions -- Note Leonardo's system usually is FALSE here!
 						const int hwfc_now = getHWFrameCount();
 						const int fRestart = hwfc_now - int(f0);
 						
@@ -249,15 +249,23 @@ void GLWindow::paintGL()
 							Warning() << "Inter-loop restart/setup time of " << fRestart << " frames took longer than delay=" << p->delay << " frames!  Increase `delay' to avoid this situation!";
 						}
 						/// XXX
-						Debug() << "reinitted, fRestart=" << fRestart << ", hwfc=" << hwfc_now << ", delayCtr=" << delayCtr;
-					} else {
+						//Debug() << "reinitted, fRestart=" << fRestart << ", hwfc=" << hwfc_now << ", delayCtr=" << delayCtr;
+					} else if (hasAccurateHWRefreshRate()) { // true almost never since all systems seem to lie about this sometimes -- including Windows!
 						const double tRestart = getTime() - t0;
 						delayCtr -= int( tRestart * getHWRefreshRate() ); ///< this many frames have elapsed during startup, so reduce our delay Ctr by that much
 						if (hadDelay && delayCtr < 0) {
 							Warning() << "Inter-loop restart/setup time of " << tRestart << "s took longer than delay=" << p->delay << " frames!  Increase `delay' to avoid this situation!";
 						}
 						/// XXX
-						Debug() << "reinitted, tRestart=" << tRestart << ", hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
+						//Debug() << "reinitted, tRestart=" << tRestart << ", hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;						
+					} else { // just use the calibrated value..
+						const double tRestart = getTime() - t0;
+						delayCtr -= int( tRestart * delayFPS ); ///< this many frames have elapsed during startup, so reduce our delay Ctr by that much
+						if (hadDelay && delayCtr < 0) {
+							Warning() << "Inter-loop restart/setup time of " << tRestart << "s took longer than delay=" << p->delay << " frames!  Increase `delay' to avoid this situation!";
+						}
+						/// XXX
+						//Debug() << "reinitted, tRestart=" << tRestart << ", hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
 					}
 					/**/
 					 /// XXX
@@ -268,8 +276,10 @@ void GLWindow::paintGL()
 			}
 			if (running && delayCtr > 0) {
 				drawEndStateBlankScreen(running, false); ///< this draws the FT box in the end state
-				if (delayCtr == running->delay) 
+				if (delayCtr == running->delay) {
 					signalDIOOn = true;
+					if (delayt0 <= 0.) delayt0 = getTime();
+				}
 				--delayCtr;
 				doBufSwap = true;
 			} else if (running) { // note: code above may have stopped plugin, check if it's still running
@@ -307,11 +317,20 @@ void GLWindow::paintGL()
     if (doBufSwap) {// doBufSwap is normally true either if we don't have aMode or if we have a plugin and it is running and not paused
 
 		swapBuffers();// should wait for vsync...   
+
+		if (running && running->delay > 0 && delayFPS <= 0. && delayt0 > 0. && 0==delayCtr && !paused) {
+			const double tElapsed = (getTime() - delayt0);
+			if (tElapsed > 0.) 	delayFPS =running->delay / tElapsed;
+			else delayFPS = 120.;
+			if (!hasAccurateHWFrameCount() && !hasAccurateHWRefreshRate()) {
+				Log() << "Used plugin delay to calibrate refresh rate to: " << delayFPS << " (since HWFC is inaccurate and HW refresh rate is not trustworthy)";
+			}
+		}
 		
 		/// XXX
-		if (dframe) {
-			Debug() << " dframe, after buf swap hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
-		}
+		//if (dframe) {
+		//	Debug() << " dframe, after buf swap hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
+		//}
 		
 		QString devChan;
 		if (running && !paused && signalDIOOn && running->getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {
@@ -355,7 +374,6 @@ void GLWindow::pluginStarted(StimPlugin *p)
     if (running) { running->stop(); }
     running = p;
     Log() << p->name() << " started";
-
 }
 
 void GLWindow::pluginDidFinishInit(StimPlugin *p) {
@@ -368,6 +386,9 @@ void GLWindow::pluginStopped(StimPlugin *p)
 		Error() << "pluginStopped() but running != p";
     if (running == p) {
 		
+		if (!p->softCleanup) {
+			delayFPS = delayt0 = 0.;	
+		}
         running = 0;
         paused = false;
         Log() << p->name() << " stopped.";
