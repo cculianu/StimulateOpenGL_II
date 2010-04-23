@@ -449,6 +449,8 @@ bool CheckerFlicker::init()
 	
 #ifdef Q_OS_WIN
 	Sleep(500); // sleep for 500ms to ensure init is ok
+#else
+	usleep(500000);
 #endif
 
 	return true;

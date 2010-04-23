@@ -124,6 +124,9 @@ public:
 	/// \brief Inform calling code if this plugin is initializing or not
 	/// If true, the plugin is ready, if false, need to wait
 	bool isInitialized() const { return initted; }
+	
+	/// Blocks the called until initialization is complete.  Note that the app still processes events during this block.
+	void waitForInitialization() const;
 
     /// Returns the time that start() was called for this plugin
     QDateTime getBeginTime() const { return begintime; }

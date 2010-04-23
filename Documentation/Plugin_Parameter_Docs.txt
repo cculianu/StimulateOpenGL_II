@@ -581,21 +581,17 @@ different costs as well.
 Additionally, since checkerflicker performs a whole bunch of setup to maximize 
 performance, 'looping' checkerflicker using the 'nLoops' and 'nFrames' parameters 
 is not entirely seamless.  Looping is implemented using a stop/restart call to the
-plugin, which for checkerflicker can take on the order of tens or even hundreds
-of milliseconds, depending on the stixel size and number of pregenerated frames
-(specified using 'fbo').  As such, it is advisable to use the 'delay' parameter
-with checkerflicker.  This results in a background frame being forced into the
-mix in between iterations of checkerflicker.   Not specifying a delay will result
-in the plugin *hanging* on the last frame whilst it performs a restart for the 
-subsequent iteration.  And so, 'delay' allows the system to hang on a well-defined
-duration of background frames.  This is favorable to hanging on the last stimulus 
-frame (which can perhaps have unintended effects on the experimental preparation,
-etc).
+plugin, which for checkerflicker takes minimally two seconds!  As such, it is advisable to use the 'delay' parameter with checkerflicker, and to set it to at 
+least 2.1 - 2.5 seconds worth of frames, so as to cover this period of time when
+the plugin is in an undefined state.
 
-For most systems a delay that is at least as large as 2/3rds of a second's worth of 
-frames is advisable.  If you are specifying nFrames and nLoops > 0 and you are not 
-specifying a delay, the plugin will warn you in the console log to that effect.
-                          
+`delay' results in a background frame being forced into the mix in between
+iterations of checkerflicker.  This frame has ft_off asserted. This masks the 
+undefined frames of checkerflicker with well-defined 'delay' background frames.  
+
+Specifying a period of time of at least 2.5s is advisable.  Not specifying a delay at 
+all for checkerflicker or specifying too-small a delay is undefined.  
+
 stixelwidth
        Synopsis:         Specifies the width of the checker squares in pixels.
        Datatype:         integer

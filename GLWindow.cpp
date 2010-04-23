@@ -116,7 +116,7 @@ void GLWindow::drawEndStateBlankScreen(StimPlugin *p, bool isBlankBG) {
 		glClearColor(graylevel, graylevel, graylevel, 1.0f);
 		if (blend) glDisable(GL_BLEND);
 		glClear(GL_COLOR_BUFFER_BIT);
-		if (p->delay > 0 && delayCtr > 0 && !paused)
+		if (p->delay > 0 && (delayCtr > 0 || !p->initted) && !paused)
 			p->currentFTState = StimPlugin::FT_Off;		
 		else
 			p->currentFTState = StimPlugin::FT_End;
@@ -212,8 +212,6 @@ void GLWindow::paintGL()
 				StimPlugin * const p = running;
 				const bool doRestart = !nLoops || loopCt < nLoops;
 				const bool hadDelay = (delayCtr = p->delay) > 0;
-
-				--delayCtr;
 				
 				// NB: Need to draw this here as StimPlugin::stop() could potentially take FOREVER (checkerflicker!!)
 				//     So we will do it here -- put the BG frame up as quickly as possible then worry about calling stop.
@@ -229,12 +227,15 @@ void GLWindow::paintGL()
 					 dframe = true;
 					 //*/
 				}
+				--delayCtr;
+
 				const double t0 = getTime();
 				const int saved_delayCtr = delayCtr;
 				p->stop(false,false,doRestart);
 				if (doRestart) {
 					p->loopCt = loopCt;
 					p->start(true);
+					p->waitForInitialization();
 					delayCtr = saved_delayCtr;
 					p->loopCt = loopCt;
 					p->frameVars->closeAndRemoveOutput(); /// remove redundant frame var file!
@@ -244,6 +245,7 @@ void GLWindow::paintGL()
 					if (hadDelay && delayCtr < 0) {
 						Warning() << "Inter-loop restart/setup time of " << tRestart << "s took longer than delay=" << p->delay << " frames!  Increase `delay' to avoid this situation!";
 					}
+					
 					/// XXX
 					//Debug() << "reinitted, tRestart=" << tRestart << ", hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
 
@@ -284,7 +286,7 @@ void GLWindow::paintGL()
 		// no plugin running, draw default .5 gray bg without ft box
         glClear( GL_COLOR_BUFFER_BIT );
         doBufSwap = true;		
-    } else if (running && running->getFrameNum() < 0 && (paused /*|| delayCtr <= 0*/)) { 
+    } else if (running && running->getFrameNum() < 0 && (paused/*|| delayCtr <= 0*/)) { 
 		// running but paused and before plugin started (and not delay mode because that's handled above!)
 		// if so, draw plugin bg with ftrack_end box
 		drawEndStateBlankScreen(running, false);

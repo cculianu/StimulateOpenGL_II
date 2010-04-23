@@ -652,3 +652,14 @@ template <> bool StimPlugin::getParam<QVector<double> >(const QString & name, QV
 	}
 	return b;
 }
+
+void StimPlugin::waitForInitialization() const {
+	while (!initted) {
+		stimApp()->processEvents();
+#ifdef Q_OS_WIN
+		Sleep(10);
+#else
+		usleep(10000);
+#endif
+	}
+}
