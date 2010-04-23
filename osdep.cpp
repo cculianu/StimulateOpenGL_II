@@ -283,12 +283,9 @@ void setVSyncMode()
 #  error Unknown platform, need to implement setVSyncMode()!
 #endif
 
-static int fc_is_accurate = -1;
-
 bool hasAccurateHWFrameCount()
 {
-    if (fc_is_accurate < 0)  getHWFrameCount();
-    return fc_is_accurate;
+	return false;  /// we will assume HWFC is never accurate as it has proven to fail us time and again!
 }
 
 #ifdef Q_OS_WIN
@@ -345,9 +342,7 @@ unsigned getHWFrameCount()
         func = (int (*)(unsigned int *))QGLContext::currentContext()->getProcAddress( "glXGetVideoSyncSGI" );
         if (!func) {
             Error() << "No hw framecount func., will be emulated"; 
-            fc_is_accurate = 0;
-        } else
-            fc_is_accurate = 1;
+        } 
     }
     if (func) {
         unsigned int ret;
@@ -370,14 +365,11 @@ unsigned getHWFrameCount()
 		funcNV = (BOOL (WINAPI *)(HDC, GLuint *))QGLContext::currentContext()->getProcAddress("wglQueryFrameCountNV");
 		if (funcNV) {
 			Debug() << "Found NVIDIA QueryFrameCountNV function! YAY!";
-			fc_is_accurate = 1;
 		} else {
 			func = (BOOL (WINAPI *)(HDC, INT64 *, INT64 *, INT64 *))QGLContext::currentContext()->getProcAddress( "wglGetSyncValuesOML" );
 			if (!func) {
 				Error() << "No hw framecount func., will be emulated"; 
-				fc_is_accurate = 0;
-			} else
-	            fc_is_accurate = 1;
+			}
 		}
     }
 	if (funcNV) {

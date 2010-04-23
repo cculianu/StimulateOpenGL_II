@@ -545,7 +545,7 @@ bool CheckerFlicker::initFBO()
                 glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
                 return false;
             }
-
+			
             fc->createMore.release(fbo);
             for (unsigned i = 0; i < fbo; ++i) {
                 // enable rendering to the FBO
@@ -553,8 +553,8 @@ bool CheckerFlicker::initFBO()
                 glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[i]);
                 glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
                 glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glPushAttrib(GL_VIEWPORT_BIT|GL_COLOR_BUFFER_BIT);
                 glDrawBuffer(GL_COLOR_ATTACHMENT0_EXT); // just to be explicit about which attachment we are drawing to in the FBO
-                glPushAttrib(GL_VIEWPORT_BIT);
                 glViewport(0, 0, w, h);
                 // draw to off-screen texture i
                 fc->haveMore.acquire();
@@ -577,8 +577,6 @@ bool CheckerFlicker::initFBO()
 			}
             // Re-enable rendering to the window
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-            // re-set the drawbuffer
-            glDrawBuffer(GL_BACK);
             
             Log() << "FBO texture generation completed in " << tim.elapsed()/1000. << " seconds.";
             setNums();
@@ -776,8 +774,8 @@ void CheckerFlicker::drawFrame()
  */
         glTranslatef(-disps[num].x, -disps[num].y, 0); // translate back
 
+		glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);	
         glDisable(GL_TEXTURE_RECTANGLE_ARB);
-        glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);	
 }
 
 

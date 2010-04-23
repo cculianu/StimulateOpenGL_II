@@ -151,11 +151,11 @@ void GLWindow::paintGL()
     }
 #endif
 
-    if (hasAccurateHWFrameCount()) {
+    if (hasAccurateHWFrameCount() /* this is now always pretty much false */) {
         unsigned hwfc = getHWFrameCount();
 
         if (lastHWFC && hwfc==lastHWFC) {
-            tooFast = true;
+            //tooFast = true;
         } else if (lastHWFC && hwfc-lastHWFC > 1) {
             tooSlow = true;
         }
@@ -230,7 +230,6 @@ void GLWindow::paintGL()
 					 //*/
 				}
 				const double t0 = getTime();
-				const unsigned f0 = getHWFrameCount();
 				const int saved_delayCtr = delayCtr;
 				p->stop(false,false,doRestart);
 				if (doRestart) {
@@ -240,33 +239,14 @@ void GLWindow::paintGL()
 					p->loopCt = loopCt;
 					p->frameVars->closeAndRemoveOutput(); /// remove redundant frame var file!
 
-					if (hasAccurateHWFrameCount()) { // true only on Linux or systems with the HWFC functions -- Note Leonardo's system usually is FALSE here!
-						const int hwfc_now = getHWFrameCount();
-						const int fRestart = hwfc_now - int(f0);
-						
-						delayCtr -= fRestart;
-						if (hadDelay && delayCtr < 0) {
-							Warning() << "Inter-loop restart/setup time of " << fRestart << " frames took longer than delay=" << p->delay << " frames!  Increase `delay' to avoid this situation!";
-						}
-						/// XXX
-						//Debug() << "reinitted, fRestart=" << fRestart << ", hwfc=" << hwfc_now << ", delayCtr=" << delayCtr;
-					} else if (hasAccurateHWRefreshRate()) { // true almost never since all systems seem to lie about this sometimes -- including Windows!
-						const double tRestart = getTime() - t0;
-						delayCtr -= int( tRestart * getHWRefreshRate() ); ///< this many frames have elapsed during startup, so reduce our delay Ctr by that much
-						if (hadDelay && delayCtr < 0) {
-							Warning() << "Inter-loop restart/setup time of " << tRestart << "s took longer than delay=" << p->delay << " frames!  Increase `delay' to avoid this situation!";
-						}
-						/// XXX
-						//Debug() << "reinitted, tRestart=" << tRestart << ", hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;						
-					} else { // just use the calibrated value..
-						const double tRestart = getTime() - t0;
-						delayCtr -= int( tRestart * delayFPS ); ///< this many frames have elapsed during startup, so reduce our delay Ctr by that much
-						if (hadDelay && delayCtr < 0) {
-							Warning() << "Inter-loop restart/setup time of " << tRestart << "s took longer than delay=" << p->delay << " frames!  Increase `delay' to avoid this situation!";
-						}
-						/// XXX
-						//Debug() << "reinitted, tRestart=" << tRestart << ", hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
+					const double tRestart = getTime() - t0;
+					delayCtr -= int( tRestart * delayFPS ); ///< this many frames have elapsed during startup, so reduce our delay Ctr by that much
+					if (hadDelay && delayCtr < 0) {
+						Warning() << "Inter-loop restart/setup time of " << tRestart << "s took longer than delay=" << p->delay << " frames!  Increase `delay' to avoid this situation!";
 					}
+					/// XXX
+					//Debug() << "reinitted, tRestart=" << tRestart << ", hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
+
 					/**/
 					 /// XXX
 					 dframe = true;
@@ -322,9 +302,7 @@ void GLWindow::paintGL()
 			const double tElapsed = (getTime() - delayt0);
 			if (tElapsed > 0.) 	delayFPS =running->delay / tElapsed;
 			else delayFPS = 120.;
-			if (!hasAccurateHWFrameCount() && !hasAccurateHWRefreshRate()) {
-				Log() << "Used plugin delay to calibrate refresh rate to: " << delayFPS << " (since HWFC is inaccurate and HW refresh rate is not trustworthy)";
-			}
+			Log() << "Used plugin delay to calibrate refresh rate to: " << delayFPS << " Hz";
 		}
 		
 		/// XXX
