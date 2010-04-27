@@ -875,7 +875,7 @@ void CheckerFlicker::afterVSync(bool isSimulated)
         --nConsecSkips;
     }
     // every 45 frames or so, update custom string
-    if (!(frameNum%45)) {
+    if (frameNum > 0 && !(frameNum%45)) {
         customStatusBarString.sprintf("Frame gen. %d ms  Avg. %d usec", lastFramegen, frameGenAvg_usec);
     }
 }

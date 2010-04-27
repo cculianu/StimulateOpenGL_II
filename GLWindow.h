@@ -89,6 +89,7 @@ protected:
      void keyPressEvent(QKeyEvent *event);
 
 private:
+ 	 bool blockPaint;
      StimPlugin *running;
      QList<StimPlugin *> pluginsList;
      QTimer *timer;

@@ -18,6 +18,7 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 #endif
 															(frameless ? Qt::FramelessWindowHint : 0))), aMode(false), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.), delayCtr(0), delayt0(0.), delayFPS(0.), debugLogFrames(false)
 {
+	blockPaint = false;
     QSize s(w, h);
     setMaximumSize(s);
     setMinimumSize(s);
@@ -132,15 +133,38 @@ void GLWindow::drawEndStateBlankScreenImmediately(StimPlugin *p, bool isBlankBG)
 	swapBuffers(); ///< wait for vsync..
 }
 
+static void adjustRefreshToKnownPresets(double & delayFPS) {
+	static const double presets[] = { 60.0, 70.0, 75.0, 80.0, 82.0, 85.0, 90.0, 100.0, 120.0, 125.0, 130.0, 140.0, 150.0, 160.0, 180.0, 240.0, 360.0, -1.0 };
+	int found=-1;
+	double lastDiff = 1e6;
+	for (int i = 0; presets[i] > 0.; ++i) {
+		const double diff = fabs(presets[i]-delayFPS);
+		if (found < 0 || diff < lastDiff) {
+			found = i;
+			lastDiff = diff;
+		}
+		if (diff <= 1.0) {
+			break;
+		}
+	}
+	if (lastDiff > 5.0) {
+		// if we get here.. something's wrong and chances are we will have some error...
+		Warning() << "Measured refresh of " << delayFPS << " is likely wrong and it's not close enough to a known refresh rate for us to be comfortable forcing it to a known value.";
+	} else 
+		delayFPS = presets[found];
+}
+
+
 // draw each frame
 void GLWindow::paintGL()
 {
+	if (blockPaint) return;
+	
     tThisFrame = getTime();
     bool tooFast = false, tooSlow = false, signalDIOOn = false;
 
     if (timer->isActive()) return; // this was a spurious paint event
-	//    unsigned timerpd = 1000/getHWRefreshRate()/2;
-    unsigned timerpd = 1000/stimApp()->refreshRate()/2;
+    unsigned timerpd = 1000/MAX(stimApp()->refreshRate(),120)/2;
     if (stimApp()->busy()) timerpd = 0;
 
 #ifdef Q_OS_WIN
@@ -213,6 +237,8 @@ void GLWindow::paintGL()
 				const bool doRestart = !nLoops || loopCt < nLoops;
 				const bool hadDelay = (delayCtr = p->delay) > 0;
 				
+				p->customStatusBarString.sprintf("Delay counter: %d", delayCtr);
+				
 				// NB: Need to draw this here as StimPlugin::stop() could potentially take FOREVER (checkerflicker!!)
 				//     So we will do it here -- put the BG frame up as quickly as possible then worry about calling stop.
 				//     We need to put the BG frame up in cases where we are stopping for good (in which case it's a gray
@@ -223,7 +249,7 @@ void GLWindow::paintGL()
 					drawEndStateBlankScreenImmediately(p, !doRestart);
 					/**/
 					 /// XXX
-					 //Debug() << "looped, drew delayframe, hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
+					 Debug() << "looped, drew delayframe, hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
 					 dframe = true;
 					 //*/
 				}
@@ -233,21 +259,34 @@ void GLWindow::paintGL()
 				const int saved_delayCtr = delayCtr;
 				p->stop(false,false,doRestart);
 				if (doRestart) {
+					timer->stop();
+					blockPaint = true;
 					p->loopCt = loopCt;
 					p->start(true);
 					p->waitForInitialization();
+					blockPaint = false;
+					timer->start(timerpd);					
 					delayCtr = saved_delayCtr;
+					p->customStatusBarString.sprintf("Delay counter: %d", delayCtr);
 					p->loopCt = loopCt;
 					p->frameVars->closeAndRemoveOutput(); /// remove redundant frame var file!
 
-					const double tRestart = getTime() - t0;
-					delayCtr -= int( tRestart * delayFPS ); ///< this many frames have elapsed during startup, so reduce our delay Ctr by that much
+					double tRestart = getTime() - t0;
+					int frameFudge = (int)qRound( tRestart * delayFPS ); ///< this many frames have elapsed during startup, so reduce our delay Ctr by that much
+					if (frameFudge > 0 && delayCtr > 0) {
+						// force a frame so as to re-synch us to the vsync signal so that the fudge factor becomes more accurate
+						drawEndStateBlankScreenImmediately(p, false);
+					}
+					// now we are synched to the vsync signal, so hopefully this fudging is more accurate 
+					tRestart = getTime() - t0;
+					frameFudge = (int)qRound( tRestart * delayFPS );
+					delayCtr -= frameFudge; 
 					if (hadDelay && delayCtr < 0) {
 						Warning() << "Inter-loop restart/setup time of " << tRestart << "s took longer than delay=" << p->delay << " frames!  Increase `delay' to avoid this situation!";
 					}
 					
 					/// XXX
-					//Debug() << "reinitted, tRestart=" << tRestart << ", hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
+					Debug() << "reinitted, tRestart=" << tRestart << ", hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
 
 					/**/
 					 /// XXX
@@ -263,6 +302,7 @@ void GLWindow::paintGL()
 					if (delayt0 <= 0.) delayt0 = getTime();
 				}
 				--delayCtr;
+				running->customStatusBarString.sprintf("Delay counter: %d", delayCtr);
 				doBufSwap = true;
 			} else if (running) { // note: code above may have stopped plugin, check if it's still running
 			
@@ -304,13 +344,14 @@ void GLWindow::paintGL()
 			const double tElapsed = (getTime() - delayt0);
 			if (tElapsed > 0.) 	delayFPS =running->delay / tElapsed;
 			else delayFPS = 120.;
+			adjustRefreshToKnownPresets(delayFPS);
 			Log() << "Used plugin delay to calibrate refresh rate to: " << delayFPS << " Hz";
 		}
 		
 		/// XXX
-		//if (dframe) {
-		//	Debug() << " dframe, after buf swap hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
-		//}
+		if (dframe) {
+			Debug() << " dframe, after buf swap hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
+		}
 		
 		QString devChan;
 		if (running && !paused && signalDIOOn && running->getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {

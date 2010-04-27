@@ -317,6 +317,14 @@ void StimPlugin::advanceFTState()
 		// on frameNum == 0, always assert FT_Start
 		ftAssertions[FT_Start] = true;
 		Log() << "FrameTrack Start asserted for frame " << frameNum;
+		/// XXX
+		static double ts = getTime();
+		double tnow = getTime();
+		/// XXX
+		if (loopCt > 0) {
+			Debug() << "Time between restarts: " << (tnow - ts) << " = " << qRound(((tnow-ts)*parent->delayFPS)) << " frames.";
+		}
+		ts = tnow;
 	}
 	
 	// detect first asserted ft flag, remember it, and clear them all
@@ -655,11 +663,6 @@ template <> bool StimPlugin::getParam<QVector<double> >(const QString & name, QV
 
 void StimPlugin::waitForInitialization() const {
 	while (!initted) {
-		stimApp()->processEvents();
-#ifdef Q_OS_WIN
-		Sleep(10);
-#else
-		usleep(10000);
-#endif
+		stimApp()->processEvents(QEventLoop::WaitForMoreEvents|QEventLoop::ExcludeUserInputEvents|QEventLoop::ExcludeSocketNotifiers);
 	}
 }

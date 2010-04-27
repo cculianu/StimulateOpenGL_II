@@ -125,9 +125,6 @@ public:
 	/// If true, the plugin is ready, if false, need to wait
 	bool isInitialized() const { return initted; }
 	
-	/// Blocks the called until initialization is complete.  Note that the app still processes events during this block.
-	void waitForInitialization() const;
-
     /// Returns the time that start() was called for this plugin
     QDateTime getBeginTime() const { return begintime; }
     
@@ -182,6 +179,9 @@ signals:
     void stopped(); ///< emitted whenever plugin stops
     
 protected: 
+	/// Blocks the called until initialization is complete.  Note that the app still processes events during this block.
+	void waitForInitialization() const;
+
     /** Process keypresses.  Reimplement this in your plugin to process keys:
         Return true if key processed (accepted) or false otherwise.
         NB: It's important to return false if you want to ignore the key
