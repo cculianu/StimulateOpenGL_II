@@ -55,14 +55,14 @@ public:
 
     virtual ~StimApp();
 
-    /// Some parameters related to the external LeoDAQGL program notification
-    struct LeoDAQGLNotifyParams {
-        bool enabled;  ///< if true, LeoDAQGL is notified on plugin start/stop
+    /// Some parameters related to the external SpikeGL program notification
+    struct SpikeGLNotifyParams {
+        bool enabled;  ///< if true, SpikeGL is notified on plugin start/stop
 		bool nloopsNotifyPerIter;
         QString hostname;
         unsigned short port;
         int timeout_ms;
-    } leoDAQGLNotifyParams;
+    } spikeGLNotifyParams;
 
 	struct GlobalDefaults {
 		int mon_x_pix, mon_y_pix, ftrackbox_x, ftrackbox_y, ftrackbox_w;
@@ -163,8 +163,8 @@ public slots:
     /// Aligns the GLWindow to the screen's top-left corner. ('A' hotkey in the UI.)
     void alignGLWindow();
 
-    /// Pops up the LeoDAQGL integration options dialog and sets the params based on this Window
-    void leoDAQGLIntegrationDialog();
+    /// Pops up the SpikeGL integration options dialog and sets the params based on this Window
+    void spikeGLIntegrationDialog();
 
     /// Pops up the Global Default Params dialog
     void globalDefaultsDialog();

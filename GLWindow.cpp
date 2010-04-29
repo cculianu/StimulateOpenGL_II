@@ -514,7 +514,7 @@ void GLWindow::pauseUnpause()
     paused = !paused;
     Log() << (paused ? "Paused" : "Unpaused");
     if (!paused && !running->frameNum && running->needNotifyStart
-		&& ((stimApp()->leoDAQGLNotifyParams.nloopsNotifyPerIter || running->loopCt == 0)) ) 
+		&& ((stimApp()->spikeGLNotifyParams.nloopsNotifyPerIter || running->loopCt == 0)) ) 
         running->notifySpikeGLAboutStart();  
 }
 

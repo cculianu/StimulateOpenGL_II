@@ -1,10 +1,10 @@
-#include "StimGL_LeoDAQGL_Integration.h"
+#include "StimGL_SpikeGL_Integration.h"
 #include "Util.h"
 #include <QTcpSocket>
 #include <QHostAddress>
 
 #define LINELEN 4096
-#define GREETING_STRING "HELLO I'M LEODAQGL"
+#define GREETING_STRING "HELLO I'M SPIKEGL"
 #define PLUGIN_START_STRING "PLUGIN START" 
 #define PLUGIN_END_STRING   "PLUGIN END"
 #define PLUGIN_PARAMS_STRING "PLUGIN PARAMS"
@@ -14,7 +14,7 @@
 typedef QMap<QString, QVariant> PM;
 Q_DECLARE_METATYPE(PM);
 
-namespace StimGL_LeoDAQGL_Integration 
+namespace StimGL_SpikeGL_Integration 
 {
     static QString socketErrorToString(QAbstractSocket::SocketError e) {
         switch (e) {
@@ -79,7 +79,7 @@ namespace StimGL_LeoDAQGL_Integration
         // read greeting from server        
         for (int ct = 0; !sock.canReadLine(); ++ct) {
             if (!sock.waitForReadyRead(timeout_msecs) || ct >= 3) {
-                Error() << sockContextName() << " failed because timed out on read from LeoDAQGL program.";
+                Error() << sockContextName() << " failed because timed out on read from SpikeGL program.";
                 if (errStr_out) *errStr_out = "Failed to read line.";
                 return QString::null;
             }
@@ -98,8 +98,8 @@ namespace StimGL_LeoDAQGL_Integration
                           unsigned short port, 
                           int timeout_msecs)
     {
-        Debug() << "Notifying LeoDAQGL of `" << pname << "' " << (isStart ? "start" : "end") << "...";
-        setSockContextName("Notify LeoDAQGL");
+        Debug() << "Notifying SpikeGL of `" << pname << "' " << (isStart ? "start" : "end") << "...";
+        setSockContextName("Notify SpikeGL");
         QTcpSocket sock;
 
         sock.connectToHost(host, port);
@@ -127,12 +127,12 @@ namespace StimGL_LeoDAQGL_Integration
         line = sockReadLine(sock, timeout_msecs, errStr_out);
         if (line.isNull()) return false;
         if (!line.startsWith(OK_STRING)) {
-            QString estr = QString("Did not read OK from LeoDAQGL after sending plugin ") + (isStart ? "start" : "end") + " msg!";
+            QString estr = QString("Did not read OK from SpikeGL after sending plugin ") + (isStart ? "start" : "end") + " msg!";
             if (errStr_out) *errStr_out = estr;
-            Error() << "Notify LeoDAQGL failed: " << estr;
+            Error() << "Notify SpikeGL failed: " << estr;
             return false;
         }
-        Debug() << "LeoDAQGL notified of plugin `" << pname << "' " << (isStart ? "start" : "end") << " via socket!";
+        Debug() << "SpikeGL notified of plugin `" << pname << "' " << (isStart ? "start" : "end") << " via socket!";
         return true;
     }
 

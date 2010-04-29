@@ -29,9 +29,9 @@ public:
     
     QString description() const { return "Calibrates the refresh rate by drawing frames on the screen as fast as possible with vsync enabled."; }
 
-    /// Reimplemented from super to suppress LeoDAQGL notify
+    /// Reimplemented from super to suppress SpikeGL notify
     bool start(bool startUnpaused = false);
-    /// Reimplemented from super to suppress LeoDAQGL notify
+    /// Reimplemented from super to suppress SpikeGL notify
     void stop(bool doSave = false, bool use_gui = false);
 
 protected:

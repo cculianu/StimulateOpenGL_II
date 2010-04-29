@@ -26,8 +26,8 @@
 #include <QPainter>
 #include <QDir>
 #include <QDesktopWidget>
-#include "StimGL_LeoDAQGL_Integration.h"
-#include "ui_LeoDAQGLIntegration.h"
+#include "StimGL_SpikeGL_Integration.h"
+#include "ui_SpikeGLIntegration.h"
 #include "ui_ParamDefaultsWindow.h"
 #include "DAQ.h"
 
@@ -361,11 +361,11 @@ void StimApp::loadSettings()
 #endif
     mut.unlock();
 
-    struct LeoDAQGLNotifyParams & leoDaq (leoDAQGLNotifyParams);
+    struct SpikeGLNotifyParams & leoDaq (spikeGLNotifyParams);
     leoDaq.enabled = settings.value("LeoDAQGL_Notify_Enabled", true).toBool();
     leoDaq.hostname = settings.value("LeoDAQGL_Notify_Host", "localhost").toString();
-    leoDaq.port = settings.value("LeoDAQGL_Notify_Port",  LEODAQ_GL_NOTIFY_DEFAULT_PORT).toUInt();
-    leoDaq.timeout_ms = settings.value("LeoDAQGL_Notify_TimeoutMS", LEODAQ_GL_NOTIFY_DEFAULT_TIMEOUT_MSECS ).toInt();    
+    leoDaq.port = settings.value("LeoDAQGL_Notify_Port",  SPIKE_GL_NOTIFY_DEFAULT_PORT).toUInt();
+    leoDaq.timeout_ms = settings.value("LeoDAQGL_Notify_TimeoutMS", SPIKE_GL_NOTIFY_DEFAULT_TIMEOUT_MSECS ).toInt();    
 	leoDaq.nloopsNotifyPerIter = settings.value("LeoDAQGL_Notify_NLoopsPerIter", false).toBool();
 
 	struct GlobalDefaults & defs (globalDefaults);
@@ -400,7 +400,7 @@ void StimApp::saveSettings()
     settings.setValue("outDir", outDir);
     mut.unlock();
 
-    struct LeoDAQGLNotifyParams & leoDaq (leoDAQGLNotifyParams);
+    struct LeoDAQGLNotifyParams & leoDaq (spikeGLNotifyParams);
     settings.setValue("LeoDAQGL_Notify_Enabled", leoDaq.enabled);
     settings.setValue("LeoDAQGL_Notify_Host", leoDaq.hostname);
     settings.setValue("LeoDAQGL_Notify_Port",  leoDaq.port);
@@ -705,15 +705,15 @@ void StimApp::alignGLWindow()
     }
 }
 
-void StimApp::leoDAQGLIntegrationDialog()
+void StimApp::spikeGLIntegrationDialog()
 {
     QDialog dlg(consoleWindow);
-    dlg.setWindowTitle("LeoDAQGL Integration Options");
+    dlg.setWindowTitle("SpikeGL Integration Options");
     dlg.setWindowIcon(consoleWindow->windowIcon());
     dlg.setModal(true);
-    LeoDAQGLNotifyParams & p (leoDAQGLNotifyParams);
+    spikeGLNotifyParams & p (spikeGLNotifyParams);
 
-    Ui::LeoDAQGLIntegration controls;
+    Ui::SpikeGLIntegration controls;
     controls.setupUi(&dlg);
     controls.enabledGB->setChecked(p.enabled);
     controls.hostNameLE->setText(p.hostname);

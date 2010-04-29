@@ -11,18 +11,18 @@ CalibPlugin::CalibPlugin()
 
 void CalibPlugin::stop(bool doSave, bool use_gui)
 {
-    const bool wasEnabled = stimApp()->leoDAQGLNotifyParams.enabled;
-    stimApp()->leoDAQGLNotifyParams.enabled = false; // suppress for this plugin
+    const bool wasEnabled = stimApp()->spikeGLNotifyParams.enabled;
+    stimApp()->spikeGLNotifyParams.enabled = false; // suppress for this plugin
     StimPlugin::stop(doSave, use_gui);
-    stimApp()->leoDAQGLNotifyParams.enabled = wasEnabled;
+    stimApp()->spikeGLNotifyParams.enabled = wasEnabled;
 }
 
 bool CalibPlugin::start(bool startUnpaused)
 {
-    const bool wasEnabled = stimApp()->leoDAQGLNotifyParams.enabled;
-    stimApp()->leoDAQGLNotifyParams.enabled = false; // suppress for this plugin
+    const bool wasEnabled = stimApp()->spikeGLNotifyParams.enabled;
+    stimApp()->spikeGLNotifyParams.enabled = false; // suppress for this plugin
     StimPlugin::start(startUnpaused);
-    stimApp()->leoDAQGLNotifyParams.enabled = wasEnabled;
+    stimApp()->spikeGLNotifyParams.enabled = wasEnabled;
 	return true;
 }
 

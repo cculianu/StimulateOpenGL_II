@@ -5,7 +5,7 @@
 #include <QDir>
 #include <QGLContext>
 #include <QTimer>
-#include "StimGL_LeoDAQGL_Integration.h"
+#include "StimGL_SpikeGL_Integration.h"
 #include <iostream>
 #include <math.h>
 #include <QImageWriter>
@@ -59,10 +59,9 @@ void StimPlugin::stop(bool doSave, bool useGui, bool softStop)
 
 	frameVars->finalize();
 
-    // Notify LeoDAQGL via a socket.. if possible..
-    // Notify LeoDAQGL via a socket.. if possible..
-    if (stimApp()->leoDAQGLNotifyParams.enabled
-		&& (!softStop ||  stimApp()->leoDAQGLNotifyParams.nloopsNotifyPerIter	|| loopCt+1 >= nLoops) ) {
+    // Notify SpikeGL via a socket.. if possible..
+    if (stimApp()->spikeGLNotifyParams.enabled
+		&& (!softStop ||  stimApp()->spikeGLNotifyParams.nloopsNotifyPerIter	|| loopCt+1 >= nLoops) ) {
         notifySpikeGLAboutStop();
     }
 	    
@@ -264,10 +263,10 @@ void StimPlugin::initDone()
 {
 	initted = true;
 
-    // Notify LeoDAQGL via a socket.. if possible..
+    // Notify SpikeGL via a socket.. if possible..
     needNotifyStart = false;
-    if (stimApp()->leoDAQGLNotifyParams.enabled) {
-        if (!parent->isPaused() && (stimApp()->leoDAQGLNotifyParams.nloopsNotifyPerIter || loopCt == 0)) {
+    if (stimApp()->spikeGLNotifyParams.enabled) {
+        if (!parent->isPaused() && (stimApp()->spikeGLNotifyParams.nloopsNotifyPerIter || loopCt == 0)) {
             notifySpikeGLAboutStart();
         } else {
             needNotifyStart = true;
@@ -570,9 +569,9 @@ QList<QByteArray> StimPlugin::getFrameDump(unsigned num, unsigned numframes,
 
 void StimPlugin::notifySpikeGLAboutStart()
 {
-    StimApp::LeoDAQGLNotifyParams & p(stimApp()->leoDAQGLNotifyParams);
+    StimApp::SpikeGLNotifyParams & p(stimApp()->spikeGLNotifyParams);
     
-    StimGL_LeoDAQGL_Integration::Notify_PluginStart(name(), getParams(),
+    StimGL_SpikeGL_Integration::Notify_PluginStart(name(), getParams(),
                                                     0,
                                                     p.hostname,
                                                     p.port,
@@ -582,9 +581,9 @@ void StimPlugin::notifySpikeGLAboutStart()
 
 void StimPlugin::notifySpikeGLAboutStop()
 {
-        StimApp::LeoDAQGLNotifyParams & p(stimApp()->leoDAQGLNotifyParams);
+        StimApp::SpikeGLNotifyParams & p(stimApp()->spikeGLNotifyParams);
 
-        StimGL_LeoDAQGL_Integration::Notify_PluginEnd(name(), getParams(),
+        StimGL_SpikeGL_Integration::Notify_PluginEnd(name(), getParams(),
                                                         0,
                                                         p.hostname,
                                                         p.port,

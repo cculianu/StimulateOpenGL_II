@@ -247,7 +247,7 @@ protected:
 	
     double fps, fpsAvg, fpsMin, fpsMax;
     double cycleTimeLeft; ///< the number of seconds left in this cycle -- updated by glWindow before calling afterVSync
-    bool needNotifyStart; ///< iff true, we will notify LeoDAQGL of plugin start on unpause
+    bool needNotifyStart; ///< iff true, we will notify SpikeGL of plugin start on unpause
 	int ftrackbox_x, ftrackbox_y, ftrackbox_w;
 	FPS_Mode fps_mode; ///< one of FPS_Single, FPS_Dual, FPS_Triple, FPS_Quad (this currently means triple!)
 	float bgcolor;
@@ -352,7 +352,7 @@ private:
 	static bool readBackBuffer(QByteArray & dest, const Vec2i & cropOrigin, const Vec2i & cropRegionSize, GLenum datatype);
 	
 private slots:
-	/// Sets initted = true, calls LeoDAQGL notify
+	/// Sets initted = true, calls SpikeGL notify
 	void initDone();
 
 };

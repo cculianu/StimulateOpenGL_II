@@ -1,18 +1,18 @@
-#ifndef StimGL_LeoDAQGL_Integration_H
-#define StimGL_LeoDAQGL_Integration_H
+#ifndef StimGL_SpikeGL_Integration_H
+#define StimGL_SpikeGL_Integration_H
 #include <QString>
 #include <QMap>
 #include <QVariant>
 #include <QTcpServer>
 #include <QObject>
 
-namespace StimGL_LeoDAQGL_Integration 
+namespace StimGL_SpikeGL_Integration 
 {
-#define LEODAQ_GL_NOTIFY_DEFAULT_PORT 52521
-#define LEODAQ_GL_NOTIFY_DEFAULT_TIMEOUT_MSECS 1000
+#define SPIKE_GL_NOTIFY_DEFAULT_PORT 52521
+#define SPIKE_GL_NOTIFY_DEFAULT_TIMEOUT_MSECS 1000
 
 
-    /** Called by StimGL to notify LeoDAQGL that a plugin started.
+    /** Called by StimGL to notify SpikeGL that a plugin started.
         Blocks until the notification is completed, or until timeout expires.
         Use the errStr_out ptr to QString to determine the error, if any.
         @return false if timeout or error, true if succeeded.*/
@@ -20,10 +20,10 @@ namespace StimGL_LeoDAQGL_Integration
                             const QMap<QString, QVariant>  &pluginParams, 
                             QString *errStr_out = 0, 
                             const QString & host = "127.0.0.1",
-                            unsigned short port = LEODAQ_GL_NOTIFY_DEFAULT_PORT, 
-                            int timeout_msecs = LEODAQ_GL_NOTIFY_DEFAULT_TIMEOUT_MSECS);
+                            unsigned short port = SPIKE_GL_NOTIFY_DEFAULT_PORT, 
+                            int timeout_msecs = SPIKE_GL_NOTIFY_DEFAULT_TIMEOUT_MSECS);
 
-    /** Called by StimGL to notify LeoDAQGL that a plugin ended.
+    /** Called by StimGL to notify SpikeGL that a plugin ended.
         Blocks until the notification is completed, or until timeout expires.
         Use the errStr_out ptr to QString to determine the error, if any.
         @return false if timeout or error, true if succeeded.*/
@@ -31,11 +31,11 @@ namespace StimGL_LeoDAQGL_Integration
                           const QMap<QString, QVariant>  &pluginParams, 
                           QString *errStr_out = 0, 
                           const QString & host = "127.0.0.1",
-                          unsigned short port = LEODAQ_GL_NOTIFY_DEFAULT_PORT, 
-                          int timeout_msecs = LEODAQ_GL_NOTIFY_DEFAULT_TIMEOUT_MSECS);
+                          unsigned short port = SPIKE_GL_NOTIFY_DEFAULT_PORT, 
+                          int timeout_msecs = SPIKE_GL_NOTIFY_DEFAULT_TIMEOUT_MSECS);
     
 
-    /** Object to  used inside LeoDAQGL to receive plugin start events
+    /** Object to  used inside SpikeGL to receive plugin start events
         from StimGL via the network. */
     class NotifyServer : public QObject
     {
@@ -45,7 +45,7 @@ namespace StimGL_LeoDAQGL_Integration
         ~NotifyServer();
 
         /// returns immediately, but it starts the server and will emit gotPluginStartedNotification() when it receives notificaton from stimgl that the plugin started...
-        bool beginListening(const QString & iface = "127.0.0.1", unsigned short port = LEODAQ_GL_NOTIFY_DEFAULT_PORT, int timeout_msecs = LEODAQ_GL_NOTIFY_DEFAULT_TIMEOUT_MSECS);
+        bool beginListening(const QString & iface = "127.0.0.1", unsigned short port = SPIKE_GL_NOTIFY_DEFAULT_PORT, int timeout_msecs = SPIKE_GL_NOTIFY_DEFAULT_TIMEOUT_MSECS);
 
     signals:
         /// connect to this signal to be notified that the plugin started
@@ -64,7 +64,7 @@ namespace StimGL_LeoDAQGL_Integration
         QTcpServer srv;
         int timeout_msecs;
     };
-} // end namespace StimGL_LeoDAQGL_Integration
+} // end namespace StimGL_SpikeGL_Integration
 
 
 #endif

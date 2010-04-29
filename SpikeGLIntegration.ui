@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>LeoDAQGLIntegration</class>
- <widget class="QDialog" name="LeoDAQGLIntegration">
+ <class>SpikeGLIntegration</class>
+ <widget class="QDialog" name="SpikeGLIntegration">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -39,13 +39,13 @@
     </rect>
    </property>
    <property name="toolTip">
-    <string>If enabled, notify LeoDAQGL program on plugin start/stop.</string>
+    <string>If enabled, notify SpikeGL program on plugin start/stop.</string>
    </property>
    <property name="whatsThis">
-    <string>If enabled, notify the LeoDAQGL program via a network socket when a stim plugin is started or stopped.  The notification fails if timeout ms elapses without a response from the remote socket or if the connection fails.</string>
+    <string>If enabled, notify the SpikeGL program via a network socket when a stim plugin is started or stopped.  The notification fails if timeout ms elapses without a response from the remote socket or if the connection fails.</string>
    </property>
    <property name="title">
-    <string>Notify LeoDAQGL on Plugin Start/End</string>
+    <string>Notify SpikeGL on Plugin Start/End</string>
    </property>
    <property name="checkable">
     <bool>true</bool>
@@ -63,7 +63,7 @@
      </rect>
     </property>
     <property name="toolTip">
-     <string>The hostname of the remote LeoDAQGL program</string>
+     <string>The hostname of the remote SpikeGL program</string>
     </property>
     <property name="text">
      <string>Hostname:</string>
@@ -79,7 +79,7 @@
      </rect>
     </property>
     <property name="toolTip">
-     <string>The hostname of the remote LeoDAQGL program</string>
+     <string>The hostname of the remote SpikeGL program</string>
     </property>
     <property name="text">
      <string>localhost</string>
@@ -95,7 +95,7 @@
      </rect>
     </property>
     <property name="toolTip">
-     <string>The port on which the LeoDAQGL program is listening for notifications.</string>
+     <string>The port on which the SpikeGL program is listening for notifications.</string>
     </property>
     <property name="text">
      <string>Port:</string>
@@ -111,7 +111,7 @@
      </rect>
     </property>
     <property name="toolTip">
-     <string>The communications timeout.  If LeoDAQGL fails to respond within this time limit, abort notification attempt.  Set this to a relatively low number.</string>
+     <string>The communications timeout.  If SpikeGL fails to respond within this time limit, abort notification attempt.  Set this to a relatively low number.</string>
     </property>
     <property name="text">
      <string>Timeout (ms):</string>
@@ -127,7 +127,7 @@
      </rect>
     </property>
     <property name="toolTip">
-     <string>The communications timeout.  If LeoDAQGL fails to respond within this time limit, abort notification attempt.  Set this to a relatively low number.</string>
+     <string>The communications timeout.  If SpikeGL fails to respond within this time limit, abort notification attempt.  Set this to a relatively low number.</string>
     </property>
     <property name="minimum">
      <number>50</number>
@@ -173,7 +173,7 @@
      </font>
     </property>
     <property name="toolTip">
-     <string>This option pertains to users the nLoops plugin configuration variable.  If enabled, notify LeoDAQGL for each iteration of the plugin, rather than once for the plugin's run.   The default, disabled, is what most people want.</string>
+     <string>This option pertains to users the nLoops plugin configuration variable.  If enabled, notify SpikeGL for each iteration of the plugin, rather than once for the plugin's run.   The default, disabled, is what most people want.</string>
     </property>
     <property name="statusTip">
      <string>Enable 'per-iteration' notification for nLoops mode.</string>
@@ -192,7 +192,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>LeoDAQGLIntegration</receiver>
+   <receiver>SpikeGLIntegration</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -208,7 +208,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>LeoDAQGLIntegration</receiver>
+   <receiver>SpikeGLIntegration</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
