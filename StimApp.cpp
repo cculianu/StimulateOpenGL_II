@@ -400,7 +400,7 @@ void StimApp::saveSettings()
     settings.setValue("outDir", outDir);
     mut.unlock();
 
-    struct LeoDAQGLNotifyParams & leoDaq (spikeGLNotifyParams);
+    struct SpikeGLNotifyParams & leoDaq (spikeGLNotifyParams);
     settings.setValue("LeoDAQGL_Notify_Enabled", leoDaq.enabled);
     settings.setValue("LeoDAQGL_Notify_Host", leoDaq.hostname);
     settings.setValue("LeoDAQGL_Notify_Port",  leoDaq.port);
@@ -711,7 +711,7 @@ void StimApp::spikeGLIntegrationDialog()
     dlg.setWindowTitle("SpikeGL Integration Options");
     dlg.setWindowIcon(consoleWindow->windowIcon());
     dlg.setModal(true);
-    spikeGLNotifyParams & p (spikeGLNotifyParams);
+    SpikeGLNotifyParams & p (spikeGLNotifyParams);
 
     Ui::SpikeGLIntegration controls;
     controls.setupUi(&dlg);
