@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: April 15, 2010
+Last Updated: April 29, 2010
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -94,6 +94,16 @@ delay
                           and also have the this inter-plugin time present a 
                           default known frame state while the plugin re-
                           initializes.  
+                          ** NB: If the plugin you are running is CheckerFlicker,
+                                 and nLoops > 1 and the loop count is > 0 (that is,
+                                 on iterations above the first) the actual number 
+                                 of delay frames outputted to the display may be 
+                                 inexact and may jitter by 1-2 frames.   This is a 
+                                 known issue and will be addressed in the future if 
+                                 it turns out to be problematic for experiments.  
+                                 When running plugins other than CheckerFlicker, the 
+                                 delay is always exact and this problem does not 
+                                 occur.  (See the CheckerFlicker notes as well).
         Datatype:         integer
         Possible values:  0 - +214748647
         Default value:    0 (off)
@@ -222,6 +232,298 @@ nLoops
         Possible values:  0 - +2147483647
         Default value:    0 (no looping)
 
+------------------------------------------------------------------------------
+`CheckerFlicker' PLUGIN PARAMETERS
+------------------------------------------------------------------------------
+
+PLUGIN NOTES  
+
+Checkerflicker is a relatively computationally expensive plugin.  This is
+because it utilizes a random number generator to create random colors per 
+'stixel'.  Random number generation, when done millions of times per second,
+starts to get noticeably taxing on even modern CPUs (as of the time of this
+writing, in 2010).  If the stixel size is small (1 or 2), the generator may not 
+be able to keep up with the screen refresh rate and so you may experience dropped
+frames.
+
+Strategies to mitigate this include playing with the 'fbo' variable as well
+as shrinking the render size (mon_x_pix/mon_y_pix) and/or adding some margins
+(lmargin, etc).  Also the 'gauss' versus 'uniform' random generators have slightly
+different costs as well.
+
+Additionally, since checkerflicker performs a whole bunch of setup to maximize 
+performance, 'looping' checkerflicker using the 'nLoops' and 'nFrames' parameters 
+is not entirely seamless.  Looping is implemented using a stop/restart call to the
+plugin, which for checkerflicker takes minimally two seconds!  As such, it is
+advisable to use the 'delay' parameter with checkerflicker, and to set it to at
+least 2.1 - 2.5 seconds worth of frames, so as to cover this period of time when
+the plugin is in an undefined state.
+
+`delay' results in a background frame being forced into the mix in between
+iterations of checkerflicker.  This frame has ft_off asserted. This masks the 
+undefined frames of checkerflicker with well-defined 'delay' background frames.  
+
+Specifying a period of time of at least 2.5s is advisable.  Not specifying a delay
+at all for checkerflicker or specifying too-small a delay is undefined.  
+
+Also note that due to CheckerFlicker's complexities, there is a known issue whereby
+the for nLoops > 1, on iterations above the first, the inter-plugin-delay may be 
+inexact by 1-2 frames, maximum.  That is, if you specify a delay of say 320, you 
+may find that the actual delay experienced as CheckerFlicker loops and re-iterates 
+is 319-321 frames. (See also the 'delay' parameter description above).
+
+stixelwidth
+       Synopsis:         Specifies the width of the checker squares in pixels.
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    10
+        
+stixelheight
+       Synopsis:         Specifies the height of the checker squares in pixels
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    10
+        
+rand_gen
+       Synopsis:         Specifies whether to use a gaussian, uniform, or binary 
+                         random number generator when generating color/grayscale
+                         values for the checker squares.  The characteristics of the
+                         generators are as follows:
+                            'uniform' - each color component or intensity is 
+                                        uniformly distributed within the range 
+                                        0 - 1.0.
+                             'gauss'  - each color component or intensity is 
+                                        distributed such that mean = the
+                                        `bgcolor'' (see bgcolor, which is a global
+                                        parameter) and variance is the `contrast'
+                                        parameter (see contrast).
+                             'binary' - each computed intensity is either all on or
+                                        all off (0 or 1.0), with a 50/50 probability
+                                        of each.
+       Datatype:         string
+       Possible values:  'uniform', 'gauss', or 'binary' (for pure b&w)
+       Default value:    uniform
+
+contrast
+       Synopsis:         If in rand_gen=gauss mode, specifies specifies the 
+                         variance of the normally distributed intensity levels
+                         generated.
+       Datatype:         float
+       Possible values:  0.0 - 1.0
+       Default value:    iff blackwhite==true, 
+                              1.0 
+                         else 
+                              0.3
+
+rand_displacement_x
+       Synopsis:         Specifies the amount (in pixels) by which to randomly 
+                         displace the checkerboard in the X direction, per frame.
+       Datatype:         integer
+       Possible values:  -2147483648 - +2147483647
+       Default value:    0
+
+rand_displacement_y
+       Synopsis:         Specifies the amount (in pixels) by which to randomly 
+                         displace the checkerboard in the Y direction, per frame.
+       Datatype:         integer
+       Possible values:  -2147483648 - +2147483647
+       Default value:    0
+                                                         
+fbo 
+*AKA*
+prerender
+       Synopsis:         Specifies the number of frames to prerender and
+                         keep in the frame buffer (in VRAM).  Prerendering
+                         allows for some leeway in missing realtime deadlines
+                         when generating new checker frames on-the-fly.
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    30
+
+cores
+       Synopsis:         Specifies the maximum number of cores to use
+                         for this plugin (mainthread + frame generation
+                         threads each use a core).  It is not a good idea
+                         to set this parameter to anything other than 2
+                         because having >1 frame generation thread
+                         means that the checkerboard frames are generated
+                         in a non-deterministic order, and thus commands
+                         that try to play-back the stimulation experiment
+                         from initial conditions, such as the DumpFrame command
+                         returns frames in non-repeatable order.  However,
+                         using >2 cores sometimes is useful if you want to
+                         generate 800x600 stixel checkerboards
+                         in quad_fps mode in realtime and you find you are
+                         getting frame underruns, and you don't care about. 
+                         Stimulation experiment repeatability.
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    2
+
+colortable
+       Synopsis:         Specifies the size of the colortable to use.  This
+                         parameter must be a power of 2.  The colortable is 
+                         only really relevant to blackwhite=false mode where 
+                         a gaussian distributed set of color intensities is 
+                         needed for the checkers. Since generating gaussian 
+                         distributed colors is potentially slow, a pregenerated
+                         set of colors is used and a uniform random number is 
+                         used to index into this set of gaussian colors.  
+                         Colortable sizes of  2^24 start to be extremely 
+                         accurate with respect to the guassian distribution, 
+                         but they may be slow on some machines due to cache 
+                         thrashing.  The default of 2^17 is fairly accurate
+                         but not perfect.
+       Datatype:         integer
+       Possible values:  4096 - +1073741824 for the colortable size (must be 
+                         a power of 2), 
+                         *or* 
+                         a number <=24 to specify a power of 2 for the 
+                         colortable size
+       Default value:    17 (which means the colortable size will be 2^17 or 
+                         131072).
+
+seed
+        Synopsis:         Specifies the seed to use for the pseudo-random 
+                          number generator.  The sequence of random numbers
+                          generated is always the same for a particular seed.
+        Datatype:         integer
+        Possible values:  -2147483648 - +2147483647
+        Default value:    10000
+
+Nblinks
+        Synopsis:         Specifies the number of frames to keep the same
+                          checker pattern on the screen.  A value > 1 
+                          essentially lowers the effective framerate since
+                          new frames are drawn every Nblinks frames.
+        Datatype:         integer
+        Possible values:  1 - +2147483647
+        Default value:    1
+
+----------------------------------------------------------------------------------
+`Flicker' PLUGIN PARAMETERS
+----------------------------------------------------------------------------------
+fps_mode
+		(This plugin uses this variable -- see global param)
+
+hz
+        Synopsis:         Specifies the flicker rate in Hz.  Note that the maximal 
+                          flicker rate is based on the refresh rate of the monitor
+                          and normally cannot exceed the monitor's refresh rate.
+                          However, on a DLP projector values above the maximal
+                          rate (for example 120Hz) are emulated using the 
+                          "projector sub-frame trick".  Values lower than the
+                          refresh rate are always emulated by displaying frames
+                          twice, three times, etc.  Thus, not all rates are
+                          mathematically possible and the exact set of possible 
+                          rates are a function of the refresh rate.
+        Datatype:         integer
+        Possible values:  180, 120, 90, 72, 60, 51, etc.  
+                          (Bascially 1000/(k * (1000/120/3)) for all k >=2)
+        Default value:    NONE (must be specified)
+
+intensity
+        Synopsis:         Specifies the gray level of the flicker 'on' state.
+        Datatype:         float
+        Possible values:  0.0 - 1.0
+        Default value:    1.0
+
+duty_cycle
+        Synopsis:         Specifies number of subframes in the duty cycle per 
+                          period.
+        Datatype:         integer
+        Possible values:  1 - +2147483647 (maximum value depends on hz param.)
+        Default value:    1 for 180 Hz, 2 for 120Hz, 3 otherwise.
+
+------------------------------------------------------------------------------
+`MovingGrating' PLUGIN PARAMETERS
+------------------------------------------------------------------------------
+
+angle
+       Synopsis:         Specifies the angle in degrees that the grayscale 
+                         bars should be rotated before drawn.  Rotation is
+                         counter-clockwise.  
+                         0 is perfectly vertical, 90 is perfectly horizontal,
+                         etc.                        
+       Datatype:         float
+       Possible values:  0.0 - 359.9
+       Default value:    NONE (must be specified)
+
+dangle
+       Synopsis:         Specifies the angle in degrees that the grayscale 
+                         bars should be rotated every tFrames.  Rotation is
+                         counter-clockwise and is applied every tFrames in an
+                         additive fashion. 
+                         0 is perfectly vertical, 90 is perfectly horizontal,
+                         etc.                        
+       Datatype:         float
+       Possible values:  0.0 - 359.9
+       Default value:    angle
+
+min_color
+       Synopsis:         Specifies the intensity to use as the minimum color.
+                         Waves are scaled to the range [min_color, max_color].
+       Datatype:         float
+       Possible values:  0 - 1.0
+       Default value:    0.0 (black)
+
+max_color
+       Synopsis:         Specifies the intensity to use as the maximum color.
+                         Waves are scaled to the range [min_color, max_color].
+       Datatype:         float
+       Possible values:  0 - 1.0
+       Default value:    1.0 (white)
+
+max_color2
+       Synopsis:         Specifies the intensity to use as the maximum color
+                         for reversal mode.  
+                         Every reversal frames, the max_color is alternated
+                         between max_color and max_color2.
+       Datatype:         float
+       Possible values:  0 - 1.0
+       Default value:    1.0 (white)
+
+period
+       Synopsis:         Specifies the width of the moving grayscale bars, 
+                         in pixels. Values below 3 seem to not generate any 
+                         visible frames.
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    NONE (must be specified)
+
+reversal
+       Synopsis:         If nonzero, do contrast reversal every 'reversal' frames.
+                         Reversal has the max_color alternate with max_color2.
+                         If using max_color2, then intensities above the halfway
+                         point get re-scaled to max_color2.  In certain parameter
+                         regimes this presents the optical illusion of a 
+                         reversal of the direction of motion of the waves.
+       Datatype:         integer
+       Possible values:  0 - +inf
+       Default value:    0 (disabled)
+
+speed
+       Synopsis:         Specifies the number of pixels per frame that the
+                         grayscale bars move.  Motion is from right to left.
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    NONE (must be specified)
+
+tFrames
+       Synopsis:         Specifies the number of frames before applying the
+                         'dangle' rotation.  FT_Change is asserted when rotation
+                         is applied.  
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    0 (off)
+
+wave
+       Synopsis:         Specifies the function to use for generating waves.    
+       Datatype:         string
+       Possible values:  `sine': generate sine waves. 
+                         `square': like a sine wave except there is no gray. 
+                         Either values are all on or all off.                     
+       Default value:    0 (off)
 
 ----------------------------------------------------------------------------------
 `MovingObjects' PLUGIN PARAMETERS
@@ -467,294 +769,7 @@ wrapEdge
         Datatype:         boolean
         Possible values:  true, false or 1, 0
         Default value:    false (0)
-
-------------------------------------------------------------------------------
-`MovingGrating' PLUGIN PARAMETERS
-------------------------------------------------------------------------------
-
-angle
-       Synopsis:         Specifies the angle in degrees that the grayscale 
-                         bars should be rotated before drawn.  Rotation is
-                         counter-clockwise.  
-                         0 is perfectly vertical, 90 is perfectly horizontal,
-                         etc.                        
-       Datatype:         float
-       Possible values:  0.0 - 359.9
-       Default value:    NONE (must be specified)
-
-dangle
-       Synopsis:         Specifies the angle in degrees that the grayscale 
-                         bars should be rotated every tFrames.  Rotation is
-                         counter-clockwise and is applied every tFrames in an
-                         additive fashion. 
-                         0 is perfectly vertical, 90 is perfectly horizontal,
-                         etc.                        
-       Datatype:         float
-       Possible values:  0.0 - 359.9
-       Default value:    angle
-
-min_color
-       Synopsis:         Specifies the intensity to use as the minimum color.
-                         Waves are scaled to the range [min_color, max_color].
-       Datatype:         float
-       Possible values:  0 - 1.0
-       Default value:    0.0 (black)
-
-max_color
-       Synopsis:         Specifies the intensity to use as the maximum color.
-                         Waves are scaled to the range [min_color, max_color].
-       Datatype:         float
-       Possible values:  0 - 1.0
-       Default value:    1.0 (white)
-
-max_color2
-       Synopsis:         Specifies the intensity to use as the maximum color
-                         for reversal mode.  
-                         Every reversal frames, the max_color is alternated
-                         between max_color and max_color2.
-       Datatype:         float
-       Possible values:  0 - 1.0
-       Default value:    1.0 (white)
-
-period
-       Synopsis:         Specifies the width of the moving grayscale bars, 
-                         in pixels. Values below 3 seem to not generate any 
-                         visible frames.
-       Datatype:         integer
-       Possible values:  0 - +2147483647
-       Default value:    NONE (must be specified)
-
-reversal
-       Synopsis:         If nonzero, do contrast reversal every 'reversal' frames.
-                         Reversal has the max_color alternate with max_color2.
-                         If using max_color2, then intensities above the halfway
-                         point get re-scaled to max_color2.  In certain parameter
-                         regimes this presents the optical illusion of a 
-                         reversal of the direction of motion of the waves.
-       Datatype:         integer
-       Possible values:  0 - +inf
-       Default value:    0 (disabled)
-
-speed
-       Synopsis:         Specifies the number of pixels per frame that the
-                         grayscale bars move.  Motion is from right to left.
-       Datatype:         integer
-       Possible values:  0 - +2147483647
-       Default value:    NONE (must be specified)
-
-tFrames
-       Synopsis:         Specifies the number of frames before applying the
-                         'dangle' rotation.  FT_Change is asserted when rotation
-                         is applied.  
-       Datatype:         integer
-       Possible values:  0 - +2147483647
-       Default value:    0 (off)
-
-wave
-       Synopsis:         Specifies the function to use for generating waves.    
-       Datatype:         string
-       Possible values:  `sine': generate sine waves. 
-                         `square': like a sine wave except there is no gray. 
-                         Either values are all on or all off.                     
-       Default value:    0 (off)
-
-
-------------------------------------------------------------------------------
-`CheckerFlicker' PLUGIN PARAMETERS
-------------------------------------------------------------------------------
-
-PLUGIN NOTES  
-
-Checkerflicker is a relatively computationally expensive plugin.  This is
-because it utilizes a random number generator to create random colors per 
-'stixel'.  Random number generation, when done millions of times per second,
-starts to get noticeably taxing on even modern CPUs (as of the time of this
-writing, in 2010).  If the stixel size is small (1 or 2), the generator may not 
-be able to keep up with the screen refresh rate and so you may experience dropped
-frames.
-
-Strategies to mitigate this include playing with the 'fbo' variable as well
-as shrinking the render size (mon_x_pix/mon_y_pix) and/or adding some margins
-(lmargin, etc).  Also the 'gauss' versus 'uniform' random generators have slightly
-different costs as well.
-
-Additionally, since checkerflicker performs a whole bunch of setup to maximize 
-performance, 'looping' checkerflicker using the 'nLoops' and 'nFrames' parameters 
-is not entirely seamless.  Looping is implemented using a stop/restart call to the
-plugin, which for checkerflicker takes minimally two seconds!  As such, it is advisable to use the 'delay' parameter with checkerflicker, and to set it to at 
-least 2.1 - 2.5 seconds worth of frames, so as to cover this period of time when
-the plugin is in an undefined state.
-
-`delay' results in a background frame being forced into the mix in between
-iterations of checkerflicker.  This frame has ft_off asserted. This masks the 
-undefined frames of checkerflicker with well-defined 'delay' background frames.  
-
-Specifying a period of time of at least 2.5s is advisable.  Not specifying a delay at 
-all for checkerflicker or specifying too-small a delay is undefined.  
-
-stixelwidth
-       Synopsis:         Specifies the width of the checker squares in pixels.
-       Datatype:         integer
-       Possible values:  0 - +2147483647
-       Default value:    10
-        
-stixelheight
-       Synopsis:         Specifies the height of the checker squares in pixels
-       Datatype:         integer
-       Possible values:  0 - +2147483647
-       Default value:    10
-        
-rand_gen
-       Synopsis:         Specifies whether to use a gaussian, uniform, or binary 
-                         random number generator when generating color/grayscale
-                         values for the checker squares.  The characteristics of the
-                         generators are as follows:
-                            'uniform' - each color component or intensity is 
-                                        uniformly distributed within the range 
-                                        0 - 1.0.
-                             'gauss'  - each color component or intensity is 
-                                        distributed such that mean = the
-                                        `bgcolor'' (see bgcolor, which is a global
-                                        parameter) and variance is the `contrast'
-                                        parameter (see contrast).
-                             'binary' - each computed intensity is either all on or
-                                        all off (0 or 1.0), with a 50/50 probability
-                                        of each.
-       Datatype:         string
-       Possible values:  'uniform', 'gauss', or 'binary' (for pure b&w)
-       Default value:    uniform
-
-contrast
-       Synopsis:         If in rand_gen=gauss mode, specifies specifies the 
-                         variance of the normally distributed intensity levels
-                         generated.
-       Datatype:         float
-       Possible values:  0.0 - 1.0
-       Default value:    iff blackwhite==true, 
-                              1.0 
-                         else 
-                              0.3
-
-rand_displacement_x
-       Synopsis:         Specifies the amount (in pixels) by which to randomly 
-                         displace the checkerboard in the X direction, per frame.
-       Datatype:         integer
-       Possible values:  -2147483648 - +2147483647
-       Default value:    0
-
-rand_displacement_y
-       Synopsis:         Specifies the amount (in pixels) by which to randomly 
-                         displace the checkerboard in the Y direction, per frame.
-       Datatype:         integer
-       Possible values:  -2147483648 - +2147483647
-       Default value:    0
-                                                         
-fbo 
-*AKA*
-prerender
-       Synopsis:         Specifies the number of frames to prerender and
-                         keep in the frame buffer (in VRAM).  Prerendering
-                         allows for some leeway in missing realtime deadlines
-                         when generating new checker frames on-the-fly.
-       Datatype:         integer
-       Possible values:  0 - +2147483647
-       Default value:    30
-
-cores
-       Synopsis:         Specifies the maximum number of cores to use
-                         for this plugin (mainthread + frame generation
-                         threads each use a core).  It is not a good idea
-                         to set this parameter to anything other than 2
-                         because having >1 frame generation thread
-                         means that the checkerboard frames are generated
-                         in a non-deterministic order, and thus commands
-                         that try to play-back the stimulation experiment
-                         from initial conditions, such as the DumpFrame command
-                         returns frames in non-repeatable order.  However,
-                         using >2 cores sometimes is useful if you want to
-                         generate 800x600 stixel checkerboards
-                         in quad_fps mode in realtime and you find you are
-                         getting frame underruns, and you don't care about. 
-                         Stimulation experiment repeatability.
-       Datatype:         integer
-       Possible values:  0 - +2147483647
-       Default value:    2
-
-colortable
-       Synopsis:         Specifies the size of the colortable to use.  This
-                         parameter must be a power of 2.  The colortable is 
-                         only really relevant to blackwhite=false mode where 
-                         a gaussian distributed set of color intensities is 
-                         needed for the checkers. Since generating gaussian 
-                         distributed colors is potentially slow, a pregenerated
-                         set of colors is used and a uniform random number is 
-                         used to index into this set of gaussian colors.  
-                         Colortable sizes of  2^24 start to be extremely 
-                         accurate with respect to the guassian distribution, 
-                         but they may be slow on some machines due to cache 
-                         thrashing.  The default of 2^17 is fairly accurate
-                         but not perfect.
-       Datatype:         integer
-       Possible values:  4096 - +1073741824 for the colortable size (must be 
-                         a power of 2), 
-                         *or* 
-                         a number <=24 to specify a power of 2 for the 
-                         colortable size
-       Default value:    17 (which means the colortable size will be 2^17 or 
-                         131072).
-
-seed
-        Synopsis:         Specifies the seed to use for the pseudo-random 
-                          number generator.  The sequence of random numbers
-                          generated is always the same for a particular seed.
-        Datatype:         integer
-        Possible values:  -2147483648 - +2147483647
-        Default value:    10000
-
-Nblinks
-        Synopsis:         Specifies the number of frames to keep the same
-                          checker pattern on the screen.  A value > 1 
-                          essentially lowers the effective framerate since
-                          new frames are drawn every Nblinks frames.
-        Datatype:         integer
-        Possible values:  1 - +2147483647
-        Default value:    1
-
-----------------------------------------------------------------------------------
-`Flicker' PLUGIN PARAMETERS
-----------------------------------------------------------------------------------
-fps_mode
-		(This plugin uses this variable -- see global param)
-
-hz
-        Synopsis:         Specifies the flicker rate in Hz.  Note that the maximal 
-                          flicker rate is based on the refresh rate of the monitor
-                          and normally cannot exceed the monitor's refresh rate.
-                          However, on a DLP projector values above the maximal
-                          rate (for example 120Hz) are emulated using the 
-                          "projector sub-frame trick".  Values lower than the
-                          refresh rate are always emulated by displaying frames
-                          twice, three times, etc.  Thus, not all rates are
-                          mathematically possible and the exact set of possible 
-                          rates are a function of the refresh rate.
-        Datatype:         integer
-        Possible values:  180, 120, 90, 72, 60, 51, etc.  
-                          (Bascially 1000/(k * (1000/120/3)) for all k >=2)
-        Default value:    NONE (must be specified)
-
-intensity
-        Synopsis:         Specifies the gray level of the flicker 'on' state.
-        Datatype:         float
-        Possible values:  0.0 - 1.0
-        Default value:    1.0
-
-duty_cycle
-        Synopsis:         Specifies number of subframes in the duty cycle per 
-                          period.
-        Datatype:         integer
-        Possible values:  1 - +2147483647 (maximum value depends on hz param.)
-        Default value:    1 for 180 Hz, 2 for 120Hz, 3 otherwise.
-        
+      
 ----------------------------------------------------------------------------------
 `Sawtooth' PLUGIN PARAMETERS
 ----------------------------------------------------------------------------------
