@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: April 29, 2010
+Last Updated: June 3, 2010
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -107,6 +107,16 @@ delay
         Datatype:         integer
         Possible values:  0 - +214748647
         Default value:    0 (off)
+
+Nblinks
+        Synopsis:         Specifies the number of blinks or how many times to 
+                          display each frame.  Any value greater than 1 will cause
+                          the plugin to draw the same frame multiple times to the
+                          screen, in effect reducing the visible framerate by some
+                          integral factor.
+        Datatype:         integer
+        Possible values:  +1 - +2147483647
+        Default value:    1
 
 DO_with_vsync
         Synopsis:         Specify whether to set a digital output line high on 
@@ -390,15 +400,6 @@ seed
         Datatype:         integer
         Possible values:  -2147483648 - +2147483647
         Default value:    10000
-
-Nblinks
-        Synopsis:         Specifies the number of frames to keep the same
-                          checker pattern on the screen.  A value > 1 
-                          essentially lowers the effective framerate since
-                          new frames are drawn every Nblinks frames.
-        Datatype:         integer
-        Possible values:  1 - +2147483647
-        Default value:    1
 
 ----------------------------------------------------------------------------------
 `Flicker' PLUGIN PARAMETERS
@@ -782,13 +783,6 @@ Nloops
         Datatype:         integer
         Possible values:  -1 - +2147483647 (maximum value depends on hz param.)
         Default value:    -1 (loop forever)
-
-Nblinks
-        Synopsis:         Specifies the number of blinks or how many times to 
-                          display each frame. 
-        Datatype:         integer
-        Possible values:  +1 - +2147483647
-        Default value:    1
 
 intensity_low
         Synopsis:         Specifies the gray level of the beginning state for 

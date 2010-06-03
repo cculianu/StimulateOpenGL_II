@@ -28,7 +28,7 @@ function [s] = SetParams(s, plugin, params)
     for i=1:length(names),
         f = params.(names{i});
         if (isnumeric(f)),
-            line = sprintf('%g ', f);
+            line = sprintf('%g ', f); % possibly vectorized print
             line = sprintf('%s = %s\n', names{i}, line);
         elseif (ischar(f)),
             line = sprintf('%s = %s\n', names{i}, f);
