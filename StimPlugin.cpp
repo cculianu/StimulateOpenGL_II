@@ -240,6 +240,10 @@ bool StimPlugin::start(bool startUnpaused)
 	getParam( "nLoops", nLoops );
 	getParam( "delay", delay);
 	
+	if ( !getParam( "Nblinks", Nblinks) || !getParam("nblinks", Nblinks) ) Nblinks = 1;
+    blinkCt = 0;
+	if ( Nblinks < 1 ) Nblinks = 1;
+	
     if ( !startUnpaused ) parent->pauseUnpause();
     if (!(init())) { 
         stop(); 
@@ -265,13 +269,13 @@ void StimPlugin::initDone()
 
     // Notify SpikeGL via a socket.. if possible..
     needNotifyStart = false;
-    if (stimApp()->spikeGLNotifyParams.enabled) {
-        if (!parent->isPaused() && (stimApp()->spikeGLNotifyParams.nloopsNotifyPerIter || loopCt == 0)) {
-            notifySpikeGLAboutStart();
-        } else {
-            needNotifyStart = true;
-        }
-    }	
+    if (!parent->isPaused() && (stimApp()->spikeGLNotifyParams.nloopsNotifyPerIter || loopCt == 0)) {
+        if (stimApp()->spikeGLNotifyParams.enabled) 
+			notifySpikeGLAboutStart();
+		else
+			notifySpikeGLAboutParams();
+    } else
+		needNotifyStart = true;
 }
 
 unsigned StimPlugin::width() const
@@ -589,6 +593,18 @@ void StimPlugin::notifySpikeGLAboutStop()
                                                         p.port,
                                                         p.timeout_ms);
         needNotifyStart = true;
+}
+
+void StimPlugin::notifySpikeGLAboutParams()
+{
+	StimApp::SpikeGLNotifyParams & p(stimApp()->spikeGLNotifyParams);
+	
+	StimGL_SpikeGL_Integration::Notify_PluginParams(name(), getParams(),
+													 0,
+													 p.hostname,
+													 p.port,
+													 p.timeout_ms);
+	needNotifyStart = false;
 }
 
 unsigned StimPlugin::initDelay(void) { return 0; }

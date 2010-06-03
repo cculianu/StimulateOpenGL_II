@@ -27,8 +27,9 @@ function [s] = SetParams(s, plugin, params)
     names = fieldnames(params);
     for i=1:length(names),
         f = params.(names{i});
-        if (isnumeric(f) & isscalar(f)),
-            line = sprintf('%s = %g\n', names{i}, f);
+        if (isnumeric(f)),
+            line = sprintf('%g ', f);
+            line = sprintf('%s = %s\n', names{i}, line);
         elseif (ischar(f)),
             line = sprintf('%s = %s\n', names{i}, f);
         else 

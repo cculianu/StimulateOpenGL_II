@@ -217,8 +217,12 @@ void GLWindow::paintGL()
 		glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0);
 
 	bool dframe = false;
+	int *blinkCt = running ? &running->blinkCt : 0;
+	const int *Nblinks = running ? &running->Nblinks : 0;
+	const bool haveBlinkBuf = running && *Nblinks > 1 && *blinkCt > 0;
+	const bool saveBlinkBuf = !haveBlinkBuf && running && *Nblinks > 1 && *blinkCt == 0;
 	
-    if (!paused) {
+    if (!paused && (!blinkCt || !(*blinkCt) || saveBlinkBuf)) {
         // NB: don't clear here, let the plugin do clearing as an optimization
         // glClear( GL_COLOR_BUFFER_BIT );
 
@@ -318,10 +322,13 @@ void GLWindow::paintGL()
 					if (running->delay <= 0 && running->frameNum == 1)
 						signalDIOOn = true;
 					doBufSwap = true;
-				} 			
+				} 
+				
 			}
         }
-    }
+		if (saveBlinkBuf) copyBlinkBuf();
+    }	
+	if (!paused && blinkCt && ++(*blinkCt) >= *Nblinks) *blinkCt = 0; 
 	if (!running) {  
 		// no plugin running, draw default .5 gray bg without ft box
         glClear( GL_COLOR_BUFFER_BIT );
@@ -330,6 +337,9 @@ void GLWindow::paintGL()
 		// running but paused and before plugin started (and not delay mode because that's handled above!)
 		// if so, draw plugin bg with ftrack_end box
 		drawEndStateBlankScreen(running, false);
+		doBufSwap = true;
+	} else if (running && !paused && haveBlinkBuf) {
+		drawBlinkBuf();
 		doBufSwap = true;
 	}
 
@@ -377,6 +387,19 @@ void GLWindow::paintGL()
     
 }
 
+void GLWindow::copyBlinkBuf() 
+{
+	if (running) {
+		blinkBuf.resize(width()*height()*3);
+		running->readBackBuffer(blinkBuf, Vec2i(0,0), Vec2i(width(), height()), GL_UNSIGNED_BYTE);
+	}
+}
+
+void GLWindow::drawBlinkBuf() 
+{
+	glDrawPixels(width(), height(), GL_RGB, GL_UNSIGNED_BYTE, (const void *)(blinkBuf.constData()));
+}
+ 
 void GLWindow::pluginCreated(StimPlugin *p)
 {
     if (pluginsList.indexOf(p) < 0) {
@@ -515,7 +538,10 @@ void GLWindow::pauseUnpause()
     Log() << (paused ? "Paused" : "Unpaused");
     if (!paused && !running->frameNum && running->needNotifyStart
 		&& ((stimApp()->spikeGLNotifyParams.nloopsNotifyPerIter || running->loopCt == 0)) ) 
-        running->notifySpikeGLAboutStart();  
+		if (stimApp()->spikeGLNotifyParams.enabled) 
+			running->notifySpikeGLAboutStart();  
+		else
+			running->notifySpikeGLAboutParams();
 }
 
 QList<QString> GLWindow::plugins() const

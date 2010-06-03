@@ -38,8 +38,6 @@ class CheckerFlicker : public StimPlugin
     // and as std/mean for gaussian mode
     const int w, h;           ///< window width/height cached here
     int originalSeed;	///< seed for random number generator at initialization
-    int Nblinks;	///< number of blinks (i.e. how often each frame is repeated)
-    int blinkCt;
     int Nx;		///< number of stixels in x direction
     int Ny;		///< number of stixels in y direction
     int xpixels, ypixels;

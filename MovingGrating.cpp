@@ -82,7 +82,7 @@ void MovingGrating::drawFrame()
 		float totalTranslations[3];
 		const int n_iters = ((int)fps_mode)+1;
 		for (int k = 0; k < n_iters; ++k) {
-		    QVector<double> fv;
+			QVector<double> fv;
 			if (have_fv_input_file) {
 				fv = frameVars->readNext();
 				if (fv.size() < 2 && frameNum) {
@@ -103,9 +103,9 @@ void MovingGrating::drawFrame()
 			if (fv.size()) {
 				totalTranslation = fv[1];
 			} else if( totalTranslation > period ){
-					totalTranslation = totalTranslation - period + speed;
+				totalTranslation = totalTranslation - period + speed;
 			} else {
-					totalTranslation = totalTranslation + speed;
+				totalTranslation = totalTranslation + speed;
 			}
 			totalTranslations[k] = totalTranslation;
 			if (!fv.size())
@@ -122,24 +122,24 @@ void MovingGrating::drawFrame()
 			setColor(i, 0, r, g, b);
 		}
 	} else { // !quad_fps && !dual_fps
-	    QVector<double> fv;
+		QVector<double> fv;
 		if (have_fv_input_file) {
-				fv = frameVars->readNext();
-				if (fv.size() < 2 && frameNum) {
-					// at end of file?
-					Warning() << name() << "'s frame_var file ended input, pausing plugin.";
-					parent->pauseUnpause();
-					have_fv_input_file = false;
-					glPopMatrix();
-					stop();
-					return;
-				} 
-				if (fv.size() < 2 || fv[0] != frameNum) {
-					fv.clear();
-					Error() << "Error reading frame " << frameNum << " from frameVar file! Datafile frame num differs from current frame number!  Does the fps_mode of the frameVar file match the current fps mode?";			
-					stop();
-					return;
-				}
+			fv = frameVars->readNext();
+			if (fv.size() < 2 && frameNum) {
+				// at end of file?
+				Warning() << name() << "'s frame_var file ended input, pausing plugin.";
+				parent->pauseUnpause();
+				have_fv_input_file = false;
+				glPopMatrix();
+				stop();
+				return;
+			} 
+			if (fv.size() < 2 || fv[0] != frameNum) {
+				fv.clear();
+				Error() << "Error reading frame " << frameNum << " from frameVar file! Datafile frame num differs from current frame number!  Does the fps_mode of the frameVar file match the current fps mode?";			
+				stop();
+				return;
+			}
 		}
 		if (fv.size()) {
 			totalTranslation = fv[1];
@@ -150,17 +150,17 @@ void MovingGrating::drawFrame()
 		}
 		if (!fv.size())
 			frameVars->push(double(frameNum), double(totalTranslation)/double(period));
-
+		
 		for( int i=0; i<1600; i++ )
 			setGrayLevel( i, 0, scaleIntensity(0.5+0.5*waveFunc(2.*M_PI*(i+totalTranslation)/period)) );
 	}
-
+	
 	if (ftChangeEvery < 1 && reversal && frameNum > 0 && !(frameNum%reversal)) ftAssertions[FT_Change] = true;
 	
 	if ((frameNum > 0) && tframes > 0 && !(frameNum % tframes)) {
 		
 		if (ftChangeEvery < 1) ftAssertions[FT_Change] = true;
-
+		
 		angle = angle + dangle;
 	}
 
@@ -171,6 +171,5 @@ void MovingGrating::drawFrame()
 	glRotatef( -angle, 0.0, 0.0, 1.0 );
         
 	glPopMatrix();
-
 }
 

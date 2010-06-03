@@ -69,7 +69,7 @@ void Flicker::drawFrame()
 		
 	memset(colors[0], 0, sizeof(colors[0]));
 
- 	for (int i = 0; i < 3; ++i) {
+	for (int i = 0; i < 3; ++i) {
 		if (cyccur >= cyctot) cyccur = 0;
 
 		if (cyccur < duty_cycle) {

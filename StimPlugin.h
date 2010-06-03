@@ -253,6 +253,8 @@ protected:
 	float bgcolor;
 	int delay;
 	char color_order[3]; ///< "bgr" or "rgb" or "brg" or "gbr" or "grb" or "rbg"  -- defaults to "rgb" if not specified.
+	int Nblinks;	///< number of blinks (i.e. how often each frame is repeated)
+    int blinkCt; ///< current blink counter
 	
 	int b_index, r_index, g_index; ///< index of brg values in above color_order param.  
 
@@ -266,8 +268,8 @@ protected:
 		FT_Start,
 		FT_End,
 		N_FTStates
-	};
-	
+	};	
+
 	Vec3 ftStateColors[N_FTStates];
 	FTState currentFTState;
 	bool ftAssertions[N_FTStates]; ///< child plugins assert these flags for a particular frame to override default off/on behavior. These flags only last for 1 frame.
@@ -284,6 +286,7 @@ protected:
 	
     void notifySpikeGLAboutStart();
     void notifySpikeGLAboutStop();
+    void notifySpikeGLAboutParams();
 
     /// plugin-level mutex -- used in a couple of functions and you may reuse it yourself as well
     mutable QMutex mut; 

@@ -93,6 +93,10 @@ private:
      StimPlugin *running;
      QList<StimPlugin *> pluginsList;
      QTimer *timer;
+	 QByteArray blinkBuf;
+	
+	 void copyBlinkBuf();
+	 void drawBlinkBuf();
 	
      void initPlugins(); 
 	 void drawEndStateBlankScreen(StimPlugin *, bool isBlankBGFrame);

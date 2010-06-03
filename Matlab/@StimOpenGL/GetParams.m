@@ -17,13 +17,15 @@ function [ret] = GetParams(s, plugin)
     ret = struct();
     res = DoGetResultsCmd(s, sprintf('GETPARAMS %s', plugin));
     for i=1:length(res),
-        [toks] = regexp(res{i}, '(\w+)\s*=\s*(\w+)', 'tokens');
+        [toks] = regexp(res{i}, '(\w+)\s*=\s*(.+)', 'tokens');
         if (size(toks,1)),
             a=toks{1};
             % optionally convert to numeric
-            [matches] = regexp(a{2}, '^[0-9.e-]+$', 'match');
+            [matches] = regexp(a{2}, '^[0-9.e-, ]+$', 'match');
             if (~isempty(matches)),
                 scn = sscanf(matches{1}, '%g');
+                scn2 = sscanf(matches{1}, '%g, ');
+                if (~isempty(scn2) & (isempty(scn) | (length(scn2) > length(scn)))), scn = scn2; end;
                 if (~isempty(scn)), a{2} = scn; end;
             end; 
 %            ret = setfield(ret, a{1}, a{2});

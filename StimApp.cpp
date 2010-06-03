@@ -371,6 +371,7 @@ void StimApp::loadSettings()
 	struct GlobalDefaults & defs (globalDefaults);
 	defs.mon_x_pix = settings.value("mon_x_pix", defs.mon_x_pix).toInt();
 	defs.mon_y_pix = settings.value("mon_y_pix", defs.mon_y_pix).toInt();
+	defs.Nblinks = settings.value("Nblinks", defs.Nblinks).toInt();
 	defs.ftrackbox_x = settings.value("ftrackbox_x", defs.ftrackbox_x).toInt();
 	defs.ftrackbox_y = settings.value("ftrackbox_y", defs.ftrackbox_y).toInt();
 	defs.ftrackbox_w = settings.value("ftrackbox_w", defs.ftrackbox_w).toInt();
@@ -413,6 +414,7 @@ void StimApp::saveSettings()
 	settings.setValue("ftrackbox_x", defs.ftrackbox_x);
 	settings.setValue("ftrackbox_y", defs.ftrackbox_y);
 	settings.setValue("ftrackbox_w", defs.ftrackbox_w);
+	settings.setValue("Nblinks", defs.Nblinks);
 	settings.setValue("ftrack_track_color", defs.ftrack_track_color);
 	settings.setValue("ftrack_off_color", defs.ftrack_off_color);
 	settings.setValue("ftrack_change_color", defs.ftrack_change_color);
@@ -544,6 +546,8 @@ void StimApp::loadStim()
 			params["fps_mode"] = defs.fps_mode == 0 ? "single" : (defs.fps_mode == 1 ? "double" : "triple");
 			params["color_order"] = defs.color_order;
 			params["DO_with_vsync"] = defs.DO_with_vsync;
+			params["Nblinks"] = defs.Nblinks;
+			params["nblinks"] = defs.Nblinks; // case insensitive?
 		}
         params.fromString(paramsBuf, false);
 
@@ -744,6 +748,7 @@ void StimApp::globalDefaultsDialog()
 	controls.cb_color_order->setCurrentIndex(controls.cb_color_order->findText(g.color_order));
 	controls.sb_mon_x_pix->setValue(g.mon_x_pix);
 	controls.sb_mon_y_pix->setValue(g.mon_y_pix);
+	controls.sb_nblinks->setValue(g.Nblinks);
 	controls.sb_ftrackbox_x->setValue(g.ftrackbox_x);
 	controls.sb_ftrackbox_y->setValue(g.ftrackbox_y);
 	controls.sb_ftrackbox_w->setValue(g.ftrackbox_w);
@@ -773,6 +778,7 @@ void StimApp::globalDefaultsDialog()
 		g.ftrackbox_x = controls.sb_ftrackbox_x->value();
 		g.ftrackbox_y = controls.sb_ftrackbox_y->value();
 		g.ftrackbox_w = controls.sb_ftrackbox_w->value();
+		g.Nblinks = controls.sb_nblinks->value();
 		g.DO_with_vsync = controls.cb_do_with_vsync->currentText();
 		g.ftrack_track_color = controls.le_ftrack_track->text();
 		g.ftrack_off_color = controls.le_ftrack_off->text();

@@ -90,7 +90,8 @@ namespace StimGL_SpikeGL_Integration
         return line;
     }
 
-    static bool doNotify (bool isStart,          
+    static bool doNotify (bool isStart,  
+						  bool isEnd,
                           const QString & pname, 
                           const QMap<QString, QVariant>  &pparms,
                           QString *errStr_out,
@@ -98,7 +99,7 @@ namespace StimGL_SpikeGL_Integration
                           unsigned short port, 
                           int timeout_msecs)
     {
-        Debug() << "Notifying SpikeGL of `" << pname << "' " << (isStart ? "start" : "end") << "...";
+        Debug() << "Notifying SpikeGL of `" << pname << "' " << (isStart ? "start" : (isEnd ? "end" : "params")) << "...";
         setSockContextName("Notify SpikeGL");
         QTcpSocket sock;
 
@@ -116,7 +117,9 @@ namespace StimGL_SpikeGL_Integration
         
         QString line = sockReadLine(sock, timeout_msecs, errStr_out);
         if (line.isNull()) return false;
-        if (!sockSend(sock, QString(isStart ? PLUGIN_START_STRING : PLUGIN_END_STRING) + " " + pname.trimmed() + "\n", timeout_msecs, errStr_out)) return false;
+		if (isStart || isEnd) {
+			if (!sockSend(sock, QString(isStart ? PLUGIN_START_STRING : PLUGIN_END_STRING) + " " + pname.trimmed() + "\n", timeout_msecs, errStr_out)) return false;
+		}
         if (!sockSend(sock, QString(PLUGIN_PARAMS_STRING) + "\n", timeout_msecs, errStr_out)) return false;
         for (QMap<QString, QVariant> ::const_iterator it = pparms.begin();
              it != pparms.end();
@@ -143,7 +146,7 @@ namespace StimGL_SpikeGL_Integration
                              unsigned short port, 
                              int timeout_msecs)
     {
-        return doNotify(true, pname, pparms, errStr_out, host, port, timeout_msecs);
+        return doNotify(true, false, pname, pparms, errStr_out, host, port, timeout_msecs);
     }
 
     bool Notify_PluginEnd  (const QString & pname, 
@@ -153,33 +156,50 @@ namespace StimGL_SpikeGL_Integration
                             unsigned short port, 
                             int timeout_msecs)
     {
-        return doNotify(false, pname, pparms, errStr_out, host, port, timeout_msecs);
+        return doNotify(false, true, pname, pparms, errStr_out, host, port, timeout_msecs);
     }
 
+	bool Notify_PluginParams  (const QString & pname, 
+                            const QMap<QString, QVariant>  &pparms,
+                            QString *errStr_out,
+                            const QString & host,
+                            unsigned short port, 
+                            int timeout_msecs)
+    {
+        return doNotify(false, false, pname, pparms, errStr_out, host, port, timeout_msecs);
+    }
+	
     void NotifyServer::processConnection(QTcpSocket & sock)
     {
         QString line;
         setSockContextName("NotifyServerThread");
         line = QString(GREETING_STRING) + "\n";
-        bool isStart = false;
+        bool isStart = false, isEnd = false, isParams = false;
 
         if (!sockSend(sock, line, timeout_msecs)) return;
         if ((line = sockReadLine(sock, timeout_msecs)).isNull()) return;
-        if (!(isStart = line.startsWith(PLUGIN_START_STRING)) && !line.startsWith(PLUGIN_END_STRING)) {
-            Error() << sockContextName() << " parse error expected: {" << PLUGIN_START_STRING << "|" << PLUGIN_END_STRING << "} got: " << line;
+        if (   !(isStart = line.startsWith(PLUGIN_START_STRING)) 
+			&& !(isEnd = line.startsWith(PLUGIN_END_STRING))
+			&& !(isParams = line.startsWith(QString(PLUGIN_PARAMS_STRING))) ) {
+            Error() << sockContextName() << " parse error expected: {" << PLUGIN_START_STRING << "|" << PLUGIN_END_STRING << "|" << PLUGIN_PARAMS_STRING << "} got: " << line;
             return;
         }
         if (isStart)
             line = line.mid(QString(PLUGIN_START_STRING).length());
-        else
+        else if (isEnd)
             line = line.mid(QString(PLUGIN_END_STRING).length());
         line = line.trimmed();
-        QString pluginName = line;
-        if ((line = sockReadLine(sock, timeout_msecs)).isNull()) return;
-        if (!line.startsWith(PLUGIN_PARAMS_STRING)) {
-            Error() << sockContextName() << " parse error expected: " << PLUGIN_PARAMS_STRING << "got: " << line;
-            return;
-        }
+		QString pluginName = "unknown";
+		if (isStart || isEnd) {
+			// manadatory params appear after start/end
+			pluginName = line;
+			if ((line = sockReadLine(sock, timeout_msecs)).isNull()) return;
+			if (!line.startsWith(PLUGIN_PARAMS_STRING)) {
+				Error() << sockContextName() << " parse error expected: " << PLUGIN_PARAMS_STRING << "got: " << line;
+				return;
+			}
+		}
+		// here all modes list params..
         QMap<QString, QVariant>  params;
         while (  !(line = sockReadLine(sock, timeout_msecs)).startsWith(PLUGIN_PARAMS_END_STRING)) {
             QStringList l = line.trimmed().split("=");
@@ -191,7 +211,7 @@ namespace StimGL_SpikeGL_Integration
         }
         line = QString(OK_STRING) + "\n";
         if (!sockSend(sock, line, timeout_msecs)) return;
-        emitGotPluginNotification(isStart, pluginName, params);
+        emitGotPluginNotification(isStart, isEnd, pluginName, params);
         //Log() << "Received plugin " << (isStart ? "start" : "end") << " notificaton from StimGL for plugin " << pluginName;
     }
  
@@ -234,10 +254,12 @@ namespace StimGL_SpikeGL_Integration
         return true;
     }
 
-    void NotifyServer::emitGotPluginNotification(bool isStart, const QString &p, const QMap<QString, QVariant>  &pp) {
+    void NotifyServer::emitGotPluginNotification(bool isStart, bool isEnd, const QString &p, const QMap<QString, QVariant>  &pp) {
         if (isStart)
             emit gotPluginStartNotification(p, pp);
-        else
+		else if (isEnd)
             emit gotPluginEndNotification(p, pp);
+		else
+			emit gotPluginParamsNotification(p, pp);
     }       
 }

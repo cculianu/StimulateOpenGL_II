@@ -34,6 +34,15 @@ namespace StimGL_SpikeGL_Integration
                           unsigned short port = SPIKE_GL_NOTIFY_DEFAULT_PORT, 
                           int timeout_msecs = SPIKE_GL_NOTIFY_DEFAULT_TIMEOUT_MSECS);
     
+	/** Called by StimGL in some circumstances even if notification is turned off.  
+	    This is so that PD-based acquisitions in SpikeGL can also be informed of plugin params. */	    
+	bool Notify_PluginParams(const QString & pluginName, 
+							 const QMap<QString, QVariant>  &pluginParams, 
+							 QString *errStr_out = 0, 
+							 const QString & host = "127.0.0.1",
+							 unsigned short port = SPIKE_GL_NOTIFY_DEFAULT_PORT, 
+							 int timeout_msecs = SPIKE_GL_NOTIFY_DEFAULT_TIMEOUT_MSECS);
+	
 
     /** Object to  used inside SpikeGL to receive plugin start events
         from StimGL via the network. */
@@ -51,13 +60,16 @@ namespace StimGL_SpikeGL_Integration
         /// connect to this signal to be notified that the plugin started
         void gotPluginStartNotification(const QString & plugin,
                                         const QMap<QString, QVariant>  & params);
+        /// connect to this signal to be notified that the plugin params were received.  Note not emitted if the gotPluginStartNotification was already just emitted for these params to prevent signal spamming
+        void gotPluginParamsNotification(const QString & plugin,
+                                         const QMap<QString, QVariant>  & params);
         /// connect to this signal to be notified that the plugin ended
         void gotPluginEndNotification(const QString & plugin,
                                       const QMap<QString, QVariant>  & params);
 
     private slots:
         void gotNewConnection();
-        void emitGotPluginNotification(bool isStart, const QString &, const QMap<QString, QVariant>  &);
+        void emitGotPluginNotification(bool isStart, bool isEnd, const QString &, const QMap<QString, QVariant>  &);
         void processConnection(QTcpSocket & sock);
 
     private:

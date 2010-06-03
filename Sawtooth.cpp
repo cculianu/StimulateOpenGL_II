@@ -22,8 +22,6 @@ bool Sawtooth::init()
 	//}
 	if (!getParam("Nloops", Nloops)) Nloops = -1;
 	if (!Nloops) Nloops = -1;
-	if (!getParam("Nblinks", Nblinks)) Nblinks = 1;
-	if (Nblinks <= 0) Nblinks = 1;	
 	float intensity_lof, intensity_hif;
 	if (!getParam("intensity_low", intensity_lof)) intensity_lof = 0.0;
 	// deal with 0->255 spec
@@ -59,7 +57,7 @@ bool Sawtooth::init()
 	};
 	memcpy(vertices, v, sizeof(v));
 
-	loopct = cyclen = cyccur = blinkcur = 0;
+	loopct = cyclen = cyccur;
 	cyclen = intensity_high - intensity_low + 1;
 
 	return true;
@@ -69,40 +67,34 @@ void Sawtooth::drawFrame()
 {
 	glClear( GL_COLOR_BUFFER_BIT ); // sanely clear
 		
-	if (!blinkcur) {
-
-		if (Nloops > -1 && loopct >= Nloops) {
-			// end plugin
-			Log() << "Sawtooth looped " << Nloops << " times, stopping.";
-			stop();
-		}
-
-		++loopct;
-
-		memset(colors[0], 0, sizeof(colors[0]));
-		
- 		for (int i = 0; i < ((int)fps_mode)+1; ++i) {
-			if (cyccur >= cyclen) cyccur = 0;
-			int intensity = cyccur + intensity_low;
-			if (fps_mode == FPS_Single) {
-				colors[0][0] = colors[0][1] = colors[0][2] = intensity;	
-			} else {
-				const char c = color_order[i];
-				switch (c) {
-					case 'b': colors[0][2] = intensity; break;
-					case 'g': colors[0][1] = intensity; break;
-					case 'r': colors[0][0] = intensity; break;
-				}
-			}
-			++cyccur;
-		}
-
-		for (int i = 1; i < 4; ++i)
-			memcpy(colors[i], colors[0], sizeof(colors[0]));
-
+	if (Nloops > -1 && loopct >= Nloops) {
+		// end plugin
+		Log() << "Sawtooth looped " << Nloops << " times, stopping.";
+		stop();
 	}
 
-	if (++blinkcur >= Nblinks) blinkcur = 0;
+	++loopct;
+
+	memset(colors[0], 0, sizeof(colors[0]));
+	
+	for (int i = 0; i < ((int)fps_mode)+1; ++i) {
+		if (cyccur >= cyclen) cyccur = 0;
+		int intensity = cyccur + intensity_low;
+		if (fps_mode == FPS_Single) {
+			colors[0][0] = colors[0][1] = colors[0][2] = intensity;	
+		} else {
+			const char c = color_order[i];
+			switch (c) {
+				case 'b': colors[0][2] = intensity; break;
+				case 'g': colors[0][1] = intensity; break;
+				case 'r': colors[0][0] = intensity; break;
+			}
+		}
+		++cyccur;
+	}
+
+	for (int i = 1; i < 4; ++i)
+		memcpy(colors[i], colors[0], sizeof(colors[0]));
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);

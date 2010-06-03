@@ -346,10 +346,7 @@ bool CheckerFlicker::init()
     init_gen_rand(originalSeed);
     gen_rand_all();
 
-	if( !getParam( "Nblinks", Nblinks) ) Nblinks = 1;
-        blinkCt = 0;
-        nConsecSkips = 0;
-	if( Nblinks < 1 ) Nblinks = 1;
+    nConsecSkips = 0;
 
         lastAvgTexSubImgProcTime = 0.0045;
 
@@ -749,8 +746,8 @@ void CheckerFlicker::drawFrame()
 
         // using framebuffer objects.. the fastest but not as portable 
         // method
-        if (!blinkCt) takeNum();
-        if (++blinkCt >= Nblinks) blinkCt = 0, putNum();
+        /*if (!blinkCt) */takeNum();
+        /*if (++blinkCt >= Nblinks) blinkCt = 0,*/ putNum();
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
         glEnable(GL_TEXTURE_RECTANGLE_ARB);
         glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[num]);
@@ -821,7 +818,7 @@ void CheckerFlicker::afterVSync(bool isSimulated)
         QTime tim2;         
         if ( ( fc->haveMore.available() // if there are frames to consume, that is, we won't block
                || isSimulated)  // or we are simulated, in which case we are ok with blocking
-             && blinkCt==0 // only get frames if blinkCt==0 so that we don't lose our frame order
+             //&& blinkCt==0 // only get frames if blinkCt==0 so that we don't lose our frame order
              && oldnums.size()) { // only grab frames if our 'queue' has room
             tim2.restart();
             unsigned idx = newFrameNum();

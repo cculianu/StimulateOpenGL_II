@@ -65,7 +65,7 @@ public:
     } spikeGLNotifyParams;
 
 	struct GlobalDefaults {
-		int mon_x_pix, mon_y_pix, ftrackbox_x, ftrackbox_y, ftrackbox_w;
+		int mon_x_pix, mon_y_pix, ftrackbox_x, ftrackbox_y, ftrackbox_w, Nblinks;
 		char color_order[4];
 		int fps_mode;
 		QString 
@@ -77,7 +77,7 @@ public:
 		
 		QString DO_with_vsync;
 
-		GlobalDefaults() : mon_x_pix(800), mon_y_pix(600), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), fps_mode(2), DO_with_vsync("off") {
+		GlobalDefaults() : mon_x_pix(800), mon_y_pix(600), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), Nblinks(1), fps_mode(2), DO_with_vsync("off") {
 			qstrncpy(color_order, "brg", 4);
 			ftrack_track_color = ftrack_change_color = ftrack_start_color = ftrack_end_color = "1, 1, 1";
 			ftrack_off_color = "0, 0, 0";			
