@@ -63,6 +63,9 @@ private:
 	QList<ObjData> objs;
 	int numObj;
 	
+	bool savedrng;  
+	int saved_ran1state;
+	
 	bool rndtrial;
 	int tframes;
 	int rseed;

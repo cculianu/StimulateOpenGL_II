@@ -15,7 +15,7 @@
 #define NUM_FRAME_VARS 10
 
 MovingObjects::MovingObjects()
-    : StimPlugin("MovingObjects")
+    : StimPlugin("MovingObjects"), savedrng(false)
 {
 }
 
@@ -157,6 +157,13 @@ bool MovingObjects::init()
 		// rndtrial=1 new start point and speed every tframes; start=rnd(mon_x_pix,mon_y_pix); speed= +-objVelx, objVely
 	if(!getParam( "rseed" , rseed))              rseed = -1;  //set start point of rnd seed;
         ran1Gen.reseed(rseed);
+	
+	// if we are looping the plugin, then we continue the random number generator state
+	if (savedrng && rndtrial) {
+		ran1Gen.reseed(saved_ran1state);
+		Debug() << ".. continued RNG with seed " << saved_ran1state;
+	}
+	
 	if(!getParam( "tframes" , tframes) || tframes <= 0) tframes = DEFAULT_TFRAMES, ftChangeEvery = -1; 
 	if (tframes <= 0 && (numSpeeds > 1 || numSizes > 1)) {
 		Error() << "tframes needs to be specified because either the lengths vector or the speeds vector has length > 1!";
@@ -250,6 +257,9 @@ void MovingObjects::cleanupObjs() {
 
 void MovingObjects::cleanup()
 {
+	if ((savedrng = softCleanup)) {
+		saved_ran1state = ran1Gen.currentSeed();		
+	}
     cleanupObjs();
 	if (!softCleanup) {
 		Shapes::CleanupStaticDisplayLists();
