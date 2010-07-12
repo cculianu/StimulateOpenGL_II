@@ -486,7 +486,6 @@ void GLWindow::initPlugins()
 
     // TODO: more plugins here
 
-
     Log() << "Initialized " << pluginsList.size() << " plugins.";
 }
 

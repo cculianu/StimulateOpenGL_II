@@ -13,7 +13,7 @@
 higher number is better resolution, but sacrifices performance. */
 
 namespace Shapes {
-	
+
 Shape::Shape() 
 	: position(Vec2Zero), scale(Vec2Unit), color(Vec3Gray), angle(0.), noMatrixAttribPush(false)
 {}
@@ -157,6 +157,7 @@ Rect Rectangle::AABB() const {
 	return Rect(Vec2(-width/2. * scale.x + position.x, -height/2. * scale.y + position.y), Vec2(width*scale.x, height*scale.y));
 }
 
+
 void InitStaticDisplayLists() {
 	Ellipse a(3,4);
 	Rectangle b(4,5);
@@ -179,6 +180,7 @@ void CleanupStaticDisplayLists() {
 }
 
 	
+
 } // end namespace Shapes
 
 bool Rect::intersects(const Rect & r) const {

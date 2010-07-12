@@ -83,6 +83,7 @@ StimApp::StimApp(int & argc, char ** argv)
     singleton = this;
     if (!::init) ::init = new Init;
     loadSettings();
+	glWinSize = QSize(globalDefaults.mon_x_pix, globalDefaults.mon_y_pix);
 
     installEventFilter(this); // filter our own events
 
@@ -573,11 +574,17 @@ void StimApp::loadStim()
                 // need to (re)create the gl window with the desired size!
                 QDesktopWidget desktop;
                 const QRect screenRect(desktop.screenGeometry(glWindow));
-                delete glWindow;
+                delete glWindow, glWindow = 0;
                 glWinSize = desiredSize;                
                 createGLWindow();
                 glWindow->move(screenRect.x(), screenRect.y());
                 glWindow->show();
+		/* NB: this needs to be here because Qt OpenGL on Windows 
+		acts funny when we recreate the window and use it immediately.
+		I suspect some Qt event needs to fire to properly create the 
+		window and the OpenGL context. */
+                qApp->processEvents();
+
                 p = pfound = glWindow->pluginFind(pname);
             }
         }

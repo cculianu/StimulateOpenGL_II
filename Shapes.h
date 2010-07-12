@@ -60,7 +60,7 @@ public:
 	double width, height;
 	
 protected:
-	static GLuint dl; ///< shared display list for all rectangles since it's just a unit square and we do out magic in the scaling
+	static GLuint dl; ///< shared display list for all rectangles since it's just a unit square and we do our magic in the scaling
 	
 public:
 	Rectangle(double width, double height);
@@ -93,7 +93,6 @@ public:
 	Rect AABB() const;
 };
 
-	
 /// call this to pre-create the display lists for Rectangle and Ellipses so that it's ready for us and primed
 void InitStaticDisplayLists();
 void CleanupStaticDisplayLists();
