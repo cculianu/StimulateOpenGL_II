@@ -295,6 +295,11 @@
 %                is accurate and reliable and is the rate the plugin should
 %                be using as it runs.
 %
+%    height = GetCurrentRSeed(myobj)
+%
+%                Returns the current random number generator seed used by 
+%                the plugin.  Useful for rndtrial=1 with MovingObjects
+%
 %    width = GetWidth(myobj)
 %
 %                Returns the width of the Open GL window in pixels.
