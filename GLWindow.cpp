@@ -7,7 +7,6 @@
 #include <QTimer>
 //-- add your plugins here
 #include "StimPlugin.h"
-#include "MovingObjects.h"
 #include "DAQ.h"
 
 #define WINDOW_TITLE "StimulateOpenGL II - GLWindow"
@@ -275,8 +274,7 @@ void GLWindow::paintGL()
 					p->customStatusBarString.sprintf("Delay counter: %d", delayCtr);
 					p->loopCt = loopCt;
 					// BEGIN UGLY HACK #7812
-					MovingObjects *mo = dynamic_cast<MovingObjects *>(p);
-					if (!mo || !mo->rndtrial) 
+					if (!p->dontCloseFVarFileAcrossLoops) 
 						p->frameVars->closeAndRemoveOutput(); /// remove redundant frame var file, unless we are moving object and we are doing random trials
 					// END UGLY HACK #7812
 

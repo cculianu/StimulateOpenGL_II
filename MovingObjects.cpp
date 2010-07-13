@@ -163,6 +163,8 @@ bool MovingObjects::init()
 		ran1Gen.reseed(saved_ran1state);
 		Debug() << ".. continued RNG with seed " << saved_ran1state;
 	}
+
+	dontCloseFVarFileAcrossLoops = bool(rndtrial && nFrames);
 	
 	if(!getParam( "tframes" , tframes) || tframes <= 0) tframes = DEFAULT_TFRAMES, ftChangeEvery = -1; 
 	if (tframes <= 0 && (numSpeeds > 1 || numSizes > 1)) {
@@ -527,9 +529,15 @@ void MovingObjects::doFrameDraw()
 						//objPhi += 1.;
 					}					
 					
-					if (!fv.size()) 
+					if (!fv.size()) {
+						double fnum = frameNum;
+
+						// in rndtrial mode, save 1 big file with fnum being a derived value.  HACK!
+						if (rndtrial && loopCt && nFrames) fnum = frameNum + loopCt*nFrames;
+
 						// nb: push() needs to take all doubles as args!
-						frameVars->push(double(frameNum), double(objNum), double(k), double(o.type), double(x), double(y), double(objLen), double(objLen_min), double(objPhi), double(objcolor));
+						frameVars->push(fnum, double(objNum), double(k), double(o.type), double(x), double(y), double(objLen), double(objLen_min), double(objPhi), double(objcolor));
+					}
 				}
 
 		}
