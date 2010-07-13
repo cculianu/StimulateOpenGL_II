@@ -4,4 +4,4 @@
 %                the plugin.  Useful for rndtrial=1 with MovingObjects
 function [ret] = GetCurrentRSeed(s)
 
-    ret = sscanf(DoQueryCmd(s, 'GETCURRENTRRSEED'), '%d');
+    ret = sscanf(DoQueryCmd(s, 'GETCURRENTRSEED'), '%d');

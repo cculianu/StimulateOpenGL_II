@@ -204,7 +204,7 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
     } else if (cmd == "GETREFRESHRATE") {
         unsigned rate = stimApp()->refreshRate();
         return QString::number(rate);
-    } else if (cmd == "GETCURRENTRRSEED") {
+    } else if (cmd == "GETCURRENTRSEED") {
         int s = stimApp()->glWin() 
 			    ?  (stimApp()->glWin()->runningPlugin() 
 				    ? stimApp()->glWin()->runningPlugin()->currentRSeed() 
