@@ -204,6 +204,13 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
     } else if (cmd == "GETREFRESHRATE") {
         unsigned rate = stimApp()->refreshRate();
         return QString::number(rate);
+    } else if (cmd == "GETCURRENTRRSEED") {
+        int s = stimApp()->glWin() 
+			    ?  (stimApp()->glWin()->runningPlugin() 
+				    ? stimApp()->glWin()->runningPlugin()->currentRSeed() 
+				    : 0)
+				: 0;
+        return QString::number(s);
     } else if (cmd == "GETWIDTH") {
         return QString::number(stimApp()->glWin()->width());
     } else if (cmd == "GETHEIGHT") {

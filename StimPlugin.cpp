@@ -12,7 +12,8 @@
 #include "DAQ.h"
 
 StimPlugin::StimPlugin(const QString &name)
-    : QObject(StimApp::instance()->glWin()), parent(StimApp::instance()->glWin()), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), lmargin(0), rmargin(0), bmargin(0), tmargin(0), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0)
+    : QObject(StimApp::instance()->glWin()), parent(StimApp::instance()->glWin()), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), 
+	  softCleanup(false), dontCloseFVarFileAcrossLoops(false), lmargin(0), rmargin(0), bmargin(0), tmargin(0), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0)
 {
 	frameVars = 0;
     needNotifyStart = true;
@@ -57,7 +58,8 @@ void StimPlugin::stop(bool doSave, bool useGui, bool softStop)
         saveData(useGui);
     }
 
-	frameVars->finalize();
+	if(!dontCloseFVarFileAcrossLoops || !softCleanup)
+		frameVars->finalize();
 
     // Notify SpikeGL via a socket.. if possible..
     if (stimApp()->spikeGLNotifyParams.enabled
@@ -89,8 +91,10 @@ bool StimPlugin::start(bool startUnpaused)
     parent->pluginStarted(this);
 
     emit started();
-	if (frameVars) delete frameVars;
-	frameVars = new FrameVariables(FrameVariables::makeFileName(stimApp()->outputDirectory() + "/" + name()));
+	if (frameVars && (!softCleanup || !dontCloseFVarFileAcrossLoops)) 
+		delete frameVars, frameVars = 0;
+	if (!softCleanup || !dontCloseFVarFileAcrossLoops)
+		frameVars = new FrameVariables(FrameVariables::makeFileName(stimApp()->outputDirectory() + "/" + name()));
 	
     parent->makeCurrent();
 

@@ -173,6 +173,8 @@ public:
 	/// of the backbuffer
 	void logBackbufferToDisk() const;
 
+	virtual int currentRSeed() const { return ran1Gen.currentSeed(); }
+
 signals:
     void started(); ///< emitted when plugin starts
     void finished(); ///< emitted when plugin finishes naturally
@@ -275,7 +277,8 @@ protected:
 	bool ftAssertions[N_FTStates]; ///< child plugins assert these flags for a particular frame to override default off/on behavior. These flags only last for 1 frame.
 	int ftChangeEvery; ///< if > 0, auto-assert FT_Change when (frameNum % ftChangeEvery) == 0.  0 means auto-computer (only movingobjects support auto-compute) and <0 means off
 	bool softCleanup; ///< flag used by some plugins internally when they are being restarted. normally always false
-	
+	bool dontCloseFVarFileAcrossLoops; ///< defaults to false -- if true, keep the same frame var file open across loop iterations. MovingObjects sets this to true iff rndtrial=1
+
 	///< margins, used for scissor testing
 	int lmargin,rmargin,bmargin,tmargin;
 		
