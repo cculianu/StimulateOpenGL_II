@@ -166,8 +166,6 @@ bool MovingObjects::init()
 		Debug() << ".. continued RNG with seed " << saved_ran1state;
 		dontInitFvars = true;
 	}
-
-	dontCloseFVarFileAcrossLoops = bool(rndtrial && nFrames);
 	
 	if(!getParam( "tframes" , tframes) || tframes <= 0) tframes = DEFAULT_TFRAMES, ftChangeEvery = -1; 
 	if (tframes <= 0 && (numSpeeds > 1 || numSizes > 1)) {
@@ -226,6 +224,9 @@ bool MovingObjects::init()
 		nFrames = tframes * numSpeeds * numSizes;
 		Warning() << "nFrames was " << oldnFrames << ", auto-set to match tframes*length(speeds)*length(sizes) = " << nFrames << "!";
 	}
+	
+	dontCloseFVarFileAcrossLoops = bool(rndtrial && nFrames);
+
 	// NB: the below is a performance optimization for Shapes such as Ellipse and Rectangle which create 1 display list per 
 	// object -- the below ensures that the shared static display list is compiled after init is done so that we don't have to compile one later
 	// while the plugin is running
