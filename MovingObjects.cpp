@@ -158,10 +158,13 @@ bool MovingObjects::init()
 	if(!getParam( "rseed" , rseed))              rseed = -1;  //set start point of rnd seed;
         ran1Gen.reseed(rseed);
 	
+	bool dontInitFvars (false);
+	
 	// if we are looping the plugin, then we continue the random number generator state
 	if (savedrng && rndtrial) {
 		ran1Gen.reseed(saved_ran1state);
 		Debug() << ".. continued RNG with seed " << saved_ran1state;
+		dontInitFvars = true;
 	}
 
 	dontCloseFVarFileAcrossLoops = bool(rndtrial && nFrames);
@@ -208,7 +211,8 @@ bool MovingObjects::init()
     // the object area AABB -- a rect constrained by min_x_pix,min_y_pix and max_x_pix,max_y_pix
 	canvasAABB = Rect(Vec2(min_x_pix, min_y_pix), Vec2(max_x_pix-min_x_pix, max_y_pix-min_y_pix)); 
 
-	frameVars->setVariableNames(QString("frameNum objNum subFrameNum objType(0=box,1=ellipse) x y r1 r2 phi color").split(QString(" ")));
+	if (!dontInitFvars)
+		frameVars->setVariableNames(QString("frameNum objNum subFrameNum objType(0=box,1=ellipse) x y r1 r2 phi color").split(QString(" ")));
 	
 	
 	if (ftChangeEvery == 0 && tframes > 0) {
