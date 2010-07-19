@@ -214,6 +214,9 @@ protected:
 
 	/// Normally no need to re-implement.  Just draws the frame track box for the PD sensor. Only drawn if the box has dimensions (see ftrackbox_[xyw])
 	virtual void drawFTBox();
+	
+	/// Used for the ft_end state for when no plugin is running 
+	static void drawFTBoxStatic();
 
 	/// Convenience method that just calls drawFrame() and drawFTBox() for you, in that order
 	void renderFrame();

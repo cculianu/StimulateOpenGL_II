@@ -107,7 +107,7 @@ void GLWindow::drawEndStateBlankScreen(StimPlugin *p, bool isBlankBG) {
 	if (isBlankBG) {
 		glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT);
-	} else {		
+	} else if (p) {		
 		float color[4];
 		GLboolean blend;
 		const float graylevel = p->bgcolor;	
@@ -124,6 +124,9 @@ void GLWindow::drawEndStateBlankScreen(StimPlugin *p, bool isBlankBG) {
 		p->drawFTBox();
 		if (blend) glEnable(GL_BLEND);
 		glClearColor(color[0], color[1], color[2], color[3]);	
+	} else { // !p
+		glClear(GL_COLOR_BUFFER_BIT);
+		StimPlugin::drawFTBoxStatic();
 	}
 }
 
@@ -334,7 +337,8 @@ void GLWindow::paintGL()
 	if (!paused && blinkCt && ++(*blinkCt) >= *Nblinks) *blinkCt = 0; 
 	if (!running) {  
 		// no plugin running, draw default .5 gray bg without ft box
-        glClear( GL_COLOR_BUFFER_BIT );
+//        glClear( GL_COLOR_BUFFER_BIT );
+		drawEndStateBlankScreen(0, false);
         doBufSwap = true;		
     } else if (running && running->getFrameNum() < 0 && (paused/*|| delayCtr <= 0*/)) { 
 		// running but paused and before plugin started (and not delay mode because that's handled above!)
@@ -468,7 +472,7 @@ StimPlugin *GLWindow::pluginFind(const QString &name, bool casesensitive)
 void GLWindow::initPlugins()
 {
     Log() << "Initializing plugins...";
-
+	
     // it's ok to new these objects -- they automatically attach themselves 
     // to this instance and will be auto-deleted when this object is deleted.
 #ifndef Q_OS_WIN

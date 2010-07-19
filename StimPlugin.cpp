@@ -348,6 +348,22 @@ void StimPlugin::advanceFTState()
 		currentFTState = (!(frameNum % 2)) ? FT_Track : FT_Off;
 }
 
+/* static */
+void StimPlugin::drawFTBoxStatic()
+{
+	StimApp::GlobalDefaults & defs = stimApp()->globalDefaults;
+	const int ftrackbox_w = defs.ftrackbox_w, ftrackbox_y = defs.ftrackbox_y, ftrackbox_x = defs.ftrackbox_x;
+	const QString & color = defs.ftrack_off_color;
+	QStringList comps = color.split(",");
+	if (comps.count() >= 3) { 
+		GLfloat cols[3] = { comps[0].toFloat(), comps[1].toFloat(), comps[2].toFloat() }; 
+		if (ftrackbox_w) {		
+			glColor3fv(reinterpret_cast<GLfloat *>(cols));
+			glRecti(ftrackbox_x, ftrackbox_y, ftrackbox_x+ftrackbox_w, ftrackbox_y+ftrackbox_w);
+		}
+	}
+}
+
 void StimPlugin::drawFTBox()
 {
 //	if (!initted) return;
