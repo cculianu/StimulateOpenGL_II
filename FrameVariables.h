@@ -22,6 +22,8 @@ public:
 	/// a count of the number of frame vars -- aka the number of times push() has been called.
 	unsigned count() const { return cnt; } 
 	void setVariableNames(const QStringList & fields);
+	void setVariableDefaults(const QVector<double> & defaults);
+	QVector<double> & variableDefaults() { return var_defaults; } ///< reference to the defaults currently in-use so that plugins can modify them
 
 	void push(double varval0...); ///< all vars must be doubles, and they must be the same number of parameters as the variableNames() list length!
 
@@ -31,7 +33,11 @@ public:
 	
 	/// read the last plugin that ran from file
 	static bool readAllFromLast(QVector<double> & out, int * nrows_out = 0, int * ncols_out = 0,bool matlab = true);
-	/// reads the header from the last file written and returns a list of strings...
+	
+	/// reads the header from the specified filename and returns a list of strings, sans the enclosing quotes
+	static QStringList readHeaderFromFile(const QString & fileName);
+	
+	/// reads the header from the last file written and returns a list of strings, sansa the enclosing quotes
 	static QStringList readHeaderFromLast();
 	
 	bool readAllFromFile(QVector<double> & out, int * nrows_out = 0, int * ncols_out = 0, bool matlab = true) const;
@@ -41,7 +47,7 @@ public:
 	static QString makeFileName(const QString & prefix);
 
 	bool readInput(const QString & fileName);
-	QVector<double> readNext() { return inp.getNextRow(); }
+	QVector<double> readNext();
 	void readReset() { inp.curr_row = 0; }
 	
 	/// called by GLWindow when nLoops and looptCt > 0
@@ -51,20 +57,25 @@ public:
 
 private:
 	static QStringList splitHeader(const QString & ln);
+	bool computeCols(const QString & fileName);
+	
 	unsigned n_fields, cnt;
-	QString fname;
+	QString fname, fnameInp;
 	mutable QFile f;
 	mutable QTextStream ts;
 	QStringList var_names;
+	QVector<double> var_defaults;
 	int cantOpenComplainCt;
+	bool needComputeCols;
 	static QStringList lastFileNames;
 	static QString lastFileName();
 	static void pushLastFileName(const QString & fn);
 	
 	// lastread stuff
 	struct Input {
-		Input() : nrows(0), ncols(0), curr_row(0) {}
+		Input() : nrows(0), ncols(0), curr_row(0) { col_positions.clear(); }
 		QVector<double> allVars;
+		QVector<int> col_positions; /// each element of this vector is an index in the ideal 'defaults' row
 		int nrows, ncols;
 		int curr_row;
 		QVector<double> getNextRow();

@@ -69,7 +69,8 @@ bool MovingObjects::init()
 		if (getParam( "objType"     , otype)) {
 			otype = otype.trimmed().toLower();
 			
-			if (otype == "ellipse" || otype == "ellipsoid" || otype == "circle" || otype == "disk" || otype == "sphere") {
+			if (otype == "ellipse" || otype == "ellipsoid" || otype == "circle" || otype == "disk" || otype == "sphere"
+				|| otype == "1") {
 				if (otype == "sphere") Warning() << "`sphere' objType not supported, defaulting to ellipsoid.";
 				o.type = EllipseType;
 			} else
@@ -209,8 +210,18 @@ bool MovingObjects::init()
     // the object area AABB -- a rect constrained by min_x_pix,min_y_pix and max_x_pix,max_y_pix
 	canvasAABB = Rect(Vec2(min_x_pix, min_y_pix), Vec2(max_x_pix-min_x_pix, max_y_pix-min_y_pix)); 
 
-	if (!dontInitFvars)
-		frameVars->setVariableNames(QString("frameNum objNum subFrameNum objType(0=box,1=ellipse) x y r1 r2 phi color").split(QString(" ")));
+	if (!dontInitFvars) {
+		ObjData o = objs.front();
+		double x = o.pos_o.x, y = o.pos_o.y, r1 = o.len_vec.front().x, r2 = o.len_vec.front().y;
+		frameVars->setVariableNames(   QString(          "frameNum objNum subFrameNum objType(0=box,1=ellipse) x y r1 r2 phi color").split(QString(" ")));
+		frameVars->setVariableDefaults(QVector<double>()  << 0     << 0   << 0        << o.type                << x
+									                                                                             << y
+									                                                                               << r1
+									                                                                                  << r2
+									                                                                                    << o.phi_o
+									                                                                                         << o.color);
+		
+	}
 	
 	
 	if (ftChangeEvery == 0 && tframes > 0) {
@@ -348,6 +359,12 @@ void MovingObjects::doFrameDraw()
 		const int niters = ((int)fps_mode)+1; // hack :)
 		
 		for (int k=0; k < niters; k++) {
+				if (have_fv_input_file && frameVars) {
+					QVector<double> & defs = frameVars->variableDefaults();
+					// re-set the defaults because we *know* what the frameNum and subframeNum *should* be!
+					defs[0] = frameNum;
+					defs[2] = k;
+				}
 				QVector<double> fv;
 
 				const Rect aabb = o.shape->AABB();

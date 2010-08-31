@@ -74,8 +74,9 @@ bool MovingObjects_Old::init()
                 glBlendFunc(GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR);
             else glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
         }*/
-     initDisplayLists();
-	 frameVars->setVariableNames(QString("frameNum x y").split(QString(" ")));
+    initDisplayLists();
+	frameVars->setVariableNames(QString("frameNum x y").split(QString(" ")));
+	frameVars->setVariableDefaults(QVector<double>() << 0. << double(objXinit) << double(objYinit));
      return true;
 }
 

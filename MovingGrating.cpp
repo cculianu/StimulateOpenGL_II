@@ -53,6 +53,7 @@ bool MovingGrating::init()
             Error() <<  "Some parameter values could not be read";
         
 	frameVars->setVariableNames(QString("frameNum phase").split(" "));
+	frameVars->setVariableDefaults(QVector<double>() << 0. << 0.);
 
 	return returnvalue;    
 }

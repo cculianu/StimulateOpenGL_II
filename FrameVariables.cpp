@@ -8,7 +8,7 @@ QStringList FrameVariables::lastFileNames;
 #define MAX_LAST_FILENAMES 10
 
 FrameVariables::FrameVariables(const QString &of, const QStringList & varnames)
-: cnt(0), fname(of), f(of), cantOpenComplainCt(0)
+: cnt(0), fname(of), f(of), cantOpenComplainCt(0), needComputeCols(true)
 {
 	pushLastFileName(fname);
 	setVariableNames(varnames);
@@ -28,9 +28,16 @@ void FrameVariables::setVariableNames(const QStringList &fields)
 	}
 	n_fields = fields.count();
 	var_names = fields;
-
 }
 
+void FrameVariables::setVariableDefaults(const QVector<double> & defaults) 
+{
+	if (unsigned(defaults.size()) != n_fields) {
+		Error() << "setVariableDefaults() needs to be called with a vector of precisely " << n_fields << " elements!";
+		return;
+	}
+	var_defaults = defaults;
+}
 
 /*static*/ QString FrameVariables::lastFileName() { return lastFileNames.count() ? lastFileNames.front() : QString(""); }
 /*static*/ void FrameVariables::pushLastFileName(const QString & fn) {
@@ -187,12 +194,20 @@ void FrameVariables::finalize()
 		return lst;
 }
 
-QStringList FrameVariables::readHeaderFromLast()
+/* static */
+QStringList FrameVariables::readHeaderFromFile(const QString & file)
 {	
-	QFile fin(lastFileName());
+	QFile fin(file);
 	if (fin.open(QIODevice::ReadOnly)) 
 		return splitHeader(fin.readLine());
 	return QStringList();
+}
+
+
+/* static */
+QStringList FrameVariables::readHeaderFromLast()
+{	
+	return readHeaderFromFile(lastFileName());
 }
 
 QVector<double> FrameVariables::Input::getNextRow()
@@ -209,8 +224,67 @@ QVector<double> FrameVariables::Input::getNextRow()
 	return ret;
 }
 
+bool FrameVariables::computeCols(const QString & fileName) 
+{
+	QStringList header = readHeaderFromFile(fileName);
+	inp.col_positions.clear();
+	if (!header.size()) {
+		Error() << "Frame var file " << fileName << " lacks a header!";
+		return false;
+	}
+	// now figure out the column positions
+	inp.col_positions.resize(header.size());
+	QStringList::iterator it, it2;
+	int i,j;
+	for (it = header.begin(), i = 0; it != header.end(); ++i, ++it) {
+		bool found = false;
+		for (it2 = var_names.begin(), j = 0; it2 != var_names.end(); ++j, ++it2) {
+			if ((*it2).startsWith(*it)) {
+				inp.col_positions[i] = j;
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			Error() << "Frame var file " << fileName << " unknown column " << i << " \\\"" << (*it) << "\\\"";
+			return false;
+		}
+	}
+	return true;
+}
+
 bool FrameVariables::readInput(const QString & fileName)
 {
 	inp.curr_row = 0;
+	if (var_names.size() && var_defaults.size() && computeCols(fileName))
+		needComputeCols = false;
+	else
+		needComputeCols = true;
+	fnameInp = fileName;
 	return readAllFromFile(fileName, inp.allVars, &inp.nrows, &inp.ncols, false);
 }
+
+QVector<double> FrameVariables::readNext() 
+{ 
+	if (needComputeCols) {
+		if (!computeCols(fnameInp)) {
+			Error() << "Cannot compute column positions for frameVar file -- header may be invalid or missing!";
+			return var_defaults;
+		}
+		needComputeCols = false;
+	}
+	QVector<double> ret = inp.getNextRow(); 
+	if (var_names.size() && ret.size() != var_names.size()) {
+		QVector<double> defs = var_defaults;
+		if (ret.size() != inp.col_positions.size()) {
+			Error() << "Row " << inp.curr_row << " in data file does not have as many columns as defined in its header!";
+			return defs;
+		}
+		// mergs input row with default values
+		for (int i = 0 ; i < int(ret.size()); ++i)
+			defs[inp.col_positions[i]] = ret[i];
+		return defs;
+	}
+	return ret;
+}
+
