@@ -226,7 +226,7 @@ QVector<double> FrameVariables::Input::getNextRow()
 
 bool FrameVariables::computeCols(const QString & fileName) 
 {
-	QStringList header = readHeaderFromFile(fileName);
+	const QStringList & header = inp.headerRow = readHeaderFromFile(fileName);
 	inp.col_positions.clear();
 	if (!header.size()) {
 		Error() << "Frame var file " << fileName << " lacks a header!";
@@ -234,7 +234,7 @@ bool FrameVariables::computeCols(const QString & fileName)
 	}
 	// now figure out the column positions
 	inp.col_positions.resize(header.size());
-	QStringList::iterator it, it2;
+	QStringList::const_iterator it, it2;
 	int i,j;
 	for (it = header.begin(), i = 0; it != header.end(); ++i, ++it) {
 		bool found = false;
@@ -264,15 +264,21 @@ bool FrameVariables::readInput(const QString & fileName)
 	return readAllFromFile(fileName, inp.allVars, &inp.nrows, &inp.ncols, false);
 }
 
-QVector<double> FrameVariables::readNext() 
-{ 
+bool FrameVariables::checkComputeCols() 
+{
 	if (needComputeCols) {
 		if (!computeCols(fnameInp)) {
 			Error() << "Cannot compute column positions for frameVar file -- header may be invalid or missing!";
-			return var_defaults;
+			return false;
 		}
 		needComputeCols = false;
-	}
+	}	
+	return true;
+}
+
+QVector<double> FrameVariables::readNext() 
+{ 
+	if (!checkComputeCols()) return var_defaults;
 	QVector<double> ret = inp.getNextRow(); 
 	if (var_names.size() && ret.size() != var_names.size()) {
 		QVector<double> defs = var_defaults;
@@ -288,3 +294,9 @@ QVector<double> FrameVariables::readNext()
 	return ret;
 }
 
+bool FrameVariables::hasInputColumn(const QString & col_name) {
+	checkComputeCols();
+	for (QStringList::const_iterator it = inp.headerRow.begin(); it != inp.headerRow.end(); ++it)
+		if ((col_name).startsWith(*it)) return true;
+	return false;
+}

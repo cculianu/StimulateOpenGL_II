@@ -73,6 +73,7 @@ private:
 	bool jitterlocal;
     bool moveFlag, jitterFlag;
 	bool wrapEdge;
+	bool fvHasPhiCol;
 	
 	float min_x_pix,max_x_pix,min_y_pix,max_y_pix;
 	

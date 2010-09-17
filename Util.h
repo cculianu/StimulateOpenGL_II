@@ -61,9 +61,10 @@ extern bool hasExt(const char *gl_ext);
 
 /// \brief Enable vsync
 ///
-/// Set the opengl mode to synchronize with the vertical blank signal 
+/// Enable or disable vertical synchronization in the opengl context.  (VSynch 
+///	synchronizes display updates with the vertical blank signal.)
 /// -- implemented in osdep.cpp
-extern void setVSyncMode(); 
+extern void setVSyncMode(bool vsync); 
 
 /// retrieve a time value from the system's high resolution timer, in seconds
 extern double getTime();

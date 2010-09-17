@@ -12,6 +12,9 @@ public:
     
     /// Returns a pointer to the QTextEdit area which is used for messages in the console window.  Classes such as Log, Error, Debug, and Warning make use of this textedit to print messages to the console.
     QTextEdit *textEdit() const;
+	
+	QAction *vsyncDisabledAction;
+	
 protected:
 
     /// Basically calls QApplication::quit -- closing the console window is equivalent to quitting the application

@@ -57,6 +57,8 @@ bool MovingObjects::init()
 		&& !getParam("numObjs", numObj) ) numObj = 1;
 	
 	int numSizes = -1, numSpeeds = -1;
+
+	fvHasPhiCol = false;
 	
 	for (int i = 0; i < numObj; ++i) {
 		if (i > 0)	paramSuffixPush(QString::number(i+1)); // make the additional obj params end in a number
@@ -369,8 +371,87 @@ void MovingObjects::doFrameDraw()
 
 				const Rect aabb = o.shape->AABB();
 
+				{ // MOVEMENT/ROTATION computation happens *always* but the fvar file variables below may override the results of this computation!
+						if (moveFlag) {
+							
+							// wrap objects that floated past the edge of the screen
+							if (wrapEdge && !canvasAABB.intersects(aabb))
+								wrapObject(o, aabb);
+							
+							
+							if (!wrapEdge) {
+								
+								// adjust for wall bounce
+								if ((x + vx + aabb.size.w/2 > max_x_pix) ||  (x + vx - aabb.size.w/2 < min_x_pix))
+									vx = -vx;
+								if ((y + vy + aabb.size.h/2 > max_y_pix) || (y + vy  - aabb.size.h/2 < min_y_pix))
+									vy = -vy; 
+								
+							}
+							
+							// initialize position iff k==0 and frameNum is a multiple of tframes
+							if ( !k && !(frameNum%tframes)) {
+								if (++o.vel_vec_i >= o.vel_vec.size()) {
+									o.vel_vec_i = 0;
+									++o.len_vec_i;
+								}
+								if (o.len_vec_i >= o.len_vec.size()) o.len_vec_i = 0;
+								
+								objLen = o.len_vec[o.len_vec_i].x;
+								objLen_min = o.len_vec[o.len_vec_i].y;
+								
+								
+								// apply new length by adjusting object scale
+								o.shape->scale.x = objLen / objLen_o;
+								o.shape->scale.y = objLen_min / objLen_min_o;
+								
+								objVelx = o.vel_vec[o.vel_vec_i].x;
+								objVely = o.vel_vec[o.vel_vec_i].y;
+								
+								// init position
+								if (!rndtrial) {
+									x = objXinit;
+									y = objYinit;
+									vx = objVelx; 
+									vy = objVely; 
+								}
+								else {
+									x = ran1Gen()*canvasAABB.size.x + min_x_pix;
+									y = ran1Gen()*canvasAABB.size.y + min_y_pix;
+									vx = ran1Gen()*objVelx*2 - objVelx;
+									vy = ran1Gen()*objVely*2 - objVely; 
+								}
+								objPhi = o.phi_o;
+								
+							}
+							
+							// update position after delay period
+							// if jitter pushes us outside of motion box then do not jitter this frame
+							if ((int(frameNum)%tframes /*- delay*/) >= 0) { 
+								if (!wrapEdge && ((x + vx + aabb.size.w/2 + jitterx > max_x_pix) 
+												  ||  (x + vx - aabb.size.w/2 + jitterx < min_x_pix)))
+									x += vx;
+								else 
+									x+= vx + jitterx;
+								if (!wrapEdge && ((y + vy + aabb.size.h/2 + jittery > max_y_pix) 
+												  || (y + vy - aabb.size.h/2 + jittery < min_y_pix))) 
+									y += vy;
+								else 
+									y += vy + jittery;
+								
+								// also apply spin
+								objPhi += o.spin;
+							}
+							
+						}
+						
+				} 
+			
 				if (have_fv_input_file) {
 					fv = frameVars->readNext();
+					if ( !frameNum ) {
+						fvHasPhiCol = frameVars->hasInputColumn("phi");
+					}
 					if (fv.size() < NUM_FRAME_VARS && frameNum) {
 						// at end of file?
 						Warning() << name() << "'s frame_var file ended input, stopping plugin.";
@@ -438,84 +519,9 @@ void MovingObjects::doFrameDraw()
 						delete oldshape;
 					}
 					
-					objPhi = fv[8];
+					if (fvHasPhiCol) 
+						objPhi = fv[8];
 					objcolor = fv[9];
-					
-				} else {
-				
-
-					if (moveFlag) {
-
-						// wrap objects that floated past the edge of the screen
-						if (wrapEdge && !canvasAABB.intersects(aabb))
-							wrapObject(o, aabb);
-
-						
-						if (!wrapEdge) {
-							
-							// adjust for wall bounce
-							if ((x + vx + aabb.size.w/2 > max_x_pix) ||  (x + vx - aabb.size.w/2 < min_x_pix))
-								vx = -vx;
-							if ((y + vy + aabb.size.h/2 > max_y_pix) || (y + vy  - aabb.size.h/2 < min_y_pix))
-								vy = -vy; 
-							
-						}
-
-						// initialize position iff k==0 and frameNum is a multiple of tframes
-						if ( !k && !(frameNum%tframes)) {
-							if (++o.vel_vec_i >= o.vel_vec.size()) {
-								o.vel_vec_i = 0;
-								++o.len_vec_i;
-							}
-							if (o.len_vec_i >= o.len_vec.size()) o.len_vec_i = 0;
-							
-							objLen = o.len_vec[o.len_vec_i].x;
-							objLen_min = o.len_vec[o.len_vec_i].y;
-							
-								
-							// apply new length by adjusting object scale
-							o.shape->scale.x = objLen / objLen_o;
-							o.shape->scale.y = objLen_min / objLen_min_o;
-							
-							objVelx = o.vel_vec[o.vel_vec_i].x;
-							objVely = o.vel_vec[o.vel_vec_i].y;
-						
-							// init position
-							if (!rndtrial) {
-								x = objXinit;
-								y = objYinit;
-								vx = objVelx; 
-								vy = objVely; 
-							}
-							else {
-								x = ran1Gen()*canvasAABB.size.x + min_x_pix;
-								y = ran1Gen()*canvasAABB.size.y + min_y_pix;
-								vx = ran1Gen()*objVelx*2 - objVelx;
-								vy = ran1Gen()*objVely*2 - objVely; 
-							}
-							objPhi = o.phi_o;
-							
-						}
-
-						// update position after delay period
-						// if jitter pushes us outside of motion box then do not jitter this frame
-						if ((int(frameNum)%tframes /*- delay*/) >= 0) { 
-							if (!wrapEdge && ((x + vx + aabb.size.w/2 + jitterx > max_x_pix) 
-											  ||  (x + vx - aabb.size.w/2 + jitterx < min_x_pix)))
-								x += vx;
-							else 
-								x+= vx + jitterx;
-							if (!wrapEdge && ((y + vy + aabb.size.h/2 + jittery > max_y_pix) 
-											  || (y + vy - aabb.size.h/2 + jittery < min_y_pix))) 
-								y += vy;
-							else 
-								y += vy + jittery;
-							
-							// also apply spin
-							objPhi += o.spin;
-						}
-
-					}
 					
 				} //  end !have_fv_input_file
 

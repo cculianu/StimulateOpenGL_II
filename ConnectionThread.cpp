@@ -24,9 +24,18 @@ namespace {
         GetFrameEventType,
         IsConsoleHiddenEventType,
         ConsoleHideEventType,
-        ConsoleUnHideEventType
+        ConsoleUnHideEventType,
+		SetVSyncDisabledEventType,
     };
 
+	struct SetVSyncDisabledEvent : public QEvent
+	{
+		SetVSyncDisabledEvent(bool disabled)
+			: QEvent(static_cast<QEvent::Type>(SetVSyncDisabledEventType)), disabled(disabled) {}
+		
+		bool disabled;
+	};
+	
     struct StartStopPluginEvent : public QEvent
     {
         /// if this c'tor is used, the event type will be a plugin start cmd,
@@ -421,6 +430,12 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
     } else if (cmd == "CONSOLEUNHIDE") {
         stimApp()->postEvent(this, new ConsoleUnHideEvent());
         return "";
+    } else if (cmd == "ISVSYNCDISABLED") {
+        return QString::number(stimApp()->isVSyncDisabled() ? 1 : 0);
+    } else if (cmd == "SETVSYNCDISABLED") {
+		const bool disabled = toks.join("").toInt();
+		stimApp()->postEvent(this, new SetVSyncDisabledEvent(disabled));
+		return "";
     } else if (cmd == "START" && toks.size()) {
         // this commands needs to be executed in the main thread
         // to avoid race conditions and also to have a valid opengl context
@@ -517,6 +532,13 @@ bool ConnectionThread::eventFilter(QObject *watched, QEvent *event)
                 stimApp()->console()->show();
             return true;
 
+		case SetVSyncDisabledEventType: 
+			if (stimApp()) {
+				SetVSyncDisabledEvent *e = 	dynamic_cast<SetVSyncDisabledEvent *>(event);
+				if (e) stimApp()->setVSyncDisabled(e->disabled);
+			}
+			return true;
+				
         } // end switch
     }
     return QThread::eventFilter(watched, event);

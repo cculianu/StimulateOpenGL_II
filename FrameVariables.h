@@ -48,7 +48,8 @@ public:
 
 	bool readInput(const QString & fileName);
 	QVector<double> readNext();
-	void readReset() { inp.curr_row = 0; }
+	void readReset() { inp.curr_row = 0; inp.headerRow.clear();  needComputeCols = true; inp.allVars.clear(); inp.col_positions.clear(); }
+	bool hasInputColumn(const QString & col_name);
 	
 	/// called by GLWindow when nLoops and looptCt > 0
 	void closeAndRemoveOutput();
@@ -58,6 +59,7 @@ public:
 private:
 	static QStringList splitHeader(const QString & ln);
 	bool computeCols(const QString & fileName);
+	bool checkComputeCols();
 	
 	unsigned n_fields, cnt;
 	QString fname, fnameInp;
@@ -79,6 +81,7 @@ private:
 		int nrows, ncols;
 		int curr_row;
 		QVector<double> getNextRow();
+		QStringList headerRow;
 	} inp;
 };
 #endif

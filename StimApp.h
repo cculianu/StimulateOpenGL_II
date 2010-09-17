@@ -99,6 +99,8 @@ public:
 	
 	bool isFrameDumpMode() const;
 	
+	bool isVSyncDisabled() const;
+	
     /// Returns the directory under which all plugin data files are to be saved.
     QString outputDirectory() const { QMutexLocker l(&mut); return outDir; }
     /// Set the directory under which all plugin data files are to be saved. NB: dpath must exist otherwise it is not set and false is returned
@@ -142,6 +144,8 @@ public slots:
 	void setSaveFrameVars(bool);
 	
 	void setFrameDumpMode(bool);	
+	
+	void setVSyncDisabled(bool);
 	
     /// Pops up a UI so that the user can select a stim. config file to load.
     void loadStim();
@@ -191,7 +195,7 @@ private:
     mutable QMutex mut; ///< used to lock outDir param for now
     ConsoleWindow *consoleWindow;
     GLWindow *glWindow;
-    bool glWinHasFrame, debug, noDropFrameWarn, saveFrameVars;
+    bool glWinHasFrame, debug, noDropFrameWarn, saveFrameVars, vsyncDisabled;
     QString lastFile;
     volatile bool initializing;
     QColor defaultLogColor;

@@ -39,6 +39,9 @@ ConsoleWindow::ConsoleWindow(QWidget *p, Qt::WindowFlags f)
 	action = m->addAction("Dump Frames To Disk (SLOW!)", stimApp(), SLOT(setFrameDumpMode(bool)));
 	action->setCheckable(true);
 	action->setChecked(stimApp()->isFrameDumpMode());
+	vsyncDisabledAction = action = m->addAction("Disable VSync", stimApp(), SLOT(setVSyncDisabled(bool)));
+	action->setCheckable(true);
+	action->setChecked(stimApp()->isVSyncDisabled());
 	m->addSeparator();
     action = m->addAction("Choose &Output Directory...", stimApp(), SLOT(pickOutputDir()));
 #ifndef Q_OS_WIN

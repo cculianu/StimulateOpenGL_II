@@ -113,7 +113,8 @@ StimApp::StimApp(int & argc, char ** argv)
     
 
     setRTPriority();
-    setVSyncMode();
+		
+	setVSyncDisabled(isVSyncDisabled());
 
     glWindow->initPlugins();    
 
@@ -249,6 +250,25 @@ void StimApp::setFrameDumpMode(bool b)
 	if (glWindow) glWindow->debugLogFrames = b;
 }
 
+bool StimApp::isVSyncDisabled() const {
+	return vsyncDisabled;
+}
+void StimApp::setVSyncDisabled(bool b) {
+	
+	if (glWindow) {
+		glWindow->makeCurrent();
+		Util::setVSyncMode(!b);
+	}
+	vsyncDisabled = b;
+	saveSettings();
+	
+	if (consoleWindow && consoleWindow->vsyncDisabledAction) {
+		consoleWindow->vsyncDisabledAction->blockSignals(true);
+		consoleWindow->vsyncDisabledAction->setChecked(b);
+		consoleWindow->vsyncDisabledAction->blockSignals(false);
+	}
+}
+
 bool StimApp::eventFilter(QObject *watched, QEvent *event)
 {
     int type = static_cast<int>(event->type());
@@ -353,6 +373,7 @@ void StimApp::loadSettings()
     debug = settings.value("debug", false).toBool();
 	noDropFrameWarn = settings.value("noDropFrameWarn", false).toBool();
 	saveFrameVars = settings.value("saveFrameVars", false).toBool();
+	vsyncDisabled = settings.value("noVSync", false).toBool();
     lastFile = settings.value("lastFile", "").toString();
     mut.lock();
 #ifdef Q_OS_WIN
@@ -398,6 +419,7 @@ void StimApp::saveSettings()
 	settings.setValue("noDropFrameWarn", noDropFrameWarn);
 	settings.setValue("saveFrameVars", saveFrameVars);
     settings.setValue("lastFile", lastFile);
+	settings.setValue("noVSync", vsyncDisabled);
     mut.lock();
     settings.setValue("outDir", outDir);
     mut.unlock();

@@ -235,47 +235,51 @@ bool hasExt(const char *ext_name)
     return false;
 }
 
+namespace {
+	const char *vsms(bool b) { return b ? "enabled" : "disabled"; } // vsync mode string
+}
+	
 #ifdef Q_WS_X11
-void setVSyncMode()
+void setVSyncMode(bool vsync)
 {
     if (hasExt("GLX_SGI_swap_control")) {
-        Log() << "Found `swap_control' GLX-extension, turning on \"wait for vsync\"";
+        Log() << "Found `swap_control' GLX-extension, will try to set vsync mode to " << vsms(vsync) << ".";
         int (*func)(int) = (int (*)(int))glXGetProcAddressARB((const GLubyte *)"glXSwapIntervalSGI");
         if (func) {
-            func(1);
+            func(vsync ? 1 : 0);
         } else
             Error() <<  "GLX_SGI_swap_control func not found!";
     } else
-        Warning() << "Missing `swap_control' GLX-extension, cannot enable vsync!";           
+        Warning() << "Missing `swap_control' GLX-extension, vsync cannot be " << vsms(vsync) << "!";           
 }
 #elif defined(Q_WS_WIN) /* Windows */
 typedef BOOL (APIENTRY *wglswapfn_t)(int);
 
-void setVSyncMode()
+void setVSyncMode(bool vsync)
 {
     stimApp()->glWin()->makeCurrent();
     wglswapfn_t wglSwapIntervalEXT = (wglswapfn_t)QGLContext::currentContext()->getProcAddress( "wglSwapIntervalEXT" );
     if( wglSwapIntervalEXT ) {
-        wglSwapIntervalEXT(1);
-        Log() << "VSync mode enabled using wglSwapIntervalEXT().";
+        wglSwapIntervalEXT(vsync ? 1 : 0);
+        Log() << "VSync mode " << vsms(vsync) << " using wglSwapIntervalEXT().";
     } else {
-        Warning() << "VSync mode could not be enabled because wglSwapIntervalEXT is missing.";
+        Warning() << "VSync mode could not be " << vsms(vsync) << " because wglSwapIntervalEXT is missing.";
     }
 }
 #elif defined (Q_WS_MACX)
 
-void setVSyncMode()
+void setVSyncMode(bool vsync)
 {
     stimApp()->glWin()->makeCurrent();
-    GLint tmp = 1;
+    GLint vs = vsync ? 1 : 0;
     AGLContext ctx = aglGetCurrentContext();
     if (aglEnable(ctx, AGL_SWAP_INTERVAL) == GL_FALSE)
-        Warning() << "VSync mode could not be enabled becuse aglEnable AGL_SWAP_INTERVAL returned false!";
+        Warning() << "VSync mode could not be " << vsms(vsync) << " becuse aglEnable AGL_SWAP_INTERVAL returned false!";
     else {
-        if ( aglSetInteger(ctx, AGL_SWAP_INTERVAL, &tmp) == GL_FALSE )
-            Warning() << "VSync mode could not be enabled because aglSetInteger returned false!";
+        if ( aglSetInteger(ctx, AGL_SWAP_INTERVAL, &vs) == GL_FALSE )
+            Warning() << "VSync mode could not be " << vsms(vsync) << " because aglSetInteger returned false!";
         else
-            Log() << "VSync mode enabled using aglSetInteger().";
+            Log() << "VSync mode " << vsms(vsync) << " using aglSetInteger().";
     }
 }
 
