@@ -330,7 +330,8 @@
 %
 %                Specify directory path to which data files will be
 %                saved.  Data files are saved by plugins when they are
-%                Stopped with the save_data_flag set to true.
+%                Stopped with the save_data_flag set to true.  This setting
+%                is persistent across runs of the program.
 %
 %    boolval = IsConsoleHidden(myobj)
 %
@@ -359,3 +360,15 @@
 %                process. Useful only to cleanup resources when you are
 %                done with a connection to StimulateOpenGL II.
 %
+%    myobj = SetVSyncDisabled(myobj, disabled_flag)
+%
+%                Disables/enables VSync.  See also IsVSyncDisabled.m call.
+%                This setting is persistent across runs of the program.
+%
+%    boolval = IsVSyncDisabled(myobj)
+%
+%                Determine if the program frame renderer has VSync 
+%                disabled or enabled (default returns false, or enabled). 
+%                The program's VSync may be disabled with the
+%                SetVSyncDisabled call.  
+
