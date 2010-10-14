@@ -158,9 +158,10 @@ public slots:
     /// @see outputDirectory
     void pickOutputDir();
     void pauseUnpause(); ///< Calls GLWindow::pauseUnpause()
-#ifndef Q_OS_WIN
+
+	/// A NOOP in Windows, otherwise initiates the refresh rate calibration
     void calibrateRefresh();
-#endif
+
     /// Toggles the console window hidden/shown state
     void hideUnhideConsole();
 
@@ -176,9 +177,9 @@ public slots:
 protected:
 
 protected slots:
-#ifndef Q_OS_WIN
+	/// A NOOP in Windows, otherwise called by calibrateRefresh() when it finishes
     void calibratedRefresh(unsigned);
-#endif
+	
     /// Called from a timer every ~250 ms to update the status bar at the bottom of the console window
     void updateStatusBar();
 

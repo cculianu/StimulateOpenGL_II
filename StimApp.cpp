@@ -192,6 +192,9 @@ void StimApp::calibratedRefresh(unsigned rate)
         Log() << "Application initialized";
     }
 }
+#else /* Windows */
+void StimApp::calibrateRefresh() {}
+void StimApp::calibratedRefresh(unsigned rate) { (void) rate; }
 #endif
 
 StimApp::~StimApp()

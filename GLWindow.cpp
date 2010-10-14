@@ -16,7 +16,7 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 #ifdef Q_OS_WIN														
 															Qt::MSWindowsOwnDC|
 #endif
-															(frameless ? Qt::FramelessWindowHint : 0))), aMode(false), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.), delayCtr(0), delayt0(0.), delayFPS(0.), debugLogFrames(false)
+															(frameless ? Qt::FramelessWindowHint : (Qt::WindowFlags)0))), aMode(false), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.), delayCtr(0), delayt0(0.), delayFPS(0.), debugLogFrames(false)
 {
 	blockPaint = false;
     QSize s(w, h);
