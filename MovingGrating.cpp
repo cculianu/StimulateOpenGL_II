@@ -14,9 +14,9 @@ bool MovingGrating::init()
 {
 	bool returnvalue = true;
 
-	if( !getParam("period", period) ) returnvalue = false;
-	if( !getParam("speed",  speed) ) returnvalue = false;
-	if( !getParam("angle", angle) ) returnvalue = false;
+	if( !getParam("period", period) ) period = 400; //returnvalue = false;
+	if( !getParam("speed",  speed) ) speed = 1; //returnvalue = false;
+	if( !getParam("angle", angle) ) angle = 0; //returnvalue = false;
 	if( !getParam("dangle", dangle) ) dangle = angle;	
 
 	if( !getParam("tframes", tframes) )	tframes = -1;
@@ -52,8 +52,8 @@ bool MovingGrating::init()
 	else 
             Error() <<  "Some parameter values could not be read";
         
-	frameVars->setVariableNames(QString("frameNum phase").split(" "));
-	frameVars->setVariableDefaults(QVector<double>() << 0. << 0.);
+	frameVars->setVariableNames(QString("frameNum phase period angle").split(" "));
+	frameVars->setVariableDefaults(QVector<double>() << 0. << 0. << period << angle);
 
 	return returnvalue;    
 }
@@ -102,7 +102,9 @@ void MovingGrating::drawFrame()
 				}
 			}
 			if (fv.size()) {
-				totalTranslation = fv[1];
+				period = fv[2];
+				totalTranslation = fv[1] * period;
+				angle = fv[3];
 			} else if( totalTranslation > period ){
 				totalTranslation = totalTranslation - period + speed;
 			} else {
@@ -110,7 +112,7 @@ void MovingGrating::drawFrame()
 			}
 			totalTranslations[k] = totalTranslation;
 			if (!fv.size())
-				frameVars->push(double(frameNum), double(totalTranslation)/double(period));
+				frameVars->push(double(frameNum), double(totalTranslation)/double(period), period, angle);
 		}
 		for (int i = 0; i < 1600; ++i) {
 			float r = 0., g = 0., b = 0.;
@@ -143,14 +145,16 @@ void MovingGrating::drawFrame()
 			}
 		}
 		if (fv.size()) {
-			totalTranslation = fv[1];
+			period = fv[2];
+			totalTranslation = fv[1] * period;
+			angle = fv[3];
 		} else if( totalTranslation > period ) {
 			totalTranslation = totalTranslation - period + speed;
 		} else {
 			totalTranslation = totalTranslation + speed;
 		}
 		if (!fv.size())
-			frameVars->push(double(frameNum), double(totalTranslation)/double(period));
+			frameVars->push(double(frameNum), double(totalTranslation)/double(period), period, angle);
 		
 		for( int i=0; i<1600; i++ )
 			setGrayLevel( i, 0, scaleIntensity(0.5+0.5*waveFunc(2.*M_PI*(i+totalTranslation)/period)) );
@@ -158,10 +162,8 @@ void MovingGrating::drawFrame()
 	
 	if (ftChangeEvery < 1 && reversal && frameNum > 0 && !(frameNum%reversal)) ftAssertions[FT_Change] = true;
 	
-	if ((frameNum > 0) && tframes > 0 && !(frameNum % tframes)) {
-		
-		if (ftChangeEvery < 1) ftAssertions[FT_Change] = true;
-		
+	if ((frameNum > 0) && tframes > 0 && !(frameNum % tframes)) {		
+		if (ftChangeEvery < 1) ftAssertions[FT_Change] = true;		
 		angle = angle + dangle;
 	}
 
