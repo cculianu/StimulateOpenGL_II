@@ -256,10 +256,10 @@ void Sphere::draw()
 	glEnable(GL_LIGHT0);
 	glEnable(GL_DEPTH_TEST);
 	const double d = distance() > 0.0 ? distance() : 0.000000001;
-	GLfloat specular_copy[4];
-	std::memcpy(specular_copy, specular, sizeof(specular));
-	for (int i = 0; i < 4; ++i) specular_copy[i] /= d; // make the speculation shrink/grow with distance
-	glMaterialfv(GL_FRONT, GL_SPECULAR, specular_copy);
+	GLfloat specular_scaled[4];
+	std::memcpy(specular_scaled, specular, sizeof(specular));
+	for (int i = 0; i < 4; ++i) specular_scaled[i] /= d; // make the speculation shrink/grow with distance
+	glMaterialfv(GL_FRONT, GL_SPECULAR, specular_scaled);
 	glMaterialfv(GL_FRONT, GL_SHININESS, &shininess);
 	
 	const Vec2 scale_saved = scale;
