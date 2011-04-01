@@ -4,7 +4,6 @@
 #include <QList>
 #include "Shapes.h"
 
-
 /** \brief A plugin that draws K moving objects targets.  Targets may be square boxes or 
            ellipses (or circles).
 
@@ -35,7 +34,7 @@ private:
 	Rect canvasAABB;
 
 	enum ObjType { 
-		BoxType=0, EllipseType
+		BoxType=0, EllipseType, SphereType
 	};
 	
 	static QString objTypeStrs[];
@@ -43,22 +42,23 @@ private:
 	struct ObjData {
 		ObjType type; /// box or disk or ellipse
 		Shapes::Shape *shape; ///< pointer to object's geometry drawing implementation (see Shapes.h)
-		float jitterx, jittery;
+		float jitterx, jittery, jitterz;
 		float phi_o; ///< phi and original phi, or rotation
-		Vec2 v, vel,  // working velocity and real velocity?
+		Vec3 v, vel,  // working velocity and real velocity?
 		     pos_o; // original velocity, position, for targetcycle stuff
 		float spin; // default is 0.. otherwise spin is applied to object per-frame
-		QVector<Vec2> len_vec, vel_vec; ///< new targetcycle/speedcycle support for length and velocity vectors		
+		QVector<Vec2> len_vec;
+		QVector<Vec3> vel_vec; ///< new targetcycle/speedcycle support for length and velocity vectors	
 		int len_vec_i, vel_vec_i;
 		float color; // intensity value
 		
 		ObjData(); // init all to 0
-		void initDefaults();
+		void initDefaults();		
 	};
 
 	void initObj(ObjData & o);
 	
-	void wrapObject(ObjData & o, const Rect & aabb) const;
+	void wrapObject(ObjData & o, Rect & aabb) const;
 
 	QList<ObjData> objs;
 	int numObj;
@@ -73,11 +73,22 @@ private:
 	bool jitterlocal;
     bool moveFlag, jitterFlag;
 	bool wrapEdge;
-	bool fvHasPhiCol;
+	bool fvHasPhiCol, fvHasZCol, fvHasZScaledCol;
 	
 	float min_x_pix,max_x_pix,min_y_pix,max_y_pix;
 	
 	bool debugAABB; ///< comes from param file -- if true draw a green box around each shape's AABB to debug AABB
+	GLint savedShadeModel;
+	
+	double cameraDistance, majorPixelWidth;
+	unsigned didScaledZWarning;
+	double maxZ; ///< when objects hit this Z, they bounce back
+	bool jitterInZ;
+	void initCameraDistance();
+	
+public:
+	double distanceToZ(double distance) const;
+	double zToDistance(double z) const;
 };
 
 #endif

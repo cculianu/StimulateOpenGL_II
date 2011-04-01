@@ -214,7 +214,7 @@ extern const Vec2 Vec2Unit; // unit vector, that is, (1,1) -- usefule as a defau
 extern const Vec2i Vec2iZero; // default 0 vec -- useful as a default argument to functions
 extern const Vec2i Vec2iUnit; // unit vector, that is, (1,1) -- usefule as a default argument to functions
 
-typedef Vec3T<float> Vec3;
+typedef Vec3T<double> Vec3;
 
 extern const Vec3 Vec3Zero; // default 0 vec -- useful as a default argument to functions
 extern const Vec3 Vec3Unit; // default unit vec -- useful as a default argument to functions

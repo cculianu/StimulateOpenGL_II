@@ -20,11 +20,13 @@
 #ifdef Q_WS_MACX
 #  include <gl.h>
 #  include <glext.h>
+#  include <glu.h>
 #else
 #  include <GL/gl.h>
 #  ifndef Q_OS_WIN
 #    include <GL/glext.h>
 #  endif
+#  include <GL/glu.h>
 #endif
 #endif
 

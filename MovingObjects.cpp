@@ -1,18 +1,21 @@
 #include "MovingObjects.h"
 #include "Shapes.h"
 #include "GLHeaders.h"
+#include <math.h>
 
 #define DEFAULT_TYPE BoxType
 #define DEFAULT_LEN 8
 #define DEFAULT_VEL 4
 #define DEFAULT_POS_X 400
 #define DEFAULT_POS_Y 300
+#define DEFAULT_POS_Z 0
 #define DEFAULT_BGCOLOR 1.0
 #define DEFAULT_OBJCOLOR 0.0
 #define DEFAULT_TFRAMES 120*60*60*10 /* 120fps*s */
 #define DEFAULT_JITTERMAG 2
 #define DEFAULT_RSEED -1
 #define NUM_FRAME_VARS 10
+#define DEFAULT_MAX_Z 1000
 
 MovingObjects::MovingObjects()
     : StimPlugin("MovingObjects"), savedrng(false)
@@ -29,7 +32,7 @@ MovingObjects::ObjData::ObjData() : shape(0) { initDefaults(); }
 
 void MovingObjects::ObjData::initDefaults() {
 	if (shape) delete shape, shape = 0;
-	type = DEFAULT_TYPE, jitterx = 0, jittery = 0, 
+	type = DEFAULT_TYPE, jitterx = 0., jittery = 0., jitterz = 0., 
 	phi_o = 0.;
 	spin = 0.;
 	vel_vec_i = -1;
@@ -37,14 +40,20 @@ void MovingObjects::ObjData::initDefaults() {
 	len_vec.resize(1);
 	vel_vec.resize(1);
 	len_vec[0] = Vec2(DEFAULT_LEN, DEFAULT_LEN);
-	vel_vec[0] = Vec2(DEFAULT_VEL,DEFAULT_VEL);
-	pos_o = Vec2(DEFAULT_POS_X,DEFAULT_POS_Y);
+	vel_vec[0] = Vec3(DEFAULT_VEL,DEFAULT_VEL,0.0);
+	
+	pos_o = Vec3(DEFAULT_POS_X,DEFAULT_POS_Y,DEFAULT_POS_Z);
 	v = vel_vec[0], vel = vel_vec[0];
 	color = DEFAULT_OBJCOLOR;
 }
 
 bool MovingObjects::init()
 {
+	
+	initCameraDistance();
+
+	bool haveSphere = false;
+	
     moveFlag = true;
 	
 	// set up pixel color blending to enable 480Hz monitor mode
@@ -58,7 +67,8 @@ bool MovingObjects::init()
 	
 	int numSizes = -1, numSpeeds = -1;
 
-	fvHasPhiCol = false;
+	fvHasPhiCol = fvHasZCol = fvHasZScaledCol = false;
+	didScaledZWarning = 0;
 	
 	for (int i = 0; i < numObj; ++i) {
 		if (i > 0)	paramSuffixPush(QString::number(i+1)); // make the additional obj params end in a number
@@ -73,8 +83,10 @@ bool MovingObjects::init()
 			
 			if (otype == "ellipse" || otype == "ellipsoid" || otype == "circle" || otype == "disk" || otype == "sphere"
 				|| otype == "1") {
-				if (otype == "sphere") Warning() << "`sphere' objType not supported, defaulting to ellipsoid.";
-				o.type = EllipseType;
+				if (otype == "sphere") //Warning() << "`sphere' objType not supported, defaulting to ellipsoid.";
+					o.type = SphereType, haveSphere = true;
+				else
+					o.type = EllipseType;
 			} else
 				o.type = BoxType;
 		}
@@ -120,21 +132,26 @@ bool MovingObjects::init()
 		
 		getParam( "objSpin"     , o.spin);
 		getParam( "objPhi" , o.phi_o) || getParam( "phi", o.phi_o );  
-		QVector<double> vx, vy;
+		QVector<double> vx, vy, vz;
 		getParam( "objVelx"     , vx); 
 		getParam( "objVely"     , vy); 
+		getParam( "objVelz"     , vz); 
 		if (!vy.size()) vy = vx;
 		if (vx.size() != vy.size()) {
 			Error() << "Target velocity vectors mismatch for object " << i+1 << ": Specify two comma-separated lists (of the same length):  objVelX and objVelY, to create the targetVelocities vector!";
 			return false;			
 		}
+		if (vz.size() != vx.size()) {
+			vz.clear();
+			vz.fill(0., vx.size());
+		}
 		o.vel_vec.resize(vx.size());
 		for (int j = 0; j < vx.size(); ++j) {
-			o.vel_vec[j] = Vec2(vx[j], vy[j]);
+			o.vel_vec[j] = Vec3(vx[j], vy[j], vz[j]);
 		}
 		if (!o.vel_vec.size()) {
 			if (i) o.vel_vec = objs.front().vel_vec;
-			else { o.vel_vec.resize(1); o.vel_vec[0] = Vec2Zero; }
+			else { o.vel_vec.resize(1); o.vel_vec[0] = Vec3Zero; }
 		}
 		if (numSpeeds < 0) numSpeeds = o.vel_vec.size();
 		else if (numSpeeds != o.vel_vec.size()) {
@@ -142,11 +159,17 @@ bool MovingObjects::init()
 			return false;
 		}
 		o.vel = o.vel_vec[0];
-		o.v = Vec2Zero;
+		o.v = Vec3Zero;
 		getParam( "objXinit"    , o.pos_o.x); 
 		getParam( "objYinit"    , o.pos_o.y); 
+		bool hadZInit = getParam( "objZinit"    , o.pos_o.z);
+		double zScaled;
+		if (getParam( "objZScaledinit"    , zScaled)) {
+			if (hadZInit) Warning() << "Object " << i << " had objZInit and objZScaledinit params specified, using the zScaled param and ignoring zinit.";
+			o.pos_o.z = distanceToZ(zScaled);
+		}
 		getParam( "objcolor"    , o.color);
-									
+				
 		paramSuffixPop();
 		
 	}
@@ -178,13 +201,14 @@ bool MovingObjects::init()
 	
 	if(!getParam( "jitterlocal" , jitterlocal))  jitterlocal = false;
 	if(!getParam( "jittermag" , jittermag))	     jittermag = DEFAULT_JITTERMAG;
+	if (!getParam("jitterInZ", jitterInZ)) jitterInZ = false;
 
 	if (!getParam("ft_change_frame_cycle", ftChangeEvery) && !getParam("ftrack_change_frame_cycle",ftChangeEvery) 
 		&& !getParam("ftrack_change_cycle",ftChangeEvery) && !getParam("ftrack_change",ftChangeEvery)) 
 		ftChangeEvery = 0; // override default for movingobjects it is 0 which means autocompute
 	
 
-	if (!getParam("wrapEdge", wrapEdge) && !getParam("wrap", wrapEdge)) 
+	if (!(getParam("wrapEdge", wrapEdge) || getParam("wrap", wrapEdge))) 
 			wrapEdge = false;
 
 	if (!getParam("debugAABB", debugAABB))
@@ -215,13 +239,15 @@ bool MovingObjects::init()
 	if (!dontInitFvars) {
 		ObjData o = objs.front();
 		double x = o.pos_o.x, y = o.pos_o.y, r1 = o.len_vec.front().x, r2 = o.len_vec.front().y;
-		frameVars->setVariableNames(   QString(          "frameNum objNum subFrameNum objType(0=box,1=ellipse) x y r1 r2 phi color").split(QString(" ")));
+		frameVars->setVariableNames(   QString(          "frameNum objNum subFrameNum objType(0=box,1=ellipse) x y r1 r2 phi color z zScaled").split(QString(" ")));
 		frameVars->setVariableDefaults(QVector<double>()  << 0     << 0   << 0        << o.type                << x
 									                                                                             << y
 									                                                                               << r1
 									                                                                                  << r2
 									                                                                                    << o.phi_o
-									                                                                                         << o.color);
+									                                                                                         << o.color 
+																																   << 0.0
+																																	 << 1.0);
 		
 	}
 	
@@ -245,16 +271,27 @@ bool MovingObjects::init()
 	// while the plugin is running
 	Shapes::InitStaticDisplayLists();
 	
+	if (!softCleanup) glGetIntegerv(GL_SHADE_MODEL, &savedShadeModel);
+	if (haveSphere) glShadeModel(GL_SMOOTH);
+	
+	if (!getParam("maxZ", maxZ)) maxZ = DEFAULT_MAX_Z;
+	if (maxZ < 0.0) {
+		Error() << "Specified maxZ value is too small -- it needs to be positive nonzeo!";
+		return false;
+	}
+	
 	return true;
 }
 
 void MovingObjects::initObj(ObjData & o) {
 	if (o.type == EllipseType) {
 		o.shape = new Shapes::Ellipse(o.len_vec[0].x, o.len_vec[0].y);
+	} else if (o.type == SphereType) {
+		o.shape = new Shapes::Sphere(o.len_vec[0].x);
 	} else {  // box, etc
 		o.shape = new Shapes::Rectangle(o.len_vec[0].x, o.len_vec[0].y);
 	}
-	o.shape->position = o.pos_o;	
+	o.shape->position = o.pos_o;
 	o.shape->noMatrixAttribPush = true; ///< performance hack
 }
 
@@ -283,6 +320,7 @@ void MovingObjects::cleanup()
     cleanupObjs();
 	if (!softCleanup) {
 		Shapes::CleanupStaticDisplayLists();
+		glShadeModel(savedShadeModel);
 	}
 }
 
@@ -303,7 +341,7 @@ bool MovingObjects::processKey(int key)
 
 void MovingObjects::drawFrame()
 {
-	glClear( GL_COLOR_BUFFER_BIT ); 
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ); 
         
     if (fps_mode != FPS_Single) {
 		glEnable(GL_BLEND);
@@ -331,20 +369,32 @@ void MovingObjects::doFrameDraw()
 	for (QList<ObjData>::iterator it = objs.begin(); it != objs.end(); ++it, ++objNum) {		
 		ObjData & o = *it;
 		if (!o.shape) continue; // should never happen..		
-		double & x  (o.shape->position.x),
-		       & y  (o.shape->position.y),
+		double & x  (o.shape->position.x),					 
+		       & y  (o.shape->position.y),	
+			   & z  (o.shape->position.z),
 		       & vx (o.v.x),
 		       & vy (o.v.y),
+			   & vz (o.v.z),
 		       & objVelx (o.vel.x),
-		       & objVely (o.vel.y);
+		       & objVely (o.vel.y),
+			   & objVelz (o.vel.z);
+		double d = o.shape->distance();		
+		Vec2 cpos (o.shape->canvasPosition()), ///< position as rendered on the canvas after distance calc
+			 cvel (vx/d,vy/d); ///< velocity as apparent on the canvas after distance calc
+		
 		const double
 		       & objXinit (o.pos_o.x),
-			   & objYinit (o.pos_o.y);
+			   & objYinit (o.pos_o.y),
+		       & objZinit (o.pos_o.z),
+		       & cx (cpos.x),
+		       & cy (cpos.y),
+			   & cvx (cvel.x),
+		       & cvy (cvel.y);
 		
 		const double  & objLen_o (o.len_vec[0].x), & objLen_min_o (o.len_vec[0].y);
 		double  & objPhi (o.shape->angle); 
 		
-		float  & jitterx (o.jitterx), & jittery (o.jittery);
+		float  & jitterx (o.jitterx), & jittery (o.jittery), & jitterz(o.jitterz);
 		
 		float  & objcolor (o.color);
 		
@@ -354,9 +404,13 @@ void MovingObjects::doFrameDraw()
 		if (jitterlocal) {
 			jitterx = (ran1Gen()*jittermag - jittermag/2);
 			jittery = (ran1Gen()*jittermag - jittermag/2);
+			if (jitterInZ)
+				jitterz = (ran1Gen()*jittermag - jittermag/2);
+			else
+				jitterz = 0.;
 		}
 		else 
-			jitterx = jittery = 0;
+			jitterx = jittery = jitterz = 0.;
 		
 		const int niters = ((int)fps_mode)+1; // hack :)
 		
@@ -369,7 +423,7 @@ void MovingObjects::doFrameDraw()
 				}
 				QVector<double> fv;
 
-				const Rect aabb = o.shape->AABB();
+				Rect aabb = o.shape->AABB();
 
 				{ // MOVEMENT/ROTATION computation happens *always* but the fvar file variables below may override the results of this computation!
 						if (moveFlag) {
@@ -381,12 +435,14 @@ void MovingObjects::doFrameDraw()
 							
 							if (!wrapEdge) {
 								
-								// adjust for wall bounce
-								if ((x + vx + aabb.size.w/2 > max_x_pix) ||  (x + vx - aabb.size.w/2 < min_x_pix))
+								// adjust for wall bounce 
+								if ((cx + cvx + aabb.size.w/2 > max_x_pix) ||  (cx + cvx - aabb.size.w/2 < min_x_pix))
 									vx = -vx;
-								if ((y + vy + aabb.size.h/2 > max_y_pix) || (y + vy  - aabb.size.h/2 < min_y_pix))
+								if ((cy + cvy + aabb.size.h/2 > max_y_pix) || (cy + cvy  - aabb.size.h/2 < min_y_pix))
 									vy = -vy; 
-								
+								if (z + vz < -cameraDistance || z + vz > maxZ) // hit camera or hit farthest away edge
+									vz = -vz;
+							
 							}
 							
 							// initialize position iff k==0 and frameNum is a multiple of tframes
@@ -407,38 +463,61 @@ void MovingObjects::doFrameDraw()
 								
 								objVelx = o.vel_vec[o.vel_vec_i].x;
 								objVely = o.vel_vec[o.vel_vec_i].y;
+								objVelz = o.vel_vec[o.vel_vec_i].z;
 								
 								// init position
 								if (!rndtrial) {
 									x = objXinit;
 									y = objYinit;
+									z = objZinit;
 									vx = objVelx; 
-									vy = objVely; 
+									vy = objVely;
+									vz = objVelz;
 								}
 								else {
-									x = ran1Gen()*canvasAABB.size.x + min_x_pix;
-									y = ran1Gen()*canvasAABB.size.y + min_y_pix;
+									Vec2 cpos (ran1Gen()*canvasAABB.size.x + min_x_pix,
+											   ran1Gen()*canvasAABB.size.y + min_y_pix);
+									o.shape->setDistance(1.0); // TODO: have random distance too?
+									o.shape->setCanvasPosition(cpos);
 									vx = ran1Gen()*objVelx*2 - objVelx;
-									vy = ran1Gen()*objVely*2 - objVely; 
+									vy = ran1Gen()*objVely*2 - objVely;
+									vz = ran1Gen()*objVelz*2 - objVelz;
 								}
+								d = o.shape->distance();
+
 								objPhi = o.phi_o;
 								
+								cpos = o.shape->canvasPosition(); ///< position as rendered on the canvas after distance calc
+								cvel = Vec2(vx/d,vy/d); ///< velocity as apparent on the canvas after distance calc
+				
+								aabb = o.shape->AABB();
 							}
 							
 							// update position after delay period
 							// if jitter pushes us outside of motion box then do not jitter this frame
 							if ((int(frameNum)%tframes /*- delay*/) >= 0) { 
-								if (!wrapEdge && ((x + vx + aabb.size.w/2 + jitterx > max_x_pix) 
-												  ||  (x + vx - aabb.size.w/2 + jitterx < min_x_pix)))
+								if (!wrapEdge && ((cx + cvx + aabb.size.w/2 + jitterx/d > max_x_pix) 
+												  ||  (cx + cvx - aabb.size.w/2 + jitterx/d < min_x_pix)))
 									x += vx;
 								else 
-									x+= vx + jitterx;
-								if (!wrapEdge && ((y + vy + aabb.size.h/2 + jittery > max_y_pix) 
-												  || (y + vy - aabb.size.h/2 + jittery < min_y_pix))) 
+									x += vx + jitterx;
+								if (!wrapEdge && ((cy + cvy + aabb.size.h/2 + jittery/d > max_y_pix) 
+												  || (cy + cvy - aabb.size.h/2 + jittery/d < min_y_pix))) 
 									y += vy;
 								else 
 									y += vy + jittery;
 								
+								if (!wrapEdge && (z + vz + jitterz > maxZ 
+												  || z + vz + jitterz < -cameraDistance)) 
+									z += vz;
+								else 
+									z += vz + jitterz;
+								
+								d = o.shape->distance();
+								cpos = o.shape->canvasPosition(); ///< position as rendered on the canvas after distance calc
+								cvel = Vec2(vx/d,vy/d); ///< velocity as apparent on the canvas after distance calc
+								aabb = o.shape->AABB();
+
 								// also apply spin
 								objPhi += o.spin;
 							}
@@ -451,6 +530,8 @@ void MovingObjects::doFrameDraw()
 					fv = frameVars->readNext();
 					if ( !frameNum ) {
 						fvHasPhiCol = frameVars->hasInputColumn("phi");
+						fvHasZCol = frameVars->hasInputColumn("z");
+						fvHasZScaledCol = frameVars->hasInputColumn("zScaled");
 					}
 					if (fv.size() < NUM_FRAME_VARS && frameNum) {
 						// at end of file?
@@ -518,9 +599,23 @@ void MovingObjects::doFrameDraw()
 						o.shape->angle = oldshape->angle;
 						delete oldshape;
 					}
-					
+					bool zChanged = false;
 					if (fvHasPhiCol) 
 						objPhi = fv[8];
+					if (fvHasZCol)
+						z = fv[10], zChanged = true;
+					else 
+						z = 0.0, zChanged = true;
+					
+					if (fvHasZScaledCol) {
+						const double newZ = distanceToZ(d=fv[11]);
+						if (fabs(newZ - z) > EPSILON) {
+							if (didScaledZWarning++ < 3) 
+								Warning() << "Encountered z & zScaled column in framevar file and they disagree.  Ignoring z and using zScaled. (Could the monitor resolution have changed?)";						
+						}						
+						z = newZ, zChanged = true;
+					}
+					if (zChanged) aabb = o.shape->AABB(), d = o.shape->distance();
 					objcolor = fv[9];
 					
 				} //  end !have_fv_input_file
@@ -540,7 +635,8 @@ void MovingObjects::doFrameDraw()
 						b = g = r = objcolor;
 
 					o.shape->color = Vec3(r, g, b);
-					o.shape->draw();
+					if (d > 0.0)
+						o.shape->draw();
 					
 					///DEBUG HACK FOR AABB VERIFICATION					
 					if (debugAABB && k==0) {
@@ -564,7 +660,7 @@ void MovingObjects::doFrameDraw()
 						if (rndtrial && loopCt && nFrames) fnum = frameNum + loopCt*nFrames;
 
 						// nb: push() needs to take all doubles as args!
-						frameVars->push(fnum, double(objNum), double(k), double(o.type), double(x), double(y), double(objLen), double(objLen_min), double(objPhi), double(objcolor));
+						frameVars->push(fnum, double(objNum), double(k), double(o.type), double(x), double(y), double(objLen), double(objLen_min), double(objPhi), double(objcolor), double(z), double(d));
 					}
 				}
 
@@ -572,15 +668,45 @@ void MovingObjects::doFrameDraw()
 	}
 }
 
-void MovingObjects::wrapObject(ObjData & o, const Rect & aabb) const {
+void MovingObjects::wrapObject(ObjData & o, Rect & aabb) const {
 	Shapes::Shape & s = *o.shape;
 
+	Vec2 cpos = s.canvasPosition();
+	
 	// wrap right edge
-	if (aabb.left() >= canvasAABB.right()) s.position.x = (canvasAABB.left()-aabb.size.w/2) + (aabb.left() - canvasAABB.right());
+	if (aabb.left() >= canvasAABB.right()) cpos.x = (canvasAABB.left()-aabb.size.w/2) + (aabb.left() - canvasAABB.right());
 	// wrap left edge
-	if (aabb.right() <= canvasAABB.left()) s.position.x = (canvasAABB.right()+aabb.size.w/2) - (canvasAABB.left()-aabb.right());
+	if (aabb.right() <= canvasAABB.left()) cpos.x = (canvasAABB.right()+aabb.size.w/2) - (canvasAABB.left()-aabb.right());
 	// wrap top edge
-	if (aabb.bottom() >= canvasAABB.top()) s.position.y = (canvasAABB.bottom()-aabb.size.h/2) + (aabb.bottom() - canvasAABB.top());
+	if (aabb.bottom() >= canvasAABB.top()) cpos.y = (canvasAABB.bottom()-aabb.size.h/2) + (aabb.bottom() - canvasAABB.top());
 	// wrap bottom edge
-	if (aabb.top() <= canvasAABB.bottom()) s.position.y = (canvasAABB.top()+aabb.size.h/2) - (canvasAABB.bottom()-aabb.top());
+	if (aabb.top() <= canvasAABB.bottom()) cpos.y = (canvasAABB.top()+aabb.size.h/2) - (canvasAABB.bottom()-aabb.top());
+	
+	s.setCanvasPosition(cpos);
+	aabb = o.shape->AABB();
+}
+
+void MovingObjects::initCameraDistance()
+{
+	majorPixelWidth = width() > height() ? width() : height();
+	const double dummyObjLen = 25.0;
+	double bestDiff = 1e9, bestDist = 1e9;
+	// d=15; dd=101; (rad2deg(2 * atan(.5 * (d/dd))) / 90) * 640
+	for (double D = 0.; D < majorPixelWidth; D += 1.0) {
+		double diff = fabs(dummyObjLen - (RAD2DEG(2. * atan(.5 * (dummyObjLen/D))) / 90.) * majorPixelWidth);
+		if (diff < bestDiff) bestDiff = diff, bestDist = D;
+	}
+	cameraDistance = bestDist;
+	Debug() << "Camera distance for major screen size " << majorPixelWidth << " set to: " << cameraDistance << " virtual pixels in Z";
+}
+
+double MovingObjects::distanceToZ(double d) const
+{
+	return (cameraDistance * d) - cameraDistance;
+}
+
+double MovingObjects::zToDistance(double z) const
+{
+	if (cameraDistance <= 0.) return 0.;
+	return z/cameraDistance + 1.0;
 }
