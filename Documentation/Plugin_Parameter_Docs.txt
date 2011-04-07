@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: June 3, 2010
+Last Updated: April 7, 2011
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -58,7 +58,7 @@ frame_vars
         Datatype:         string
         Possible values:  Empty string (to specify no frame_vars), or a filename
         Default value:    (Empty)
-	                  
+                      
 fps_mode
         Synopsis:         Specify the 'fps_mode' to run the experiment.
         Datatype:         string
@@ -69,7 +69,7 @@ fps_mode
                           raise the effective fps when using the projector as
                           output.
         Default value:    'single'
-	            
+                
 bgcolor
         Synopsis:         Specify the background (clear) color of the experiment.
         Datatype:         float
@@ -127,7 +127,7 @@ DO_with_vsync
         Possible values:  'off' *or* an NI path to the DIO line -- which are 
                           strings of the form DevX/portY/lineZ (eg Dev1/port0/line0). 
         Default value:    off
-	
+    
 ftrackbox_x
         Synopsis:         Specifies the x-coordinate of the bottom-left
                           corner of the frame track square (photodiode square).
@@ -148,7 +148,7 @@ ftrackbox_w
         Datatype:         integer
         Possible values:  0 - +2147483647
         Default value:    45
-	
+    
 ftrack_track_color
         Synopsis:         Specifies the R,G,B color of the frame track box in the 
                           'track' (or on) state -- this state appears every even 
@@ -156,7 +156,7 @@ ftrack_track_color
         Datatype:         real triplet, comma-separated (eg .7,.5,1.0)
         Possible values:  Each number in the triplet is in the range [0,1]
         Default value:    1.0, 1.0, 1.0 (full intensity white).
-			  	
+                  
 ftrack_off_color
         Synopsis:         Specifies the R,G,B color of the frame track box in the 
                           'off' state.  This state is for odd-numbered frames.
@@ -405,7 +405,7 @@ seed
 `Flicker' PLUGIN PARAMETERS
 ----------------------------------------------------------------------------------
 fps_mode
-		(This plugin uses this variable -- see global param)
+        (This plugin uses this variable -- see global param)
 
 hz
         Synopsis:         Specifies the flicker rate in Hz.  Note that the maximal 
@@ -617,6 +617,11 @@ objTypeN (where N is 2 to numObj)
                             of objLenX/objLenY radii (in pixels, see the 
                             objLenX/objLenY params). The ellipsoid is approximated
                             using 128 vertices.
+               sphere     - Indicates you want the target to be a 3D spheroid
+                            of objLenX/objLenY major and minor radii (in pixels, 
+                            see the objLenX/objLenY params). The sphere is 
+                            approximated using 128 vertices.
+                            
         Default value:    first object: box
                           subsequent objects: take on the value of the first
                           object by default (unless specified, of course).
@@ -697,6 +702,21 @@ objVelYN (where N is 2 to numObj)
                           subsequent objects: take on the value of the first
                           object by default (unless specified, of course).
 
+objVelZ
+  *or*
+objVelZN (where N is 2 to numObj)
+        Synopsis:         Specifies the z-component of the velocity vector
+                          of the target.  The velocity is in units of: pixels
+                          per frame.  Note that a vector of values may be used 
+                          here if you want to do target speedcycling.  In which
+                          case the target speed is cycled every `tFrames' from 
+                          values in this vector. (See the 'tFrames' parameter).              
+        Datatype:         integer tuple, comma (or space) delimited
+        Possible values:  -2147483648 - +2147483647 [, -2147483648 - +214748364 ... ]
+        Default value:    first object: 0
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+                          
 objXinit
 objXinitN (where N is 2 to numObj)
         Synopsis:         Specifies the x-coordinate of the target's 
@@ -718,26 +738,56 @@ objYinitN (where N is 2 to numObj)
         Default value:    first object: 400
                           subsequent objects: take on the value of the first
                           object by default (unless specified, of course).
+                          
+objZinit
+objZinitN (where N is 2 to numObj)
+        Synopsis:         Specifies the z-coordinate of the target's 
+                          initial position.  The second form is for targets
+                          numbered 2 and above.
+        Datatype:         integer
+        Possible values:  -500 - +1000
+        Default value:    first object: 0
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
 
 rndtrial
         Synopsis:         This parameter is used in conjunction with `tframes'.
-                          Rndtrial is a boolean flag specifying whether to randomly
+                          Rndtrial is an integer specifying whether to randomly
                           generate a new position and velocity for the target every
-                         `tframes' frames (and for frame 0).  If true, then position
-                          and velocity vectors for the target will be reset (every
-                          `tframes' frames) to random values as follows:
+                         `tframes' frames (and for frame 0).  If nonzero, then 
+                          position and/or velocity vectors for the target will 
+                          be reset (every `tframes' frames) to values as 
+                          follows:                          
+                          IF rndtrial IS 0 THEN
+                              - The target's position and velocity will be reset 
+                                to its initial position and velocity. (objXinit, 
+                                objVelX, etc). 
+                          IF rndtrial IS 1 THEN                             
                               - Position will be a uniformly distributed random 
                                 X,Y pair within the visible area of the screen
                                 (taking into account margins, etc).
                               - Velocity will be a uniformly distributed random
                                 velocity vector from (-objVelX,-objVelY) to
-                                (+objVelX,+objVelY).  
-                          If false, the target's position will be reset to its 
-                          initial position (objXinit, objVelX, etc) after `tframes'
-                          frames expires.
-                          (see the tframes parameter)
-        Datatype:         boolean
-        Possible values:  0, 1 or false, true
+                                (+objVelX,+objVelY).                                
+                          IF rndtrial IS 2 THEN
+                              - Position will be a uniformly distributed random
+                                X,Y pair within the visible area of the screen
+                                (taking into account margins, etc).
+                              - Velocity will have the same magnitude as the 
+                                vector (objVelX,objVelY) but will point in a 
+                                uniformly distributed random direction.                                
+                          IF rndtrial IS 3 THEN
+                              - Position will not be reset (appearance on screen
+                                will be that object has not jumped)
+                              - Velocity will be uniformly distributed randomly
+                                based on objVelX,objVelY,objVelZ range.                                
+                          IF rndtrial IS 4 THEN
+                              - Position will not be reset as 3 above.
+                              - Velocity will have same magnitude as 
+                                (objVelX,objVelY) vector but will point in a 
+                                uniformly distributed random direction.                                                         
+        Datatype:         integer
+        Possible values:  0, 1, 2, 3, 4
         Default value:    0
 
 rseed
@@ -775,11 +825,11 @@ wrapEdge
 `Sawtooth' PLUGIN PARAMETERS
 ----------------------------------------------------------------------------------
 fps_mode
-		(This plugin uses this variable -- see global param)
+        (This plugin uses this variable -- see global param)
 
 Nloops
         Synopsis:         The number of sawteeth cycles to generate.  
-		                  -1 for infinite.
+                          -1 for infinite.
         Datatype:         integer
         Possible values:  -1 - +2147483647 (maximum value depends on hz param.)
         Default value:    -1 (loop forever)

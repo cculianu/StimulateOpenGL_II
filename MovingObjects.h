@@ -46,6 +46,7 @@ private:
 		float phi_o; ///< phi and original phi, or rotation
 		Vec3 v, vel,  // working velocity and real velocity?
 		     pos_o; // original velocity, position, for targetcycle stuff
+		Vec3 lastPos; // used for rndtrial > 1 stuff
 		float spin; // default is 0.. otherwise spin is applied to object per-frame
 		QVector<Vec2> len_vec;
 		QVector<Vec3> vel_vec; ///< new targetcycle/speedcycle support for length and velocity vectors	
@@ -66,7 +67,7 @@ private:
 	bool savedrng;  
 	int saved_ran1state;
 	
-	bool rndtrial;
+	int rndtrial;
 	int tframes;
 	int rseed;
 	int jittermag;	
@@ -84,6 +85,7 @@ private:
 	unsigned didScaledZWarning;
 	double maxZ; ///< when objects hit this Z, they bounce back
 	bool jitterInZ;
+	QVector<Vec3> savedLastPositions;
 	void initCameraDistance();
 	
 public:

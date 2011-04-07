@@ -180,7 +180,10 @@ bool MovingObjects::init()
 	// trajectory stuff
 	if(!getParam( "rndtrial" , rndtrial))	     rndtrial = 0;
 		// rndtrial=0 -> repeat traj every tframes; 
-		// rndtrial=1 new start point and speed every tframes; start=rnd(mon_x_pix,mon_y_pix); speed= +-objVelx, objVely
+		// rndtrial=1 new start point and speed every tframes; start=rnd(mon_x_pix,mon_y_pix); speed= random +-objVelx, objVely
+		// rndtrial=2 random position and direction, static velocity
+	    // rndtrial=3 keep old position of last tframes run, random velocity based on initialization range
+		// rndtrial=4 keep old position of last tframes run, static speed, random direction
 	if(!getParam( "rseed" , rseed))              rseed = -1;  //set start point of rnd seed;
         ran1Gen.reseed(rseed);
 	
@@ -232,7 +235,7 @@ bool MovingObjects::init()
 	min_x_pix = lmargin;
 	min_y_pix = bmargin;
 	max_y_pix = height() - tmargin;
-		
+	
     // the object area AABB -- a rect constrained by min_x_pix,min_y_pix and max_x_pix,max_y_pix
 	canvasAABB = Rect(Vec2(min_x_pix, min_y_pix), Vec2(max_x_pix-min_x_pix, max_y_pix-min_y_pix)); 
 
@@ -279,7 +282,7 @@ bool MovingObjects::init()
 		Error() << "Specified maxZ value is too small -- it needs to be positive nonzeo!";
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -292,18 +295,25 @@ void MovingObjects::initObj(ObjData & o) {
 		o.shape = new Shapes::Rectangle(o.len_vec[0].x, o.len_vec[0].y);
 	}
 	o.shape->position = o.pos_o;
-	o.shape->noMatrixAttribPush = true; ///< performance hack
+	o.shape->noMatrixAttribPush = true; ///< performance hack	
 }
 
 void MovingObjects::initObjs() {
-	for (QList<ObjData>::iterator it = objs.begin(); it != objs.end(); ++it) {
-		initObj(*it);
+	int i = 0;
+	for (QList<ObjData>::iterator it = objs.begin(); it != objs.end(); ++it, ++i) {
+		ObjData & o = *it;
+		initObj(o);
+		if (i < savedLastPositions.size())
+			o.lastPos = savedLastPositions[i];
 	}
 }
 
 void MovingObjects::cleanupObjs() {
+	savedLastPositions.clear();
+	if (softCleanup) savedLastPositions.reserve(objs.size());
 	for (QList<ObjData>::iterator it = objs.begin(); it != objs.end(); ++it) {
 		ObjData & o = *it;
+		if (softCleanup) savedLastPositions.push_back(o.lastPos);
 		delete o.shape, o.shape = 0;
 	}	
 	objs.clear();
@@ -466,15 +476,18 @@ void MovingObjects::doFrameDraw()
 								objVelz = o.vel_vec[o.vel_vec_i].z;
 								
 								// init position
-								if (!rndtrial) {
+								//if (0 == rndtrial) {
+								// setup defaults for x,y,z and vx,vy,vz
+								// these may be overridden by rndtrial code below
 									x = objXinit;
 									y = objYinit;
 									z = objZinit;
 									vx = objVelx; 
 									vy = objVely;
 									vz = objVelz;
-								}
-								else {
+								//} else 
+								if (1 == rndtrial) {
+									// random position and random V based on init sped 
 									Vec2 cpos (ran1Gen()*canvasAABB.size.x + min_x_pix,
 											   ran1Gen()*canvasAABB.size.y + min_y_pix);
 									o.shape->setDistance(1.0); // TODO: have random distance too?
@@ -482,7 +495,43 @@ void MovingObjects::doFrameDraw()
 									vx = ran1Gen()*objVelx*2 - objVelx;
 									vy = ran1Gen()*objVely*2 - objVely;
 									vz = ran1Gen()*objVelz*2 - objVelz;
+								} else if (2 == rndtrial) {
+									// random position and direction
+									// static speed
+									x = ran1Gen()*canvasAABB.size.x + min_x_pix;
+									y = ran1Gen()*canvasAABB.size.y + min_y_pix;
+									z = 0.; // TODO: z?
+									const double r = sqrt(objVelx*objVelx + objVely*objVely);
+									const double theta = ran1Gen()*2.*M_PI;
+									vx = r*cos(theta); 
+									vy = r*sin(theta);
+									vz = 0.; // TODO: determine is this ok? default to 0 velocity? what do we do about z?
+								} else if (3 == rndtrial) {
+									// position at t = position(t-1) + vx, vy
+									// random v based on objVelx objVely range
+									if (loopCt > 0) {
+										x = o.lastPos.x;
+										y = o.lastPos.y;
+										z = o.lastPos.z;
+									}
+									vx = ran1Gen()*objVelx*2. - objVelx;
+									vy = ran1Gen()*objVely*2. - objVely; 
+									vz = ran1Gen()*objVelz*2. - objVelz; // TODO: z ok here?
+								} else  {
+									// position at t = position(t-1) + vx, vy
+									// static speed, random direction
+									if (loopCt > 0) {
+										x = o.lastPos.x;
+										y = o.lastPos.y;
+										z = o.lastPos.z;
+									}
+									const double r = sqrt(objVelx*objVelx + objVely*objVely);
+									const double theta = ran1Gen()*2*M_PI;
+									vx = r*cos(theta); 
+									vy = r*sin(theta);
+									vz = 0.; // TODO: determine what to do here with Anthony..
 								}
+								
 								d = o.shape->distance();
 
 								objPhi = o.phi_o;
@@ -517,6 +566,7 @@ void MovingObjects::doFrameDraw()
 								cpos = o.shape->canvasPosition(); ///< position as rendered on the canvas after distance calc
 								cvel = Vec2(vx/d,vy/d); ///< velocity as apparent on the canvas after distance calc
 								aabb = o.shape->AABB();
+								o.lastPos = o.shape->position; // save last pos
 
 								// also apply spin
 								objPhi += o.spin;
@@ -697,7 +747,7 @@ void MovingObjects::initCameraDistance()
 		if (diff < bestDiff) bestDiff = diff, bestDist = D;
 	}
 	cameraDistance = bestDist;
-	Debug() << "Camera distance for major screen size " << majorPixelWidth << " set to: " << cameraDistance << " virtual pixels in Z";
+	Log() << "Camera distance in Z is " << cameraDistance;
 }
 
 double MovingObjects::distanceToZ(double d) const
