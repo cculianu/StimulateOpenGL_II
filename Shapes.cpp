@@ -220,14 +220,14 @@ void CleanupStaticDisplayLists() {
 const GLfloat
 Sphere::DefaultLightAmbient[4] =  { 0.5f, 0.5f, 0.5f, 1.0f },
 Sphere::DefaultLightDiffuse[4] =  { 1.0f, 1.0f, 1.0f, 1.0f },
-Sphere::DefaultLightPosition[4] = { 1.0f, 1.0f, 1.0f, 0.0f },
+Sphere::DefaultLightPosition[4] = { 400.0f, 250.0f, -100.0f, 0.0f },
 Sphere::DefaultSpecular[4] =      { 1.0f, 1.0f, 1.0f, 1.0f },
 Sphere::DefaultShininess =        50.0f;
 
 /* static */ GLUquadricObj * Sphere::quadric = 0;
 	
 Sphere::Sphere(double radius, unsigned subdivisions)
-: radius(radius), subdivisions(subdivisions)
+: radius(radius), subdivisions(subdivisions), lightIsFixedInSpace(true)
 {
 	if (!quadric) {
 		quadric = gluNewQuadric();
@@ -241,6 +241,9 @@ Sphere::Sphere(double radius, unsigned subdivisions)
 
 void Sphere::draw()
 {
+	double d = distance();
+	if (d < 0.0) d = 0.000000001;
+	
 	glMatrixMode( GL_PROJECTION );
 	glPushMatrix();
     glLoadIdentity();
@@ -252,10 +255,24 @@ void Sphere::draw()
 	glEnable(GL_LIGHTING);
 	glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
-	glLightfv(GL_LIGHT0, GL_POSITION,lightPosition);
+	if (lightIsFixedInSpace) {
+		glPushMatrix();
+		glLoadIdentity();
+		GLfloat l[4];
+		std::memcpy(l, lightPosition, sizeof(l));
+//		l[0] *= d;
+//		l[1] *= d;
+		//l[2] *= d;
+		l[0] -= position.x;
+		l[1] -= position.y;
+		l[2] += position.z;
+		glLightfv(GL_LIGHT0, GL_POSITION,l);
+		glPopMatrix();
+	} else {
+		glLightfv(GL_LIGHT0, GL_POSITION,lightPosition);
+	}
 	glEnable(GL_LIGHT0);
 	glEnable(GL_DEPTH_TEST);
-	const double d = distance() > 0.0 ? distance() : 0.000000001;
 	GLfloat specular_scaled[4];
 	std::memcpy(specular_scaled, specular, sizeof(specular));
 	for (int i = 0; i < 4; ++i) specular_scaled[i] /= d; // make the speculation shrink/grow with distance

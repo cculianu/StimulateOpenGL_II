@@ -191,7 +191,7 @@ struct Vec2T {
 		struct { T v1, v2; };
 	};
 	Vec2T(T x = 0, T y = 0) : x(x), y(y) {}	
-	
+	T & operator[](int i) { if (i == 0) return x; return y; }	
 };
 
 template <typename T=double> 
@@ -202,6 +202,7 @@ struct Vec3T {
 		struct { T v1, v2, v3; };
 	};
 	Vec3T(T v1 = 0, T v2 = 0, T v3 = 0) : v1(v1), v2(v2), v3(v3) {}	
+	T & operator[](int i) { if (i == 0) return x; else if (i==1) return y; return z; }
 };
 
 typedef Vec2T<double> Vec2d;

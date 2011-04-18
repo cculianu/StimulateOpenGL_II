@@ -17,6 +17,7 @@
 #define NUM_FRAME_VARS 10
 #define DEFAULT_MAX_Z 1000
 
+
 MovingObjects::MovingObjects()
     : StimPlugin("MovingObjects"), savedrng(false)
 {
@@ -55,7 +56,7 @@ bool MovingObjects::init()
 	bool haveSphere = false;
 	
     moveFlag = true;
-	
+
 	// set up pixel color blending to enable 480Hz monitor mode
 
 	// set default parameters
@@ -217,6 +218,18 @@ bool MovingObjects::init()
 	if (!getParam("debugAABB", debugAABB))
 			debugAABB = false;
 
+	// Light position stuff...
+	if (!(getParam("sharedLight", lightIsFixedInSpace) || getParam("fixedLight", lightIsFixedInSpace) || getParam("lightIsFixed", lightIsFixedInSpace) || getParam("lightIsFixedInSpace", lightIsFixedInSpace)))
+		lightIsFixedInSpace = true;	
+	QVector<double> tmpvec;
+	if ((getParam("lightPosition", tmpvec) || getParam("lightPos", tmpvec)) && tmpvec.size() >= 3) {
+		for (int i = 0; i < 3; ++i) lightPos[i] = tmpvec[i];
+		lightPos[2] = -lightPos[2];  // invert Z: OpenGL coords have positive z towards camera and we are inverse of that
+	} else {
+		lightPos = Vec3(width(), height(), 100.0);
+	}
+	lightIsDirectional = !lightIsFixedInSpace;
+	
 	initObjs();
 	
 	QString dummy;
@@ -290,7 +303,11 @@ void MovingObjects::initObj(ObjData & o) {
 	if (o.type == EllipseType) {
 		o.shape = new Shapes::Ellipse(o.len_vec[0].x, o.len_vec[0].y);
 	} else if (o.type == SphereType) {
-		o.shape = new Shapes::Sphere(o.len_vec[0].x);
+		Shapes::Sphere *sph = 0;
+		o.shape = sph = new Shapes::Sphere(o.len_vec[0].x);
+		sph->lightIsFixedInSpace = lightIsFixedInSpace;
+		for (int i = 0; i < 3; ++i)	sph->lightPosition[i] = lightPos[i]*2.0;
+		sph->lightPosition[3] = lightIsDirectional ? 0.0f : 1.0f;
 	} else {  // box, etc
 		o.shape = new Shapes::Rectangle(o.len_vec[0].x, o.len_vec[0].y);
 	}

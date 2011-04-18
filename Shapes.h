@@ -126,6 +126,8 @@ public:
 	
 	Rect AABB() const;
 	
+	bool lightIsFixedInSpace; ///< default false.  if true, then the light source is fixed in space and is not relative to the sphere
+	
 protected:
 	static GLUquadricObj *quadric;
 };

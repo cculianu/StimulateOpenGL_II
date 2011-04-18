@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: April 7, 2011
+Last Updated: April 18, 2011
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -540,7 +540,7 @@ jitterlocal
                           axis direction. (This feature is meant to emulate 
                           the jittery flightpath of a fly).
        Datatype:          boolean
-       Possible values:   0, 1
+       Possible values:   0, 1, false, true, no, yes
        Default value:     0
 
 jittermag
@@ -556,6 +556,16 @@ jittermag
        Datatype:          integer
        Possible values:   -2147483648 - +2147483647
        Default value:     2
+
+lightPos
+       Synopsis:          Applies to 3D objects that make use of lighting 
+                          (currently only the sphere) .  A vector indicating the
+                          X, Y, and Z positions of the lightsource.  
+       Datatype:          integer triplet, comma (or space) delimited
+       Possible values:   -214748367 - +2147483647 , -2147483647  - +2147483647, 
+                          -2147483647 - +2147483647
+       Default value:     screenWidth, screenHeight, -100.0 (top right corner of
+                          screen, 100 closer to the camera than the Z=0 plane).
 
 numObj
         Synopsis:         Specifies the number of moving targets.  Note that 
@@ -722,8 +732,8 @@ objXinitN (where N is 2 to numObj)
         Synopsis:         Specifies the x-coordinate of the target's 
                           initial position.  The second form is for targets
                           numbered 2 and above.
-        Datatype:         integer
-        Possible values:  -2147483648 - +2147483647
+        Datatype:         integer tuple, comma (or space) delimited
+        Possible values:  -2147483648 - +2147483647 [, -2147483648 - +214748364 ... ]
         Default value:    first object: 400
                           subsequent objects: take on the value of the first
                           object by default (unless specified, of course).
@@ -733,8 +743,8 @@ objYinitN (where N is 2 to numObj)
         Synopsis:         Specifies the y-coordinate of the target's 
                           initial position.  The second form is for targets
                           numbered 2 and above.
-        Datatype:         integer
-        Possible values:  -2147483648 - +2147483647
+        Datatype:         integer tuple, comma (or space) delimited
+        Possible values:  -2147483648 - +2147483647 [, -2147483648 - +214748364 ... ]
         Default value:    first object: 400
                           subsequent objects: take on the value of the first
                           object by default (unless specified, of course).
@@ -744,8 +754,8 @@ objZinitN (where N is 2 to numObj)
         Synopsis:         Specifies the z-coordinate of the target's 
                           initial position.  The second form is for targets
                           numbered 2 and above.
-        Datatype:         integer
-        Possible values:  -500 - +1000
+        Datatype:         integer tuple, comma (or space) delimited
+        Possible values:  -500 - +1000 [, -500 - +1000 ... ]
         Default value:    first object: 0
                           subsequent objects: take on the value of the first
                           object by default (unless specified, of course).
@@ -797,6 +807,20 @@ rseed
         Datatype:         integer
         Possible values:  -2147483648 - +2147483647
         Default value:    -1
+
+sharedLight
+       Synopsis:          Applies to 3D objects that make use of lighting 
+                          (currently only the sphere) .  If true, then the 
+                          spheres will all share the same light source which is 
+                          fixed in space, so as the spheres move their light/shadow 
+                          will move relative to the shared (fixed) light.  The 
+                          analogy is that this is like planets with a shared sun.
+                          Otherwise if false, each sphere gets its own private 
+                          light source which is relative to the sphere and moves 
+                          with the sphere.
+       Datatype:          boolean
+       Possible values:   0, 1, false, true, no, yes
+       Default value:     1 (true)
 
 tFrames
         Synopsis:         Specifies the number of frames until the target's
