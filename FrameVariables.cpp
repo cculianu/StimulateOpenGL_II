@@ -23,11 +23,23 @@ FrameVariables::~FrameVariables()
 void FrameVariables::setVariableNames(const QStringList &fields)
 {
 	if (count()) {
-		Error() << "setVariableNames() called with a non-empty FrameVariables instance!  reset() it before calling setVariableNames!";
+		//Error() << "setVariableNames() called with a non-empty FrameVariables instance!  reset() it before calling setVariableNames!";
 		return;
 	}
 	n_fields = fields.count();
 	var_names = fields;
+	var_precisions.fill(6, n_fields);	
+	var_defaults.fill(0, n_fields);
+}
+
+void FrameVariables::setPrecision(unsigned varNum, int precision)
+{
+	if (precision <= 0) precision = 6;
+	if (varNum >= n_fields) {
+		Error() << "setVariablePrecision() called with varNum larger than the number of variables!";
+		return;
+	}
+	var_precisions[varNum] = precision;
 }
 
 void FrameVariables::setVariableDefaults(const QVector<double> & defaults) 
@@ -93,9 +105,16 @@ void FrameVariables::push(double varval0...) ///< all vars must be doubles, and 
 		}
 		ts << "\n";
 	}
+	unsigned lastPrecision;
+	ts.setRealNumberPrecision(lastPrecision = 6);
+	if (var_precisions[0] != lastPrecision) 
+		ts.setRealNumberPrecision(lastPrecision = var_precisions[0]);
+
 	ts << varval0;
 	for (unsigned i = 1; i < n_fields; ++i) {
 		ts << " ";
+		if (var_precisions[i] != lastPrecision) 
+			ts.setRealNumberPrecision(lastPrecision = var_precisions[i]);
 		ts << va_arg(ap, double);
 	}
 	ts << "\n";

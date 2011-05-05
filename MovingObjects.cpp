@@ -252,7 +252,7 @@ bool MovingObjects::init()
     // the object area AABB -- a rect constrained by min_x_pix,min_y_pix and max_x_pix,max_y_pix
 	canvasAABB = Rect(Vec2(min_x_pix, min_y_pix), Vec2(max_x_pix-min_x_pix, max_y_pix-min_y_pix)); 
 
-	if (!dontInitFvars) {
+	//if (!dontInitFvars) {
 		ObjData o = objs.front();
 		double x = o.pos_o.x, y = o.pos_o.y, r1 = o.len_vec.front().x, r2 = o.len_vec.front().y;
 		frameVars->setVariableNames(   QString(          "frameNum objNum subFrameNum objType(0=box,1=ellipse) x y r1 r2 phi color z zScaled").split(QString(" ")));
@@ -263,9 +263,11 @@ bool MovingObjects::init()
 									                                                                                    << o.phi_o
 									                                                                                         << o.color 
 																																   << 0.0
-																																	 << 1.0);
+																																	   << 1.0);
+		frameVars->setPrecision(10, 9);
+		frameVars->setPrecision(11, 9);
 		
-	}
+	//}
 	
 	
 	if (ftChangeEvery == 0 && tframes > 0) {
@@ -641,19 +643,6 @@ void MovingObjects::doFrameDraw()
 					
 					x = fv[4];
 					y = fv[5];
-					// handle length changes mid-plugin-run
-					if (!didInitLen && (!eqf(r1, objLen) || !eqf(r2, objLen))) {
-						if (o.type == EllipseType) {
-							Shapes::Ellipse *e = (Shapes::Ellipse *)o.shape;
-							e->xradius = r1;
-							e->yradius = r2;
-						} else {
-							Shapes::Rectangle *r = (Shapes::Rectangle *)o.shape;
-							r->width = r1;
-							r->height = r2;
-						} 
-						o.shape->applyChanges(); ///< essentialy a NOOP
-					}
 					// handle type change mid-plugin-run
 					if (o.type != otype) {
 						Shapes::Shape *oldshape = o.shape;
@@ -665,6 +654,10 @@ void MovingObjects::doFrameDraw()
 						o.shape->color = oldshape->color;
 						o.shape->angle = oldshape->angle;
 						delete oldshape;
+					}					
+					// handle length changes mid-plugin-run
+					if (!didInitLen && (!eqf(r1, objLen) || !eqf(r2, objLen))) {
+						o.shape->setRadii(r1, r2);
 					}
 					bool zChanged = false;
 					if (fvHasPhiCol) 
@@ -672,14 +665,18 @@ void MovingObjects::doFrameDraw()
 					if (fvHasZCol)
 						z = fv[10], zChanged = true;
 					else 
-						z = 0.0, zChanged = true;
+						z = 0.0, zChanged = false;
 					
-					if (fvHasZScaledCol) {
-						const double newZ = distanceToZ(d=fv[11]);
-						if (fabs(newZ - z) > EPSILON) {
-							if (didScaledZWarning++ < 3) 
-								Warning() << "Encountered z & zScaled column in framevar file and they disagree.  Ignoring z and using zScaled. (Could the monitor resolution have changed?)";						
-						}						
+					double newZ = z;
+					if (fvHasZScaledCol && fvHasZCol) {
+						newZ = distanceToZ(d=fv[11]);
+						if (fabs(newZ - z) >= 0.0001 && didScaledZWarning <= 3) {
+							Warning() << "Encountered z & zScaled column in framevar file and they disagree.  Ignoring zScaled and using z. (Could the render window size have changed?)";						
+							++didScaledZWarning;
+						}
+					}
+					
+					if (fvHasZScaledCol && !fvHasZCol) {
 						z = newZ, zChanged = true;
 					}
 					if (zChanged) aabb = o.shape->AABB(), d = o.shape->distance();

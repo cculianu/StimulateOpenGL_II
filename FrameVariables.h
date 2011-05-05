@@ -24,6 +24,7 @@ public:
 	void setVariableNames(const QStringList & fields);
 	void setVariableDefaults(const QVector<double> & defaults);
 	QVector<double> & variableDefaults() { return var_defaults; } ///< reference to the defaults currently in-use so that plugins can modify them
+	void setPrecision(unsigned varNum, int precision=6); ///< default precision for fractional part of outputted variables is 6 digits, but for some save vars, more precision is required
 
 	void push(double varval0...); ///< all vars must be doubles, and they must be the same number of parameters as the variableNames() list length!
 
@@ -67,6 +68,7 @@ private:
 	mutable QTextStream ts;
 	QStringList var_names;
 	QVector<double> var_defaults;
+	QVector<unsigned> var_precisions; ///< defaults to 6 for all
 	int cantOpenComplainCt;
 	bool needComputeCols;
 	static QStringList lastFileNames;
@@ -77,7 +79,7 @@ private:
 	struct Input {
 		Input() : nrows(0), ncols(0), curr_row(0) { col_positions.clear(); }
 		QVector<double> allVars;
-		QVector<int> col_positions; /// each element of this vector is an index in the ideal 'defaults' row
+		QVector<int> col_positions; ///< each element of this vector is an index in the ideal 'defaults' row
 		int nrows, ncols;
 		int curr_row;
 		QVector<double> getNextRow();

@@ -46,9 +46,9 @@ public:
 	
 	virtual void draw() = 0;
 	
-	virtual void applyChanges(); ///< default impl does nothing -- subclasses may regenerate vertices here, etc
-
 	virtual Rect AABB() const = 0; ///< must reimplement in subclasses to return the axis-aligned-bounding-box (with scale, rotation, and position applied!)
+	
+	virtual void setRadii(double r1, double r2) = 0;
 	
 	Vec2 bottomLeft() const { return AABB().origin; }
 	
@@ -71,7 +71,7 @@ class Rectangle : public Shape {
 	friend void CleanupStaticDisplayLists();
 public: 
 	double width, height;
-	
+		
 protected:
 	static GLuint dl; ///< shared display list for all rectangles since it's just a unit square and we do our magic in the scaling
 	
@@ -81,6 +81,8 @@ public:
 	/// not as trivial as it seems since we have to account for rotation of the box!
 	Rect AABB() const;
 	
+	void setRadii(double r1, double r2) { width = r1; height = r2; }
+
 	void draw();
 };
 
@@ -102,6 +104,7 @@ public:
 	Ellipse(double radiusX, double radiusY);
 	
 	void draw();
+	void setRadii(double r1, double r2) { xradius = r1; yradius = r2; }
 	
 	Rect AABB() const;
 };
@@ -125,6 +128,8 @@ public:
 	void draw();
 	
 	Rect AABB() const;
+	
+	void setRadii(double r1, double r2) { radius = r1; (void)r2; }
 	
 	bool lightIsFixedInSpace; ///< default false.  if true, then the light source is fixed in space and is not relative to the sphere
 	

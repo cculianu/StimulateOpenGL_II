@@ -33,8 +33,6 @@ void Shape::drawBegin() {
 	glColor3f(color.r,color.g,color.b);
 }
 
-void Shape::applyChanges() { /* nothing.. */ }
-
 void Shape::drawEnd() {
 	if (!noMatrixAttribPush) {
 		glPopAttrib();
@@ -197,10 +195,8 @@ Rect Rectangle::AABB() const {
 void InitStaticDisplayLists() {
 	Ellipse a(3,4);
 	Rectangle b(4,5);
-	
-	// noops, but call it to ensure above isn't compile out or warned against
-	a.applyChanges(); 
-	b.applyChanges();	
+
+	(void)a; (void)b;
 }
 
 static void DLCleanup(GLuint & dl) {
