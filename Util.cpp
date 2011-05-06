@@ -134,6 +134,35 @@ const Vec3 Vec3Zero(0.,0.,0.);
 const Vec3 Vec3Unit(1.,1.,1.);
 const Vec3 Vec3Gray(.5,.5,.5); // default .5 vec -- useful as a default argument to functions
 
+Vec3 Vec3RotateEuler(const Vec3 & v, double a, double b, double c)
+{
+	/*
+	   = Rz(c)Rx(b)Ry(a)
+	
+	 Rz(θ) = [ cosθ -sinθ 0 
+	           sinθ cosθ  0
+	           0    0     0 ]
+	 Rx(θ) = [ 1    0     0
+	           0 cosθ -sinθ 
+	           0 sinθ cosθ  ]
+	 Ry(θ) = [ cosθ 0  sinθ
+	           0    1     0
+			  -sinθ 0 cosθ ]
+	 
+	 =
+	 
+	[  cos(b)*cos(c)  -cos(a)*sin(c)+sin(a)*sin(b)*sin(c) sin(a)*sin(c)+cos(a)*sin(b)*cos(c)
+	   cos(b)*sin(c)  cos(a)*cos(c)+sin(a)*sin(b)*sin(c)  -sin(a)*cos(c)+cos(a)*sin(b)*sin(c)
+	   -sin(b)        sin(a)*cos(b)                       cos(a)*cos(b)
+	 ]
+	        */
+	return Vec3(
+				v.x*(cos(b)*cos(c))   + v.y*(-cos(a)*sin(c)+sin(a)*sin(b)*sin(c)) + v.z*( sin(a)*sin(c)+cos(a)*sin(b)*cos(c)),
+				v.x*(cos(b)*sin(c))   + v.y*( cos(a)*cos(c)+sin(a)*sin(b)*sin(c)) + v.z*(-sin(a)*cos(c)+cos(a)*sin(b)*sin(c)),
+				v.x*(-sin(b))         + v.y*(sin(a)*cos(b))                       + v.z*(cos(a)*cos(b))
+				);
+}
+
 	
 QVector<double> parseCSV(const QString & text, const QRegExp & sepre)
 {

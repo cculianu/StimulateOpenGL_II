@@ -59,7 +59,7 @@ private:
 
 	void initObj(ObjData & o);
 	
-	void wrapObject(ObjData & o, Rect & aabb) const;
+	void wrapObject(ObjData & o, Rect & aabb, Vec2 & cpos) const;
 
 	QList<ObjData> objs;
 	int numObj;
@@ -86,8 +86,8 @@ private:
 	
 	double cameraDistance, majorPixelWidth;
 	unsigned didScaledZWarning;
-	double maxZ; ///< when objects hit this Z, they bounce back
-	bool jitterInZ;
+	double zBoundsNear, zBoundsFar; ///< when objects hit this Z, they bounce back
+	bool is3D; ///< this flag controls if we jitter in Z, if rndtrial produces random Z values, and a bunch of other things
 	QVector<Vec3> savedLastPositions;
 	void initCameraDistance();
 	

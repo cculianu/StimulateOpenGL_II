@@ -56,6 +56,7 @@ bool MovingObjects::init()
 	bool haveSphere = false;
 	
     moveFlag = true;
+	is3D = false;
 
 	// set up pixel color blending to enable 480Hz monitor mode
 
@@ -149,6 +150,8 @@ bool MovingObjects::init()
 		o.vel_vec.resize(vx.size());
 		for (int j = 0; j < vx.size(); ++j) {
 			o.vel_vec[j] = Vec3(vx[j], vy[j], vz[j]);
+			if (!is3D && !eqf(vz[j], 0.))
+				is3D = true;
 		}
 		if (!o.vel_vec.size()) {
 			if (i) o.vel_vec = objs.front().vel_vec;
@@ -166,9 +169,14 @@ bool MovingObjects::init()
 		bool hadZInit = getParam( "objZinit"    , o.pos_o.z);
 		double zScaled;
 		if (getParam( "objZScaledinit"    , zScaled)) {
+			const double newZ = distanceToZ(zScaled);
 			if (hadZInit) Warning() << "Object " << i << " had objZInit and objZScaledinit params specified, using the zScaled param and ignoring zinit.";
-			o.pos_o.z = distanceToZ(zScaled);
+			if (hadZInit && !eqf(o.pos_o.z, newZ)) 
+				Warning() << "objZInit and objzScaledInit disagree!";
+			o.pos_o.z = newZ;
 		}
+		if (!is3D && !eqf(o.pos_o.z, 0.)) is3D = true;
+		
 		getParam( "objcolor"    , o.color);
 				
 		paramSuffixPop();
@@ -186,7 +194,7 @@ bool MovingObjects::init()
 	    // rndtrial=3 keep old position of last tframes run, random velocity based on initialization range
 		// rndtrial=4 keep old position of last tframes run, static speed, random direction
 	if(!getParam( "rseed" , rseed))              rseed = -1;  //set start point of rnd seed;
-        ran1Gen.reseed(rseed);
+	ran1Gen.reseed(rseed);
 	
 	bool dontInitFvars (false);
 	
@@ -205,7 +213,6 @@ bool MovingObjects::init()
 	
 	if(!getParam( "jitterlocal" , jitterlocal))  jitterlocal = false;
 	if(!getParam( "jittermag" , jittermag))	     jittermag = DEFAULT_JITTERMAG;
-	if (!getParam("jitterInZ", jitterInZ)) jitterInZ = false;
 
 	if (!getParam("ft_change_frame_cycle", ftChangeEvery) && !getParam("ftrack_change_frame_cycle",ftChangeEvery) 
 		&& !getParam("ftrack_change_cycle",ftChangeEvery) && !getParam("ftrack_change",ftChangeEvery)) 
@@ -292,12 +299,22 @@ bool MovingObjects::init()
 	if (!softCleanup) glGetIntegerv(GL_SHADE_MODEL, &savedShadeModel);
 	if (haveSphere) glShadeModel(GL_SMOOTH);
 	
-	if (!getParam("maxZ", maxZ)) maxZ = DEFAULT_MAX_Z;
-	if (maxZ < 0.0) {
-		Error() << "Specified maxZ value is too small -- it needs to be positive nonzeo!";
+	if (!getParam("zBoundsFar", zBoundsFar)) zBoundsFar = DEFAULT_MAX_Z;
+	if (zBoundsFar < 0.0) {
+		Error() << "Specified zBoundsNear value is too small -- it needs to be positive nonzeo!";
 		return false;
 	}
-
+	if (!getParam("zBoundsNear", zBoundsNear)) zBoundsNear = -cameraDistance;
+	if (zBoundsNear >= zBoundsFar) {
+		Error() << "zBoundsNear needs to be less than zBoundsFar!  (zBoundsFar is " << zBoundsFar << ", zBoundsNear is " << zBoundsNear << ")";
+		return false;
+	}
+	if (!have_fv_input_file) {
+		if (is3D) 
+			Debug() << "Param spec has some Z information for objects: will generate Z values for jitter and rndtrial!";
+		else
+			Debug() << "Param spec lacking Z information for objects: plugin will use 2D compatibility mode for jitter and rndtrial generation.";
+	}
 	return true;
 }
 
@@ -433,7 +450,7 @@ void MovingObjects::doFrameDraw()
 		if (jitterlocal) {
 			jitterx = (ran1Gen()*jittermag - jittermag/2);
 			jittery = (ran1Gen()*jittermag - jittermag/2);
-			if (jitterInZ)
+			if (is3D)
 				jitterz = (ran1Gen()*jittermag - jittermag/2);
 			else
 				jitterz = 0.;
@@ -458,20 +475,22 @@ void MovingObjects::doFrameDraw()
 						if (moveFlag) {
 							
 							// wrap objects that floated past the edge of the screen
-							if (wrapEdge && !canvasAABB.intersects(aabb))
-								wrapObject(o, aabb);
+							if (wrapEdge && (!canvasAABB.intersects(aabb) 
+											 || (is3D && (z > zBoundsFar 
+														  || z < zBoundsNear))))
+								wrapObject(o, aabb, cpos);
 							
 							
 							if (!wrapEdge) {
 								
 								// adjust for wall bounce 
 								if ((cx + cvx + aabb.size.w/2 > max_x_pix) ||  (cx + cvx - aabb.size.w/2 < min_x_pix))
-									vx = -vx;
+									vx = -vx, cvel.x = -cvel.x;
 								if ((cy + cvy + aabb.size.h/2 > max_y_pix) || (cy + cvy  - aabb.size.h/2 < min_y_pix))
-									vy = -vy; 
-								if (z + vz < -cameraDistance || z + vz > maxZ) // hit camera or hit farthest away edge
+									vy = -vy, cvel.y = -cvel.y; 
+								if (z + vz < zBoundsNear || z + vz > zBoundsFar) // hit camera or hit farthest away edge
 									vz = -vz;
-							
+								
 							}
 							
 							// initialize position iff k==0 and frameNum is a multiple of tframes
@@ -509,22 +528,37 @@ void MovingObjects::doFrameDraw()
 									// random position and random V based on init sped 
 									Vec2 cpos (ran1Gen()*canvasAABB.size.x + min_x_pix,
 											   ran1Gen()*canvasAABB.size.y + min_y_pix);
-									o.shape->setDistance(1.0); // TODO: have random distance too?
+									if (is3D) z = ran1Gen()*(zBoundsFar-zBoundsNear) + zBoundsNear;
+									else      z = 0.;
 									o.shape->setCanvasPosition(cpos);
 									vx = ran1Gen()*objVelx*2 - objVelx;
 									vy = ran1Gen()*objVely*2 - objVely;
-									vz = ran1Gen()*objVelz*2 - objVelz;
+									if (is3D) vz = ran1Gen()*objVelz*2 - objVelz;
+									else      vz = 0.;
 								} else if (2 == rndtrial) {
 									// random position and direction
 									// static speed
 									x = ran1Gen()*canvasAABB.size.x + min_x_pix;
 									y = ran1Gen()*canvasAABB.size.y + min_y_pix;
-									z = 0.; // TODO: z?
-									const double r = sqrt(objVelx*objVelx + objVely*objVely);
-									const double theta = ran1Gen()*2.*M_PI;
-									vx = r*cos(theta); 
-									vy = r*sin(theta);
-									vz = 0.; // TODO: determine is this ok? default to 0 velocity? what do we do about z?
+									if (is3D) z = ran1Gen()*(zBoundsFar-zBoundsNear) + zBoundsNear; // TODO: z?
+									else      z = 0.;
+									if (!is3D) {
+										const double r = sqrt(objVelx*objVelx + objVely*objVely);
+										const double theta = ran1Gen()*2.*M_PI;
+										vx = r*cos(theta); 
+										vy = r*sin(theta);
+										vz = 0.;
+									} else { // in 3D mode, we rotate our original velocity vector using yaw, picth, roll!
+										Vec3 vel(objVelx, objVely, objVelz);
+										//const double mag = sqrt(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
+										vel = Vec3RotateEuler(vel, ran1Gen()*2.*M_PI, ran1Gen()*2.*M_PI, ran1Gen()*2.*M_PI);
+										//const double mag2 = sqrt(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
+										//Debug() << "mag " << mag << " mag2 " << mag2;
+										vx = vel.x;
+										vy = vel.y;
+										vz = vel.z;
+									}
+									
 								} else if (3 == rndtrial) {
 									// position at t = position(t-1) + vx, vy
 									// random v based on objVelx objVely range
@@ -534,9 +568,10 @@ void MovingObjects::doFrameDraw()
 										z = o.lastPos.z;
 									}
 									vx = ran1Gen()*objVelx*2. - objVelx;
-									vy = ran1Gen()*objVely*2. - objVely; 
-									vz = ran1Gen()*objVelz*2. - objVelz; // TODO: z ok here?
-								} else  {
+									vy = ran1Gen()*objVely*2. - objVely;
+									if (is3D) vz = ran1Gen()*objVelz*2. - objVelz; // TODO: z ok here?
+									else      vz = 0.;
+								} else if (4 == rndtrial) {
 									// position at t = position(t-1) + vx, vy
 									// static speed, random direction
 									if (loopCt > 0) {
@@ -544,11 +579,19 @@ void MovingObjects::doFrameDraw()
 										y = o.lastPos.y;
 										z = o.lastPos.z;
 									}
-									const double r = sqrt(objVelx*objVelx + objVely*objVely);
-									const double theta = ran1Gen()*2*M_PI;
-									vx = r*cos(theta); 
-									vy = r*sin(theta);
-									vz = 0.; // TODO: determine what to do here with Anthony..
+									if (!is3D) {
+										const double r = sqrt(objVelx*objVelx + objVely*objVely);
+										const double theta = ran1Gen()*2*M_PI;
+										vx = r*cos(theta); 
+										vy = r*sin(theta);
+										vz = 0.; 
+									} else {
+										Vec3 vel(objVelx, objVely, objVelz);
+										vel = Vec3RotateEuler(vel, ran1Gen()*2.*M_PI, ran1Gen()*2.*M_PI, ran1Gen()*2.*M_PI);
+										vx = vel.x;
+										vy = vel.y;
+										vz = vel.z;										
+									}
 								}
 								
 								d = o.shape->distance();
@@ -575,8 +618,8 @@ void MovingObjects::doFrameDraw()
 								else 
 									y += vy + jittery;
 								
-								if (!wrapEdge && (z + vz + jitterz > maxZ 
-												  || z + vz + jitterz < -cameraDistance)) 
+								if (!wrapEdge && (z + vz + jitterz > zBoundsFar
+												  || z + vz + jitterz < zBoundsNear)) 
 									z += vz;
 								else 
 									z += vz + jitterz;
@@ -732,9 +775,17 @@ void MovingObjects::doFrameDraw()
 	}
 }
 
-void MovingObjects::wrapObject(ObjData & o, Rect & aabb) const {
+void MovingObjects::wrapObject(ObjData & o, Rect & aabb, Vec2 & cpos_out) const {
 	Shapes::Shape & s = *o.shape;
 
+	if (is3D) {
+		 // first, wrap object in Z, if 3D mode
+		if (s.position.z > zBoundsFar)
+			s.position.z = zBoundsNear + (s.position.z-zBoundsFar);
+		if (s.position.z < zBoundsNear)
+			s.position.z = zBoundsFar - (zBoundsNear-s.position.z);
+	}
+	
 	Vec2 cpos = s.canvasPosition();
 	
 	// wrap right edge
@@ -748,6 +799,7 @@ void MovingObjects::wrapObject(ObjData & o, Rect & aabb) const {
 	
 	s.setCanvasPosition(cpos);
 	aabb = o.shape->AABB();
+	cpos_out = cpos;
 }
 
 void MovingObjects::initCameraDistance()
@@ -771,6 +823,6 @@ double MovingObjects::distanceToZ(double d) const
 
 double MovingObjects::zToDistance(double z) const
 {
-	if (cameraDistance <= 0.) return 0.;
+	if (eqf(cameraDistance,0.)) return 0.;
 	return z/cameraDistance + 1.0;
 }

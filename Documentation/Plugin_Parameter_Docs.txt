@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: April 18, 2011
+Last Updated: May 5, 2011
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -844,6 +844,29 @@ wrapEdge
         Datatype:         boolean
         Possible values:  true, false or 1, 0
         Default value:    false (0)
+
+zBoundsFar
+        Synopsis:         The far 'wall' for objects in z for bouncing/wrapping.  
+                          When an object's z-coordinate exceeds this value, the 
+                          object will wrap (if wrapEdge is true) or bounce back
+                          from the wall (if wrapEdge is false).
+        Datatype:         integer
+        Possible values:  0 - +2147483647
+        Default value:    1000
+
+zBoundsNear
+        Synopsis:         The near 'wall' for objects in z for bouncing/wrapping.  
+                          When an object's z-coordinate is less than this value, 
+                          the object will wrap (if wrapEdge is true) or bounce 
+                          back from the wall (if wrapEdge is false).  By default
+                          this value is at the camera (which varies in z
+                          depending on the width of the drawing area, but is 
+                          -509 by default for an 800x600 window).
+        Datatype:         integer
+        Possible values:  -2147483647 - -1 
+        Default value:    -CAMERA_DISTANCE, which is -509 for 800x600 render 
+                          windows.  (CAMERA_DISTANCE gets printed to the console 
+                          log for user reference).
       
 ----------------------------------------------------------------------------------
 `Sawtooth' PLUGIN PARAMETERS

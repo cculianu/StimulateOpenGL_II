@@ -279,10 +279,11 @@ void Sphere::draw()
 	double radius_actual = scale.x * radius / d;
 	scale.x = 1.0 * d; // multiply by d to counter-balance scaling in drawBegin()
 	scale.y = 1.0 * d;
+	double angle_saved = angle;
+	angle = 0.; // angle is ignored for spheres 
 	
 	drawBegin();
 
-	// TODO: fix this!  It's broken!
 	gluQuadricNormals(quadric, GLU_SMOOTH);
 	gluQuadricDrawStyle(quadric , GLU_FILL);
 	gluQuadricOrientation(quadric, GLU_OUTSIDE); 
@@ -291,6 +292,7 @@ void Sphere::draw()
 	drawEnd();
 	
 	scale = scale_saved;
+	angle = angle_saved;
 	
 	glDisable(GL_LIGHT0);
 	glDisable(GL_LIGHTING);
