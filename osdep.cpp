@@ -138,8 +138,20 @@ void setProcessAffinityMask(unsigned mask)
     Warning() << "`Set process affinity mask' for this platform unimplemented -- ignoring.";
 }
 } // end namespace util
+#ifdef Q_OS_DARWIN
+#include <mach/mach_time.h>
+namespace Util {
+double getTime()
+{
+	double t = static_cast<double>(mach_absolute_time());
+	struct mach_timebase_info info;
+	mach_timebase_info(&info);
+	return t * (1e-9 * static_cast<double>(info.numer) / static_cast<double>(info.denom) );
+}	
+#else
 #include <QTime>
 namespace Util {
+
 double getTime()
 {
     static QTime t;
@@ -147,6 +159,7 @@ double getTime()
     if (!started) { t.start(); started = true; }
     return double(t.elapsed())/1000.0;
 }
+#endif // !Q_OS_DARWIN
 
 #endif 
 

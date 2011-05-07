@@ -52,6 +52,7 @@ public:
 	
 	Vec2 bottomLeft() const { return AABB().origin; }
 	
+	static Vec2 canvasPosition(const Vec3 & real_position); ///< returns the canvas position given a real pos
 	Vec2 canvasPosition() const; ///< returns the position of the object on the canvas after the object's Z position (distance) calculation is applied
 	void setCanvasPosition(const Vec2 &);
 	double distance() const; /**< the default distance, 1, means the object is on the 
@@ -113,15 +114,25 @@ class Sphere : public Shape {
 	friend void CleanupStaticDisplayLists();
 public:
 	
-	static const GLfloat DefaultLightAmbient[4], // .5,.5,.5,1.0
+	static const GLfloat 
+	                     // LIGHT PROPS
+	                     DefaultLightAmbient[4], // .5,.5,.5,1.0
 	                     DefaultLightDiffuse[4], // 1,1,1,1
 	                     DefaultLightPosition[4], // 1,1,1,0
+					     DefaultLightSpecular[4], // 1,1,1,1
+	                     DefaultLightAttenuations[3], // 1,0,0
+						 // MATERIAL PROPS
 	                     DefaultSpecular[4], // 1,1,1,1
-	                     DefaultShininess; // 50.0
+						 DefaultAmbient[4], // .2,.2,.2,1
+						 DefaultDiffuse[4], // .8,.8,.8,1
+						 DefaultEmission[4], // 0,0,0,1
+						 DefaultShininess; // 50.0
 	
 	double radius;
 	unsigned subdivisions;
-	GLfloat lightAmbient[4], lightDiffuse[4], lightPosition[4], specular[4], shininess;
+	GLfloat lightAmbient[4], lightDiffuse[4], lightPosition[4], lightSpecular[4], 
+	        specular[4], ambient[4], diffuse[4], emission[4], shininess;
+	GLfloat lightAttenuations[3]; ///< constant, linear, and quadratic respectively
 	
 	Sphere(double radius, unsigned subdivisions = NUM_VERTICES_FOR_ELLIPSOIDS);
 	

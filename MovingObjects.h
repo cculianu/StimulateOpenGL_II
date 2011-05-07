@@ -51,7 +51,10 @@ private:
 		QVector<Vec2> len_vec;
 		QVector<Vec3> vel_vec; ///< new targetcycle/speedcycle support for length and velocity vectors	
 		int len_vec_i, vel_vec_i;
-		float color; // intensity value
+		float color, 
+		      // params for sphere
+		      shininess, ambient, diffuse, emission, specular; // intensity value
+		bool debug;
 		
 		ObjData(); // init all to 0
 		void initDefaults();		
@@ -59,7 +62,7 @@ private:
 
 	void initObj(ObjData & o);
 	
-	void wrapObject(ObjData & o, Rect & aabb, Vec2 & cpos) const;
+	void wrapObject(ObjData & o, Rect & aabb) const;
 
 	QList<ObjData> objs;
 	int numObj;
@@ -78,6 +81,7 @@ private:
 	bool lightIsFixedInSpace;
 	bool lightIsDirectional;
 	Vec3 lightPos;
+	double lightAmbient, lightDiffuse, lightSpecular, lightConstantAttenuation, lightLinearAttenuation, lightQuadraticAttenuation;
 	
 	float min_x_pix,max_x_pix,min_y_pix,max_y_pix;
 	

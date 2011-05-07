@@ -26,7 +26,8 @@ void Shape::drawBegin() {
 		glPushAttrib(GL_CURRENT_BIT);
 	}
 	const double d = distance() > 0.0 ? distance() : 0.000000000001;
-	glTranslated(position.x/d, position.y/d, 0.0);
+	Vec2 cpos (canvasPosition());
+	glTranslated(cpos.x, cpos.y, 0.0);
 	// try and not do a glRotate call if angle is 0. (no rotation).  Hopefully this guard useful performance-wise..
 	if (!eqf(angle, 0.)) glRotated(angle,0.,0.,1.);
 	glScaled(scale.x/d, scale.y/d, 1.0);
@@ -41,36 +42,54 @@ void Shape::drawEnd() {
 		glLoadIdentity();
 }
 	
+	
+static MovingObjects * movingObjects()
+{
+	MovingObjects *p = (MovingObjects *)stimApp()->glWin()->runningPlugin();
+	if (!p || !dynamic_cast<MovingObjects *>((StimPlugin *)p)) {
+		p = (MovingObjects *)stimApp()->glWin()->pluginFind("movingobjects");
+		if (p) p = dynamic_cast<MovingObjects *>(p);
+	}
+	if (!p) Error() << "INTERNAL ERROR -- Cannot find MovingObjects plugin!";	
+	return p;
+}
 
 double Shape::distance() const {
-	MovingObjects *p = (MovingObjects *)stimApp()->glWin()->runningPlugin();
-	if (!p || !dynamic_cast<MovingObjects *>((StimPlugin *)p)) 
-		p = (MovingObjects *)stimApp()->glWin()->pluginFind("movingobjects");
-	if (p && dynamic_cast<MovingObjects *>((StimPlugin *)p)) 
-		return p->zToDistance(position.z);
+	MovingObjects *p = movingObjects();
+	if (p) return p->zToDistance(position.z);
 	return 0.;
 }
 
 void Shape::setDistance(double d) {
 	double z = 0.;
-	MovingObjects *p = (MovingObjects *)stimApp()->glWin()->runningPlugin();
-	if (!p || !dynamic_cast<MovingObjects *>((StimPlugin *)p)) 
-		p = (MovingObjects *)stimApp()->glWin()->pluginFind("movingobjects");
-	if (p && dynamic_cast<MovingObjects *>((StimPlugin *)p)) 
-		z = p->distanceToZ(d);
+	MovingObjects *p = movingObjects();
+	if (p) z = p->distanceToZ(d);
 	position.z = z;
 }
 
-Vec2 Shape::canvasPosition() const {
-	const double d = distance() > 0.0 ? distance() : 0.000000000001;
-	return Vec2(position.x/d, position.y/d);
-}
+Vec2 Shape::canvasPosition() const { return canvasPosition(position); }
 
 void Shape::setCanvasPosition(const Vec2 & v) {
+	MovingObjects *m = movingObjects();
+	Vec2 mid (m->width()*.5, m->height()*.5);
 	const double d = distance() > 0.0 ? distance() : 0.000000000001;
-	position = Vec3(v.x*d, v.y*d, position.z);
+	Vec2 p (v.x - mid.x, v.y - mid.y);
+	p = Vec2(p.x * d, p.y * d);
+	position = Vec3(p.x + mid.x, p.y + mid.y, position.z);
 }
 	
+/*static*/
+Vec2 Shape::canvasPosition(const Vec3 & position)
+{
+	MovingObjects *m = movingObjects();
+	Vec2 mid (m->width()*.5, m->height()*.5);
+	double d = 0.0;
+	if (m) d = m->zToDistance(position.z);
+	Vec2 p(position.x-mid.x, position.y-mid.y);
+	p = Vec2(p.x/d, p.y/d);
+	return Vec2(p.x+mid.x, p.y+mid.y);	
+}
+
 /* static */ GLuint Ellipse::dl = 0;
 const unsigned Ellipse::numVertices = NUM_VERTICES_FOR_ELLIPSOIDS;
 	
@@ -114,7 +133,8 @@ Rect Ellipse::AABB() const {
 	double t_inf = atan(r_min * (cos_rot / sin_rot) / r_max);
 	double rect_width = scale.x * fabs(2. * (r_max * cos(t_nil) * cos_rot - r_min * sin(t_nil) * sin_rot));
 	double rect_height = scale.y * fabs(2. * (r_min * sin(t_inf) * cos_rot + r_max * cos(t_inf) * sin_rot));
-	return Rect(Vec2(position.x/d-rect_width/2.,position.y/d-rect_height/2.),Vec2(rect_width,rect_height));
+	Vec2 cpos(canvasPosition());
+	return Rect(Vec2(cpos.x-rect_width/2.,cpos.y-rect_height/2.),Vec2(rect_width,rect_height));
 }
 
 
@@ -167,8 +187,9 @@ Rect Rectangle::AABB() const {
 									Vec2( -.5*(width/d), .5*(height/d) ) };
 			
 		double minx = 1e6, miny = 1e6, maxx = -1e6, maxy = -1e6;
-		const double x0 = position.x/d;
-		const double y0 = position.y/d;
+		Vec2 cpos (canvasPosition());
+		const double x0 = cpos.x;
+		const double y0 = cpos.y;
 		for (int i = 0; i < n; ++i) {
 			const double x = vertices[i].x + x0;
 			const double y = vertices[i].y + y0;
@@ -217,7 +238,15 @@ const GLfloat
 Sphere::DefaultLightAmbient[4] =  { 0.5f, 0.5f, 0.5f, 1.0f },
 Sphere::DefaultLightDiffuse[4] =  { 1.0f, 1.0f, 1.0f, 1.0f },
 Sphere::DefaultLightPosition[4] = { 400.0f, 250.0f, -100.0f, 0.0f },
+Sphere::DefaultLightSpecular[4] =  { 1.0f, 1.0f, 1.0f, 1.0f },
+Sphere::DefaultLightAttenuations[3] =  { 1.0f, 0.f, 0.f },
+
+// material props	
 Sphere::DefaultSpecular[4] =      { 1.0f, 1.0f, 1.0f, 1.0f },
+Sphere::DefaultAmbient[4]  =      {.2,.2,.2,1.},
+Sphere::DefaultDiffuse[4]  =      { .8,.8,.8,1.},
+Sphere::DefaultEmission[4] =      { 0.,0.,0.,1.  },
+	
 Sphere::DefaultShininess =        50.0f;
 
 /* static */ GLUquadricObj * Sphere::quadric = 0;
@@ -231,7 +260,12 @@ Sphere::Sphere(double radius, unsigned subdivisions)
 	std::memcpy(lightAmbient, DefaultLightAmbient, sizeof(DefaultLightAmbient));
 	std::memcpy(lightDiffuse, DefaultLightDiffuse, sizeof(DefaultLightDiffuse));
 	std::memcpy(lightPosition, DefaultLightPosition, sizeof(DefaultLightPosition));
+	std::memcpy(lightSpecular, DefaultLightSpecular, sizeof(DefaultLightSpecular));
+	std::memcpy(ambient, DefaultAmbient, sizeof(DefaultAmbient));
+	std::memcpy(diffuse, DefaultDiffuse, sizeof(DefaultDiffuse));
+	std::memcpy(emission, DefaultEmission, sizeof(DefaultEmission));
 	std::memcpy(specular, DefaultSpecular, sizeof(DefaultSpecular));
+	std::memcpy(lightAttenuations, DefaultLightAttenuations, sizeof(DefaultLightAttenuations));
 	shininess = DefaultShininess;
 }
 
@@ -251,29 +285,34 @@ void Sphere::draw()
 	glEnable(GL_LIGHTING);
 	glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
 	if (lightIsFixedInSpace) {
 		glPushMatrix();
 		glLoadIdentity();
 		GLfloat l[4];
 		std::memcpy(l, lightPosition, sizeof(l));
-//		l[0] *= d;
-//		l[1] *= d;
-		//l[2] *= d;
 		l[0] -= position.x;
 		l[1] -= position.y;
 		l[2] += position.z;
 		glLightfv(GL_LIGHT0, GL_POSITION,l);
+		glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, lightAttenuations[0]);
+		glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, lightAttenuations[1]);
+		glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, lightAttenuations[2]);
 		glPopMatrix();
 	} else {
 		glLightfv(GL_LIGHT0, GL_POSITION,lightPosition);
 	}
 	glEnable(GL_LIGHT0);
 	glEnable(GL_DEPTH_TEST);
-	GLfloat specular_scaled[4];
-	std::memcpy(specular_scaled, specular, sizeof(specular));
-	for (int i = 0; i < 4; ++i) specular_scaled[i] /= d; // make the speculation shrink/grow with distance
-	glMaterialfv(GL_FRONT, GL_SPECULAR, specular_scaled);
-	glMaterialfv(GL_FRONT, GL_SHININESS, &shininess);
+	//GLfloat specular_scaled[4];
+	//std::memcpy(specular_scaled, specular, sizeof(specular));
+	//for (int i = 0; i < 4; ++i) specular_scaled[i] /= d; // make the speculation shrink/grow with distance
+	glMaterialfv(GL_FRONT, GL_SPECULAR, specular/*_scaled*/);
+	//GLfloat shininess_scaled = shininess / d;
+	glMaterialf(GL_FRONT, GL_SHININESS, shininess);
+	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+	glMaterialfv(GL_FRONT, GL_EMISSION, emission);
 	
 	const Vec2 scale_saved = scale;
 	double radius_actual = scale.x * radius / d;
@@ -305,9 +344,10 @@ void Sphere::draw()
 
 Rect Sphere::AABB() const {
 	const double d = distance() > 0.0 ? distance() : 0.000000001;
+	Vec2 cpos(canvasPosition());
 	return Rect(
-				 Vec2( (position.x-radius*scale.x)/d,
-					   (position.y-radius*scale.y)/d ),
+				 Vec2( cpos.x-radius*scale.x/d,
+					   cpos.y-radius*scale.y/d ),
 				 Vec2( (2.*radius*scale.x)/d, (2.*radius*scale.y)/d )
 				);	
 }

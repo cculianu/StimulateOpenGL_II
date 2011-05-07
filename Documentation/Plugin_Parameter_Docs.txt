@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: May 5, 2011
+Last Updated: May 7, 2011
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -557,15 +557,101 @@ jittermag
        Possible values:   -2147483648 - +2147483647
        Default value:     2
 
+lightAmbient
+       Synopsis:          Applies to 3D objects that make use of lighting 
+                          (currently only the sphere).  The greyscale intensity 
+                          of the ambient component of the light.  0.0 is off, 
+                          1.0 is a middle-gray.  The ambient component is the 
+                          illumination inherently present in the scene, even 
+                          when light from a source is not directly shining on an 
+                          object's face.
+       Datatype:          float
+       Possible values:   0.0 - 1.0
+       Default value:     0.5
+
+lightAttenuationConstant 
+* OR *
+lightConstantAttenuation 
+       Synopsis:          Applies to 3D objects that make use of lighting 
+                          (currently only the sphere).  The constant attenuation
+                          factor applied to the light.  If the light is fixed in
+                          space, its intensity is attenuated by the reciprocal 
+                          of the sum of the constant factor, the linear factor
+                          times the distance between the light and the surface 
+                          being lighted, and the quadratic factor times the 
+                          square of the same distance.  The initial attenuation 
+                          factors are (Constant=1, Linear=0, Quadratic=0), 
+                          resulting in no attenuation.
+       Datatype:          float
+       Possible values:   0.0 - +inf
+       Default value:     1.0
+
+lightAttenuationLinear 
+* OR *
+lightLinearAttenuation 
+       Synopsis:          Applies to 3D objects that make use of lighting 
+                          (currently only the sphere).  The linear attenuation
+                          factor applied to the light.  If the light is fixed in
+                          space, its intensity is attenuated by the reciprocal 
+                          of the sum of the constant factor, the linear factor
+                          times the distance between the light and the surface 
+                          being lighted, and the quadratic factor times the 
+                          square of the same distance.  The initial attenuation 
+                          factors are (Constant=1, Linear=0, Quadratic=0), 
+                          resulting in no attenuation.
+       Datatype:          float
+       Possible values:   0.0 - +inf
+       Default value:     0.0
+
+lightAttenuationQuadratic 
+* OR *
+lightQuadraticAttenuation 
+       Synopsis:          Applies to 3D objects that make use of lighting 
+                          (currently only the sphere).  The quadratic attenuation
+                          factor applied to the light.  If the light is fixed in
+                          space, its intensity is attenuated by the reciprocal 
+                          of the sum of the constant factor, the linear factor
+                          times the distance between the light and the surface 
+                          being lighted, and the quadratic factor times the 
+                          square of the same distance.  The initial attenuation 
+                          factors are (Constant=1, Linear=0, Quadratic=0), 
+                          resulting in no attenuation.
+       Datatype:          float
+       Possible values:   0.0 - +inf
+       Default value:     0.0
+
+lightDiffuse
+       Synopsis:          Applies to 3D objects that make use of lighting 
+                          (currently only the sphere).  The greyscale intensity 
+                          of the diffuse component of the light.  0.0 is off, 
+                          1.0 is white.  The diffuse component is the amount of
+                          illumination when light directly hits an object's
+                          face.
+       Datatype:          float
+       Possible values:   0.0 - 1.0
+       Default value:     1.0
+
 lightPos
        Synopsis:          Applies to 3D objects that make use of lighting 
-                          (currently only the sphere) .  A vector indicating the
+                          (currently only the sphere).  A vector indicating the
                           X, Y, and Z positions of the lightsource.  
        Datatype:          integer triplet, comma (or space) delimited
        Possible values:   -214748367 - +2147483647 , -2147483647  - +2147483647, 
                           -2147483647 - +2147483647
        Default value:     screenWidth, screenHeight, -100.0 (top right corner of
                           screen, 100 closer to the camera than the Z=0 plane).
+
+lightSpecular
+       Synopsis:          Applies to 3D objects that make use of lighting 
+                          (currently only the sphere).  The greyscale intensity 
+                          of the specular component of the light.  -1 is black 
+                          (a sort of negative speculation), 0.0 is off, 1.0 is 
+                          white.  The specular component is the light that 
+                          shines off the object's 'speculation' or shiny bit.  
+                          Setting this parameter to 0 will turn off speculation.   
+       Datatype:          float
+       Possible values:   -1.0 - 1.0
+       Default value:     1.0
 
 numObj
         Synopsis:         Specifies the number of moving targets.  Note that 
@@ -579,6 +665,18 @@ numObj
         Possible values:  0 - +2147483647
         Default value:    REQUIRED, no default
 
+objAmbient
+  *or* 
+objAmbientN (for objects 2 through numObj)
+        Synopsis:         Applies only to 3D objects that use lighting 
+                          (currently only the sphere).  Specifies the ambient 
+                          reflectance of the object's material.
+        Datatype:         float
+        Possible values:  0.0 - 1.0 
+        Default value:    first object: 0.2 
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
 objColor
   *or* 
 objColorN (for objects 2 through numObj)
@@ -586,6 +684,30 @@ objColorN (for objects 2 through numObj)
         Datatype:         float
         Possible values:  0.0 - 1.0 (black to white)
         Default value:    first object: 0.0 (black)
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+                          
+objDiffuse
+  *or* 
+objDiffuseN (for objects 2 through numObj)
+        Synopsis:         Applies only to 3D objects that use lighting 
+                          (currently only the sphere).  Specifies the diffuse 
+                          reflectance of the object's material.
+        Datatype:         float
+        Possible values:  0.0 - 1.0 
+        Default value:    first object: 0.8
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objEmission
+  *or* 
+objEmissionN (for objects 2 through numObj)
+        Synopsis:         Applies only to 3D objects that use lighting 
+                          (currently only the sphere).  Specifies the emitted 
+                          light intensity of the object's material.
+        Datatype:         float
+        Possible values:  0.0 - 1.0 
+        Default value:    first object: 0.0
                           subsequent objects: take on the value of the first
                           object by default (unless specified, of course).
 
@@ -598,6 +720,33 @@ objPhiN (for objects 2 through numObj)
         Datatype:         float
         Possible values:  -inf - +inf 
         Default value:    first object: 0.0 (unrotated)
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objShininess
+  *or* 
+objShininessN (for objects 2 through numObj)
+        Synopsis:         Applies only to 3D objects that use lighting 
+                          (currently only the sphere).  Specifies the specular 
+                          exponent of the object's material.  The specular 
+                          exponent is used in calculating the appearance of the
+                          object's speculation (shiny bit).
+        Datatype:         float
+        Possible values:  0.0 - 1.0 
+        Default value:    first object: 0.39
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objSpecular
+  *or* 
+objSpecularN (for objects 2 through numObj)
+        Synopsis:         Applies only to 3D objects that use lighting 
+                          (currently only the sphere).  Specifies the specular 
+                          reflectance of the object's material.  Setting this
+                          value to 0 will disable speculation on the object.
+        Datatype:         float
+        Possible values:  -1.0 - 1.0 (0.0 is off)
+        Default value:    first object: 1.0
                           subsequent objects: take on the value of the first
                           object by default (unless specified, of course).
 
@@ -627,9 +776,9 @@ objTypeN (where N is 2 to numObj)
                             of objLenX/objLenY radii (in pixels, see the 
                             objLenX/objLenY params). The ellipsoid is approximated
                             using 128 vertices.
-               sphere     - Indicates you want the target to be a 3D spheroid
-                            of objLenX/objLenY major and minor radii (in pixels, 
-                            see the objLenX/objLenY params). The sphere is 
+               sphere     - Indicates you want the target to be a 3D sphere
+                            of objLenX radius (objLenY is ignored) (radius is in 
+                            pixels, see the objLenX param). The sphere is 
                             approximated using 128 vertices.
                             
         Default value:    first object: box

@@ -16,6 +16,17 @@
 #define DEFAULT_RSEED -1
 #define NUM_FRAME_VARS 10
 #define DEFAULT_MAX_Z 1000
+#define DEFAULT_SHININESS (50./128.)
+#define DEFAULT_AMBIENT .2
+#define DEFAULT_DIFFUSE .8
+#define DEFAULT_EMISSION 0
+#define DEFAULT_SPECULAR 1
+#define DEFAULT_LIGHT_AMBIENT .5
+#define DEFAULT_LIGHT_DIFFUSE 1.0
+#define DEFAULT_LIGHT_SPECULAR 1.0
+#define DEFAULT_LIGHT_CONSTANT_ATTENUATION 1.0
+#define DEFAULT_LIGHT_LINEAR_ATTENUATION 0.0
+#define DEFAULT_LIGHT_QUADRATIC_ATTENUATION 0.0
 
 
 MovingObjects::MovingObjects()
@@ -46,6 +57,22 @@ void MovingObjects::ObjData::initDefaults() {
 	pos_o = Vec3(DEFAULT_POS_X,DEFAULT_POS_Y,DEFAULT_POS_Z);
 	v = vel_vec[0], vel = vel_vec[0];
 	color = DEFAULT_OBJCOLOR;
+	shininess = DEFAULT_SHININESS;
+	ambient = DEFAULT_AMBIENT;
+	diffuse = DEFAULT_DIFFUSE;
+	emission = DEFAULT_EMISSION;
+	specular = DEFAULT_SPECULAR;
+	debug = false;
+}
+
+template <typename T, typename U, typename V>
+void ChkAndClampParam(const char *paramName, T & paramVal, const U & minVal, const V & maxVal, int objNum = -1)
+{
+	bool bad = false;
+	const T pvalin (paramVal);
+	if (paramVal < minVal) paramVal = minVal, bad = true;
+	if (paramVal > maxVal) paramVal = maxVal, bad = true;
+	if (bad) Warning() << paramName << (objNum > -1 ? QString::number(objNum) : QString("")) << " bad parameter: Specified " << pvalin << ", needs to be in the range " << minVal << "-" << maxVal << ".  Parameter clamped to " << paramVal << "."; 
 }
 
 bool MovingObjects::init()
@@ -177,8 +204,15 @@ bool MovingObjects::init()
 		}
 		if (!is3D && !eqf(o.pos_o.z, 0.)) is3D = true;
 		
-		getParam( "objcolor"    , o.color);
-				
+		getParam( "objcolor"    , o.color);		ChkAndClampParam("objcolor", o.color, 0., 1., i);
+		getParam( "objShininess", o.shininess); ChkAndClampParam("objShininess", o.shininess, 0., 1., i);
+		getParam( "objAmbient", o.ambient);     ChkAndClampParam("objAmbient", o.ambient, 0., 1., i);
+		getParam( "objDiffuse", o.diffuse);     ChkAndClampParam("objDiffuse", o.diffuse, 0., 1., i);
+		getParam( "objEmission", o.emission);   ChkAndClampParam("objEmission", o.emission, 0., 1., i);
+		getParam( "objSpecular", o.specular);   ChkAndClampParam("objSpecular", o.specular, -1., 1., i);
+			
+		if (!getParam( "objDebug", o.debug)) o.debug = false;
+		
 		paramSuffixPop();
 		
 	}
@@ -236,6 +270,21 @@ bool MovingObjects::init()
 		lightPos = Vec3(width(), height(), 100.0);
 	}
 	lightIsDirectional = !lightIsFixedInSpace;
+	if (!getParam("lightAmbient", lightAmbient)) lightAmbient = DEFAULT_LIGHT_AMBIENT;
+	if (!getParam("lightDiffuse", lightDiffuse)) lightDiffuse = DEFAULT_LIGHT_DIFFUSE;
+	if (!getParam("lightSpecular", lightSpecular)) lightSpecular = DEFAULT_LIGHT_SPECULAR;
+	if (   !getParam("lightConstantAttenuation", lightConstantAttenuation) 
+		&& !getParam("lightAttenuationConstant", lightConstantAttenuation)) lightConstantAttenuation = DEFAULT_LIGHT_CONSTANT_ATTENUATION;
+	if (   !getParam("lightLinearAttenuation", lightLinearAttenuation)
+		&& !getParam("lightAttenuationLinear", lightLinearAttenuation)) lightLinearAttenuation = DEFAULT_LIGHT_LINEAR_ATTENUATION;
+	if (   !getParam("lightQuadraticAttenuation", lightQuadraticAttenuation)
+		&& !getParam("lightAttenuationQuadratic", lightQuadraticAttenuation)) lightQuadraticAttenuation = DEFAULT_LIGHT_QUADRATIC_ATTENUATION;
+	ChkAndClampParam("lightAmbient", lightAmbient, 0.0, 1.0);
+	ChkAndClampParam("lightDiffuse", lightDiffuse, 0.0, 1.0);
+	ChkAndClampParam("lightSpecular", lightSpecular, -1.0, 1.0);
+	ChkAndClampParam("lightConstantAttenuation", lightConstantAttenuation, 0., 2e9);
+	ChkAndClampParam("lightLinearAttenuation", lightLinearAttenuation, 0., 2e9);
+	ChkAndClampParam("lightQuadraticAttenuation", lightQuadraticAttenuation, 0., 2e9);
 	
 	initObjs();
 	
@@ -327,6 +376,23 @@ void MovingObjects::initObj(ObjData & o) {
 		sph->lightIsFixedInSpace = lightIsFixedInSpace;
 		for (int i = 0; i < 3; ++i)	sph->lightPosition[i] = lightPos[i]*2.0;
 		sph->lightPosition[3] = lightIsDirectional ? 0.0f : 1.0f;
+		for (int i = 0; i < 3; ++i) {
+			sph->lightAmbient[i] = lightAmbient;
+			sph->lightSpecular[i] = lightSpecular;
+			sph->lightDiffuse[i] = lightDiffuse;
+			sph->ambient[i] = o.ambient;
+			sph->diffuse[i] = o.diffuse;
+			sph->emission[i] = o.emission;
+			sph->specular[i] = o.specular;
+			sph->lightAttenuations[0] = lightConstantAttenuation;
+			sph->lightAttenuations[1] = lightLinearAttenuation;
+			sph->lightAttenuations[2] = lightQuadraticAttenuation;
+		}
+		sph->shininess = o.shininess*128.0;
+		sph->ambient[3] = 1.0;
+		sph->diffuse[3] = 1.0;
+		sph->emission[3] = 1.0;
+		sph->specular[3] = 1.0;
 	} else {  // box, etc
 		o.shape = new Shapes::Rectangle(o.len_vec[0].x, o.len_vec[0].y);
 	}
@@ -424,18 +490,11 @@ void MovingObjects::doFrameDraw()
 		       & objVelx (o.vel.x),
 		       & objVely (o.vel.y),
 			   & objVelz (o.vel.z);
-		double d = o.shape->distance();		
-		Vec2 cpos (o.shape->canvasPosition()), ///< position as rendered on the canvas after distance calc
-			 cvel (vx/d,vy/d); ///< velocity as apparent on the canvas after distance calc
 		
 		const double
 		       & objXinit (o.pos_o.x),
 			   & objYinit (o.pos_o.y),
-		       & objZinit (o.pos_o.z),
-		       & cx (cpos.x),
-		       & cy (cpos.y),
-			   & cvx (cvel.x),
-		       & cvy (cvel.y);
+		       & objZinit (o.pos_o.z);
 		
 		const double  & objLen_o (o.len_vec[0].x), & objLen_min_o (o.len_vec[0].y);
 		double  & objPhi (o.shape->angle); 
@@ -478,19 +537,51 @@ void MovingObjects::doFrameDraw()
 							if (wrapEdge && (!canvasAABB.intersects(aabb) 
 											 || (is3D && (z > zBoundsFar 
 														  || z < zBoundsNear))))
-								wrapObject(o, aabb, cpos);
+								wrapObject(o, aabb);
 							
 							
 							if (!wrapEdge) {
-								
-								// adjust for wall bounce 
-								if ((cx + cvx + aabb.size.w/2 > max_x_pix) ||  (cx + cvx - aabb.size.w/2 < min_x_pix))
-									vx = -vx, cvel.x = -cvel.x;
-								if ((cy + cvy + aabb.size.h/2 > max_y_pix) || (cy + cvy  - aabb.size.h/2 < min_y_pix))
-									vy = -vy, cvel.y = -cvel.y; 
+#define P(m) ({ if (o.debug) { Vec2 c = o.shape->canvasPosition(); Debug() << m << ": f,o=" << frameNum << "," << objNum << " x,y,z=" << x << "," << y << "," << z << " cx,cy=" << c.x << "," << c.y << " vx,vy,vz=" << vx << "," << vy << "," << vz; } 0; })
+								bool reversedX = false, reversedY = false, reversedZ = false;
 								if (z + vz < zBoundsNear || z + vz > zBoundsFar) // hit camera or hit farthest away edge
-									vz = -vz;
-								
+									vz = -vz, reversedZ = true, P("revZ");
+								Vec2 c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz));
+								// adjust for wall bounce 
+								if ((c2.x + aabb.size.w/2 > max_x_pix) ||  (c2.x - aabb.size.w/2 < min_x_pix))
+									vx = -vx, reversedX = true, P("revX");
+								if ((c2.y + aabb.size.h/2 > max_y_pix) ||  (c2.y - aabb.size.h/2 < min_y_pix))
+									vy = -vy, reversedY = true, P("revY"); 
+								if (reversedX || reversedY) c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz)); 
+								if (vz < 0 && !reversedZ) {
+									// now also adjust for wall bounce due to z growing too small and object zooming close enough to hit wall!
+									if (!reversedX && ((c2.x + aabb.size.w/2 > max_x_pix) ||  (c2.x - aabb.size.w/2 < min_x_pix))) {
+										vx = -vx, reversedX = true;
+										P("revX2");
+										c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz));
+									}
+									if ((c2.x + aabb.size.w/2 > max_x_pix) ||  (c2.x - aabb.size.w/2 < min_x_pix)) {
+										// blergh!  still bounced....
+										vz = -vz, reversedZ = true;
+										P("revZ2");
+										c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz)); 
+										if (reversedX && !((c2.x + aabb.size.w/2 > max_x_pix) ||  (c2.x - aabb.size.w/2 < min_x_pix)))
+											vx = -vx, reversedX = false, P("revX3"); 
+									}
+									c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz));
+									if (!reversedY && ((c2.y + aabb.size.h/2 > max_y_pix) || (c2.y - aabb.size.h/2 < min_y_pix))) {
+										vy = -vy, reversedY = true; 
+										P("revY2");
+										c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz));
+									}
+									if (((c2.y + aabb.size.h/2 > max_y_pix) || (c2.y - aabb.size.h/2 < min_y_pix))) {
+										vz = -vz, reversedZ = true;
+										P("revZ3");
+										c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz));
+										if (reversedY && !((c2.y + aabb.size.h/2 > max_y_pix) || (c2.y - aabb.size.h/2 < min_y_pix)))
+											vy = -vy, reversedY = false, P("revY3");
+									}
+								}
+
 							}
 							
 							// initialize position iff k==0 and frameNum is a multiple of tframes
@@ -594,44 +685,38 @@ void MovingObjects::doFrameDraw()
 									}
 								}
 								
-								d = o.shape->distance();
-
 								objPhi = o.phi_o;
-								
-								cpos = o.shape->canvasPosition(); ///< position as rendered on the canvas after distance calc
-								cvel = Vec2(vx/d,vy/d); ///< velocity as apparent on the canvas after distance calc
-				
 								aabb = o.shape->AABB();
 							}
 							
-							// update position after delay period
-							// if jitter pushes us outside of motion box then do not jitter this frame
-							if ((int(frameNum)%tframes /*- delay*/) >= 0) { 
-								if (!wrapEdge && ((cx + cvx + aabb.size.w/2 + jitterx/d > max_x_pix) 
-												  ||  (cx + cvx - aabb.size.w/2 + jitterx/d < min_x_pix)))
-									x += vx;
-								else 
-									x += vx + jitterx;
-								if (!wrapEdge && ((cy + cvy + aabb.size.h/2 + jittery/d > max_y_pix) 
-												  || (cy + cvy - aabb.size.h/2 + jittery/d < min_y_pix))) 
-									y += vy;
-								else 
-									y += vy + jittery;
-								
-								if (!wrapEdge && (z + vz + jitterz > zBoundsFar
-												  || z + vz + jitterz < zBoundsNear)) 
-									z += vz;
-								else 
-									z += vz + jitterz;
-								
-								d = o.shape->distance();
-								cpos = o.shape->canvasPosition(); ///< position as rendered on the canvas after distance calc
-								cvel = Vec2(vx/d,vy/d); ///< velocity as apparent on the canvas after distance calc
-								aabb = o.shape->AABB();
-								o.lastPos = o.shape->position; // save last pos
+							{
+								Vec2 c = Shapes::Shape::canvasPosition(Vec3(x+vx+jitterx,y+vy+jittery,z+vz+jitterz));
+								// update position after delay period
+								// if jitter pushes us outside of motion box then do not jitter this frame
+								if ((int(frameNum)%tframes /*- delay*/) >= 0) { 
+									if (!wrapEdge && ((c.x + aabb.size.w/2 > max_x_pix) 
+													  ||  (c.x - aabb.size.w/2 < min_x_pix)))
+										x += vx;
+									else 
+										x += vx + jitterx;
+									if (!wrapEdge && ((c.y + aabb.size.h/2 > max_y_pix) 
+													  || (c.y - aabb.size.h/2 < min_y_pix))) 
+										y += vy;
+									else 
+										y += vy + jittery;
+									
+									if (!wrapEdge && (z+vz+jitterz > zBoundsFar
+													  || z+vz+jitterz < zBoundsNear)) 
+										z += vz;
+									else 
+										z += vz + jitterz;
+									
+									aabb = o.shape->AABB();
+									o.lastPos = o.shape->position; // save last pos
 
-								// also apply spin
-								objPhi += o.spin;
+									// also apply spin
+									objPhi += o.spin;
+								}
 							}
 							
 						}
@@ -712,7 +797,7 @@ void MovingObjects::doFrameDraw()
 					
 					double newZ = z;
 					if (fvHasZScaledCol && fvHasZCol) {
-						newZ = distanceToZ(d=fv[11]);
+						newZ = distanceToZ(fv[11]);
 						if (fabs(newZ - z) >= 0.0001 && didScaledZWarning <= 3) {
 							Warning() << "Encountered z & zScaled column in framevar file and they disagree.  Ignoring zScaled and using z. (Could the render window size have changed?)";						
 							++didScaledZWarning;
@@ -722,7 +807,7 @@ void MovingObjects::doFrameDraw()
 					if (fvHasZScaledCol && !fvHasZCol) {
 						z = newZ, zChanged = true;
 					}
-					if (zChanged) aabb = o.shape->AABB(), d = o.shape->distance();
+					if (zChanged) aabb = o.shape->AABB();
 					objcolor = fv[9];
 					
 				} //  end !have_fv_input_file
@@ -742,7 +827,12 @@ void MovingObjects::doFrameDraw()
 						b = g = r = objcolor;
 
 					o.shape->color = Vec3(r, g, b);
-					if (d > 0.0)
+					if (o.debug) {
+						const double t0 = getTime();
+						o.shape->draw();
+						const double tf = getTime();
+						Debug() << "frame:" << frameNum << " obj:" << objNum << " took " << (tf-t0)*1e6 << " usec to draw";
+					} else
 						o.shape->draw();
 					
 					///DEBUG HACK FOR AABB VERIFICATION					
@@ -767,7 +857,7 @@ void MovingObjects::doFrameDraw()
 						if (rndtrial && loopCt && nFrames) fnum = frameNum + loopCt*nFrames;
 
 						// nb: push() needs to take all doubles as args!
-						frameVars->push(fnum, double(objNum), double(k), double(o.type), double(x), double(y), double(objLen), double(objLen_min), double(objPhi), double(objcolor), double(z), double(d));
+						frameVars->push(fnum, double(objNum), double(k), double(o.type), double(x), double(y), double(objLen), double(objLen_min), double(objPhi), double(objcolor), double(z), double(o.shape->distance()));
 					}
 				}
 
@@ -775,7 +865,7 @@ void MovingObjects::doFrameDraw()
 	}
 }
 
-void MovingObjects::wrapObject(ObjData & o, Rect & aabb, Vec2 & cpos_out) const {
+void MovingObjects::wrapObject(ObjData & o, Rect & aabb) const {
 	Shapes::Shape & s = *o.shape;
 
 	if (is3D) {
@@ -787,6 +877,7 @@ void MovingObjects::wrapObject(ObjData & o, Rect & aabb, Vec2 & cpos_out) const 
 	}
 	
 	Vec2 cpos = s.canvasPosition();
+	aabb = s.AABB();
 	
 	// wrap right edge
 	if (aabb.left() >= canvasAABB.right()) cpos.x = (canvasAABB.left()-aabb.size.w/2) + (aabb.left() - canvasAABB.right());
@@ -798,8 +889,7 @@ void MovingObjects::wrapObject(ObjData & o, Rect & aabb, Vec2 & cpos_out) const 
 	if (aabb.top() <= canvasAABB.bottom()) cpos.y = (canvasAABB.top()+aabb.size.h/2) - (canvasAABB.bottom()-aabb.top());
 	
 	s.setCanvasPosition(cpos);
-	aabb = o.shape->AABB();
-	cpos_out = cpos;
+	aabb = s.AABB();
 }
 
 void MovingObjects::initCameraDistance()
