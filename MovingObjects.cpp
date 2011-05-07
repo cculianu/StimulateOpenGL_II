@@ -17,10 +17,10 @@
 #define NUM_FRAME_VARS 10
 #define DEFAULT_MAX_Z 1000
 #define DEFAULT_SHININESS (50./128.)
-#define DEFAULT_AMBIENT .2
-#define DEFAULT_DIFFUSE .8
-#define DEFAULT_EMISSION 0
-#define DEFAULT_SPECULAR 1
+#define DEFAULT_AMBIENT .2f
+#define DEFAULT_DIFFUSE .8f
+#define DEFAULT_EMISSION 0.f
+#define DEFAULT_SPECULAR 1.f
 #define DEFAULT_LIGHT_AMBIENT .5
 #define DEFAULT_LIGHT_DIFFUSE 1.0
 #define DEFAULT_LIGHT_SPECULAR 1.0
@@ -881,10 +881,10 @@ void MovingObjects::doWallBounce(ObjData & o) const {
 		}
 	}
 	Rect aabb;
-#define REDO_AABB() ({ \
-	o.shape->position = fpos; \
-	aabb = (o.shape->AABB()); /* get aabb of future position */ \
-	o.shape->position = porig; 0; })
+#define REDO_AABB() ( \
+	o.shape->position = fpos, \
+	aabb = (o.shape->AABB()), /* get aabb of future position */ \
+	o.shape->position = porig )
 	
 	REDO_AABB();
 				

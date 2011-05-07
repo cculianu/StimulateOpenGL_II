@@ -255,9 +255,9 @@ Sphere::DefaultLightAttenuations[3] =  { 1.0f, 0.f, 0.f },
 
 // material props	
 Sphere::DefaultSpecular[4] =      { 1.0f, 1.0f, 1.0f, 1.0f },
-Sphere::DefaultAmbient[4]  =      {.2,.2,.2,1.},
-Sphere::DefaultDiffuse[4]  =      { .8,.8,.8,1.},
-Sphere::DefaultEmission[4] =      { 0.,0.,0.,1.  },
+Sphere::DefaultAmbient[4]  =      {.2f,.2f,.2f,1.f},
+Sphere::DefaultDiffuse[4]  =      { .8f,.8f,.8f,1.f},
+Sphere::DefaultEmission[4] =      { 0.f,0.f,0.f,1.f  },
 	
 Sphere::DefaultShininess =        50.0f;
 
