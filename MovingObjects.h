@@ -54,7 +54,7 @@ private:
 		float color, 
 		      // params for sphere
 		      shininess, ambient, diffuse, emission, specular; // intensity value
-		bool debug;
+		int debugLvl;
 		
 		ObjData(); // init all to 0
 		void initDefaults();		

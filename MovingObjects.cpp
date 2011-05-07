@@ -62,7 +62,7 @@ void MovingObjects::ObjData::initDefaults() {
 	diffuse = DEFAULT_DIFFUSE;
 	emission = DEFAULT_EMISSION;
 	specular = DEFAULT_SPECULAR;
-	debug = false;
+	debugLvl = 0;
 }
 
 template <typename T, typename U, typename V>
@@ -211,7 +211,7 @@ bool MovingObjects::init()
 		getParam( "objEmission", o.emission);   ChkAndClampParam("objEmission", o.emission, 0., 1., i);
 		getParam( "objSpecular", o.specular);   ChkAndClampParam("objSpecular", o.specular, -1., 1., i);
 			
-		if (!getParam( "objDebug", o.debug)) o.debug = false;
+		if (!getParam( "objDebug", o.debugLvl)) o.debugLvl = 0;
 		
 		paramSuffixPop();
 		
@@ -384,15 +384,21 @@ void MovingObjects::initObj(ObjData & o) {
 			sph->diffuse[i] = o.diffuse;
 			sph->emission[i] = o.emission;
 			sph->specular[i] = o.specular;
-			sph->lightAttenuations[0] = lightConstantAttenuation;
-			sph->lightAttenuations[1] = lightLinearAttenuation;
-			sph->lightAttenuations[2] = lightQuadraticAttenuation;
 		}
+		sph->lightAttenuations[0] = lightConstantAttenuation;
+		sph->lightAttenuations[1] = lightLinearAttenuation;
+		sph->lightAttenuations[2] = lightQuadraticAttenuation;
 		sph->shininess = o.shininess*128.0;
+		sph->lightAmbient[3] = 1.;
+		sph->lightSpecular[3] = 1.;
+		sph->lightDiffuse[3] = 1.;
 		sph->ambient[3] = 1.0;
 		sph->diffuse[3] = 1.0;
 		sph->emission[3] = 1.0;
 		sph->specular[3] = 1.0;
+		o.color = 1.; // hard-code white color for spheres
+		o.spin = 0.;
+		o.phi_o = 0.; // no spin or phi for spheres...
 	} else {  // box, etc
 		o.shape = new Shapes::Rectangle(o.len_vec[0].x, o.len_vec[0].y);
 	}
@@ -461,8 +467,8 @@ void MovingObjects::drawFrame()
 		if (bgcolor >  0.5)
 			glBlendFunc(GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR);
 		else glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
-    }
-
+    } 
+	
 	doFrameDraw();
    
     if (fps_mode != FPS_Single) {
@@ -471,8 +477,9 @@ void MovingObjects::drawFrame()
         else glBlendFunc(GL_SRC_COLOR,GL_ONE);
 
 		glDisable(GL_BLEND);
-    }
-
+    } 
+	
+  	
 }
 
 void MovingObjects::doFrameDraw()
@@ -541,44 +548,51 @@ void MovingObjects::doFrameDraw()
 							
 							
 							if (!wrapEdge) {
-#define P(m) ({ if (o.debug) { Vec2 c = o.shape->canvasPosition(); Debug() << m << ": f,o=" << frameNum << "," << objNum << " x,y,z=" << x << "," << y << "," << z << " cx,cy=" << c.x << "," << c.y << " vx,vy,vz=" << vx << "," << vy << "," << vz; } 0; })
+#define P(m) ({ if (o.debugLvl >= 1) { \
+                  Vec2 c = o.shape->canvasPosition(), \
+					   cc = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz)); \
+                  Debug() << m << ": f" << frameNum << "o" << objNum << " xyz=" << x << "," << y << "," << z << " vxyz=" << vx << "," << vy << "," << vz \
+                          << " cxy=" << c.x << "," << c.y << " cxyz'=" << cc.x << "," << cc.y << "," << z+vz; \
+                } \
+                0; \
+             })
 								bool reversedX = false, reversedY = false, reversedZ = false;
 								if (z + vz < zBoundsNear || z + vz > zBoundsFar) // hit camera or hit farthest away edge
-									vz = -vz, reversedZ = true, P("revZ");
+									P("revZ"), vz = -vz, reversedZ = true;
 								Vec2 c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz));
 								// adjust for wall bounce 
 								if ((c2.x + aabb.size.w/2 > max_x_pix) ||  (c2.x - aabb.size.w/2 < min_x_pix))
-									vx = -vx, reversedX = true, P("revX");
+									P("revX"), vx = -vx, reversedX = true;
 								if ((c2.y + aabb.size.h/2 > max_y_pix) ||  (c2.y - aabb.size.h/2 < min_y_pix))
-									vy = -vy, reversedY = true, P("revY"); 
+									P("revY"), vy = -vy, reversedY = true; 
 								if (reversedX || reversedY) c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz)); 
 								if (vz < 0 && !reversedZ) {
 									// now also adjust for wall bounce due to z growing too small and object zooming close enough to hit wall!
 									if (!reversedX && ((c2.x + aabb.size.w/2 > max_x_pix) ||  (c2.x - aabb.size.w/2 < min_x_pix))) {
-										vx = -vx, reversedX = true;
 										P("revX2");
+										vx = -vx, reversedX = true;
 										c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz));
 									}
 									if ((c2.x + aabb.size.w/2 > max_x_pix) ||  (c2.x - aabb.size.w/2 < min_x_pix)) {
 										// blergh!  still bounced....
-										vz = -vz, reversedZ = true;
 										P("revZ2");
+										vz = -vz, reversedZ = true;
 										c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz)); 
 										if (reversedX && !((c2.x + aabb.size.w/2 > max_x_pix) ||  (c2.x - aabb.size.w/2 < min_x_pix)))
-											vx = -vx, reversedX = false, P("revX3"); 
+											P("revX3"), vx = -vx, reversedX = false; 
 									}
 									c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz));
 									if (!reversedY && ((c2.y + aabb.size.h/2 > max_y_pix) || (c2.y - aabb.size.h/2 < min_y_pix))) {
-										vy = -vy, reversedY = true; 
 										P("revY2");
+										vy = -vy, reversedY = true; 
 										c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz));
 									}
 									if (((c2.y + aabb.size.h/2 > max_y_pix) || (c2.y - aabb.size.h/2 < min_y_pix))) {
-										vz = -vz, reversedZ = true;
 										P("revZ3");
+										vz = -vz, reversedZ = true;
 										c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz));
 										if (reversedY && !((c2.y + aabb.size.h/2 > max_y_pix) || (c2.y - aabb.size.h/2 < min_y_pix)))
-											vy = -vy, reversedY = false, P("revY3");
+											P("revY3"), vy = -vy, reversedY = false;
 									}
 								}
 
@@ -809,8 +823,8 @@ void MovingObjects::doFrameDraw()
 					}
 					if (zChanged) aabb = o.shape->AABB();
 					objcolor = fv[9];
-					
-				} //  end !have_fv_input_file
+					if (o.type == SphereType) objcolor = 1.0;
+				} //  end have_fv_input_file
 
 				// draw stim if out of delay period
 				if (fv.size() || (int(frameNum)%tframes /*- delay*/) >= 0) {
@@ -827,7 +841,7 @@ void MovingObjects::doFrameDraw()
 						b = g = r = objcolor;
 
 					o.shape->color = Vec3(r, g, b);
-					if (o.debug) {
+					if (o.debugLvl >= 2) {
 						const double t0 = getTime();
 						o.shape->draw();
 						const double tf = getTime();

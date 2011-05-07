@@ -216,8 +216,9 @@ Rect Rectangle::AABB() const {
 void InitStaticDisplayLists() {
 	Ellipse a(3,4);
 	Rectangle b(4,5);
+	Sphere  c(1);
 
-	(void)a; (void)b;
+	(void)a; (void)b; (void)c;
 }
 
 static void DLCleanup(GLuint & dl) {
@@ -230,6 +231,7 @@ static void DLCleanup(GLuint & dl) {
 void CleanupStaticDisplayLists() {
 	DLCleanup(Ellipse::dl);
 	DLCleanup(Rectangle::dl);
+	DLCleanup(Sphere::dl);
 	gluDeleteQuadric(Sphere::quadric), Sphere::quadric = 0;
 }
 
@@ -250,14 +252,24 @@ Sphere::DefaultEmission[4] =      { 0.,0.,0.,1.  },
 Sphere::DefaultShininess =        50.0f;
 
 /* static */ GLUquadricObj * Sphere::quadric = 0;
-	
-Sphere::Sphere(double radius, unsigned subdivisions)
-: radius(radius), subdivisions(subdivisions), lightIsFixedInSpace(true)
+/* static */ GLuint Sphere::dl = 0;
+
+Sphere::Sphere(double radius)
+: radius(radius), lightIsFixedInSpace(true)
 {
 	if (!quadric) {
 		quadric = gluNewQuadric();
 	}
-	std::memcpy(lightAmbient, DefaultLightAmbient, sizeof(DefaultLightAmbient));
+/*	if (!dl) {
+		dl = glGenLists(1);
+		glNewList(dl, GL_COMPILE);
+		gluQuadricNormals(quadric, GLU_SMOOTH);
+		gluQuadricDrawStyle(quadric , GLU_FILL);
+		gluQuadricOrientation(quadric, GLU_OUTSIDE); 
+		gluSphere(quadric, 1.0, NUM_VERTICES_FOR_SPHEROIDS, NUM_VERTICES_FOR_SPHEROIDS);		
+		glEndList();
+	}
+*/	std::memcpy(lightAmbient, DefaultLightAmbient, sizeof(DefaultLightAmbient));
 	std::memcpy(lightDiffuse, DefaultLightDiffuse, sizeof(DefaultLightDiffuse));
 	std::memcpy(lightPosition, DefaultLightPosition, sizeof(DefaultLightPosition));
 	std::memcpy(lightSpecular, DefaultLightSpecular, sizeof(DefaultLightSpecular));
@@ -267,13 +279,13 @@ Sphere::Sphere(double radius, unsigned subdivisions)
 	std::memcpy(specular, DefaultSpecular, sizeof(DefaultSpecular));
 	std::memcpy(lightAttenuations, DefaultLightAttenuations, sizeof(DefaultLightAttenuations));
 	shininess = DefaultShininess;
+	color = 1.0;
 }
 
 void Sphere::draw()
 {
 	double d = distance();
-	if (d < 0.0) d = 0.000000001;
-	
+	if (d < 0.0) d = 1e-9;
 	glMatrixMode( GL_PROJECTION );
 	glPushMatrix();
     glLoadIdentity();
@@ -281,11 +293,31 @@ void Sphere::draw()
 	glGetIntegerv(GL_VIEWPORT, vp);
     glOrtho( 0.0, vp[2], 0.0, vp[3], -10000.0, 10000.0 );	
 	glMatrixMode( GL_MODELVIEW );
-	
+	GLfloat lAmb[4], lDif[4], lSpec[4], spec[4], amb[4], dif[4], emis[4];
+	for (int i = 0; i < 4; ++i) {
+		GLfloat c = 1.f;
+		switch(i) {
+			case 0: c=color.r; break;
+			case 1: c=color.g; break;
+			case 2: c=color.b; break;
+		}
+		lAmb[i] = lightAmbient[i]*c;
+		lDif[i] = lightDiffuse[i]*c;
+		lSpec[i] = lightSpecular[i]*c;
+		spec[i] = specular[i]*c;
+		amb[i] = ambient[i]*c;
+		dif[i] = diffuse[i]*c;
+		emis[i] = emission[i]*c;
+	}
+	GLint blendEnabled = 0, depthEnabled = 0;
+	glGetIntegerv(GL_BLEND, &blendEnabled);
+	glGetIntegerv(GL_DEPTH_TEST, &depthEnabled);
+	if (!blendEnabled && !depthEnabled) 
+		glEnable(GL_DEPTH_TEST);
 	glEnable(GL_LIGHTING);
-	glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
-	glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, lAmb);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, lDif);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, lSpec);
 	if (lightIsFixedInSpace) {
 		glPushMatrix();
 		glLoadIdentity();
@@ -303,16 +335,11 @@ void Sphere::draw()
 		glLightfv(GL_LIGHT0, GL_POSITION,lightPosition);
 	}
 	glEnable(GL_LIGHT0);
-	glEnable(GL_DEPTH_TEST);
-	//GLfloat specular_scaled[4];
-	//std::memcpy(specular_scaled, specular, sizeof(specular));
-	//for (int i = 0; i < 4; ++i) specular_scaled[i] /= d; // make the speculation shrink/grow with distance
-	glMaterialfv(GL_FRONT, GL_SPECULAR, specular/*_scaled*/);
-	//GLfloat shininess_scaled = shininess / d;
+	glMaterialfv(GL_FRONT, GL_SPECULAR, spec);
 	glMaterialf(GL_FRONT, GL_SHININESS, shininess);
-	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
-	glMaterialfv(GL_FRONT, GL_EMISSION, emission);
+	glMaterialfv(GL_FRONT, GL_AMBIENT, amb);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, dif);
+	glMaterialfv(GL_FRONT, GL_EMISSION, emis);
 	
 	const Vec2 scale_saved = scale;
 	double radius_actual = scale.x * radius / d;
@@ -322,12 +349,14 @@ void Sphere::draw()
 	angle = 0.; // angle is ignored for spheres 
 	
 	drawBegin();
-
+	
 	gluQuadricNormals(quadric, GLU_SMOOTH);
 	gluQuadricDrawStyle(quadric , GLU_FILL);
 	gluQuadricOrientation(quadric, GLU_OUTSIDE); 
-	gluSphere(quadric, radius_actual, subdivisions, subdivisions);
+	gluSphere(quadric, radius_actual, NUM_VERTICES_FOR_SPHEROIDS, NUM_VERTICES_FOR_SPHEROIDS);
 
+	//glScalef(radius_actual, radius_actual, 1.0);
+//	glCallList(dl);
 	drawEnd();
 	
 	scale = scale_saved;
@@ -335,7 +364,8 @@ void Sphere::draw()
 	
 	glDisable(GL_LIGHT0);
 	glDisable(GL_LIGHTING);
-	glDisable(GL_DEPTH_TEST);
+	if (!blendEnabled && !depthEnabled) 
+		glDisable(GL_DEPTH_TEST);
 	
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();

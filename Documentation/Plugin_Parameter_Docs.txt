@@ -680,7 +680,10 @@ objAmbientN (for objects 2 through numObj)
 objColor
   *or* 
 objColorN (for objects 2 through numObj)
-        Synopsis:         Specifies the grayscale intensity of the target.
+        Synopsis:         Specifies the grayscale intensity of the target.  
+                          (Ignored for spheres, instead, use the light* and 
+                          ambient, diffuse, emission parameters instead for 
+                          these 3D lighted objects).
         Datatype:         float
         Possible values:  0.0 - 1.0 (black to white)
         Default value:    first object: 0.0 (black)
@@ -779,7 +782,10 @@ objTypeN (where N is 2 to numObj)
                sphere     - Indicates you want the target to be a 3D sphere
                             of objLenX radius (objLenY is ignored) (radius is in 
                             pixels, see the objLenX param). The sphere is 
-                            approximated using 128 vertices.
+                            approximated using 32 vertices.  (Note that objColor
+                            is ignored for spheres.  Instead, specify intensity
+                            using the various light*, ambient, diffuse, and
+                            emission parameters.)
                             
         Default value:    first object: box
                           subsequent objects: take on the value of the first

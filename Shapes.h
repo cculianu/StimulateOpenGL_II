@@ -12,8 +12,9 @@
 #include <vector>
 #include "GLHeaders.h"
 
-#define NUM_VERTICES_FOR_ELLIPSOIDS 128 /* number of vertices used to approximate ellipsoids (circles, ellipses, and spheres)
+#define NUM_VERTICES_FOR_ELLIPSOIDS 128 /* number of vertices used to approximate ellipsoids (circles, ellipses)
 higher number is better resolution, but sacrifices performance. */
+#define NUM_VERTICES_FOR_SPHEROIDS 32 /* number of vertices used to approximate spheres */
 
 struct Rect {
 	Vec2 origin; // bottom-left corner
@@ -129,12 +130,11 @@ public:
 						 DefaultShininess; // 50.0
 	
 	double radius;
-	unsigned subdivisions;
 	GLfloat lightAmbient[4], lightDiffuse[4], lightPosition[4], lightSpecular[4], 
 	        specular[4], ambient[4], diffuse[4], emission[4], shininess;
 	GLfloat lightAttenuations[3]; ///< constant, linear, and quadratic respectively
 	
-	Sphere(double radius, unsigned subdivisions = NUM_VERTICES_FOR_ELLIPSOIDS);
+	Sphere(double radius);
 	
 	void draw();
 	
@@ -146,6 +146,7 @@ public:
 	
 protected:
 	static GLUquadricObj *quadric;
+	static GLuint dl;
 };
 	
 /// call this to pre-create the display lists for Rectangle and Ellipses so that it's ready for us and primed
