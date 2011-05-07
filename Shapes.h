@@ -54,6 +54,7 @@ public:
 	Vec2 bottomLeft() const { return AABB().origin; }
 	
 	static Vec2 canvasPosition(const Vec3 & real_position); ///< returns the canvas position given a real pos
+	static Vec3 cposToRealPos(const Vec2 & canvas_position, double z);
 	Vec2 canvasPosition() const; ///< returns the position of the object on the canvas after the object's Z position (distance) calculation is applied
 	void setCanvasPosition(const Vec2 &);
 	double distance() const; /**< the default distance, 1, means the object is on the 

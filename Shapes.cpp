@@ -70,12 +70,7 @@ void Shape::setDistance(double d) {
 Vec2 Shape::canvasPosition() const { return canvasPosition(position); }
 
 void Shape::setCanvasPosition(const Vec2 & v) {
-	MovingObjects *m = movingObjects();
-	Vec2 mid (m->width()*.5, m->height()*.5);
-	const double d = distance() > 0.0 ? distance() : 0.000000000001;
-	Vec2 p (v.x - mid.x, v.y - mid.y);
-	p = Vec2(p.x * d, p.y * d);
-	position = Vec3(p.x + mid.x, p.y + mid.y, position.z);
+	position = cposToRealPos(v, position.z);
 }
 	
 /*static*/
@@ -85,11 +80,26 @@ Vec2 Shape::canvasPosition(const Vec3 & position)
 	Vec2 mid (m->width()*.5, m->height()*.5);
 	double d = 0.0;
 	if (m) d = m->zToDistance(position.z);
+	if (eqf(d,0.0)) d=1e-9;
 	Vec2 p(position.x-mid.x, position.y-mid.y);
-	p = Vec2(p.x/d, p.y/d);
-	return Vec2(p.x+mid.x, p.y+mid.y);	
+	return p/d + mid;
 }
 
+/* static */
+Vec3 Shape::cposToRealPos(const Vec2 & cpos, double z)
+{
+	// cpos = (pos-mid)/d + mid
+	// cpos - mid = (pos-mid)/d
+	// (cpos - mid)*d = pos-mid
+	// (cpos - mid)*d + mid = pos
+	MovingObjects *m = movingObjects();
+	Vec2 mid (m->width()*.5, m->height()*.5);
+	double d = 0.0;
+	if (m) d = m->zToDistance(z);
+	const Vec2 rpos2d ((cpos-mid)*d + mid);
+	return Vec3 (rpos2d.x, rpos2d.y, z);
+}
+	
 /* static */ GLuint Ellipse::dl = 0;
 const unsigned Ellipse::numVertices = NUM_VERTICES_FOR_ELLIPSOIDS;
 	

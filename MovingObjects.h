@@ -63,7 +63,9 @@ private:
 	void initObj(ObjData & o);
 	
 	void wrapObject(ObjData & o, Rect & aabb) const;
-
+	void doWallBounce(ObjData & o) const;
+	void ensureObjectIsInBounds(ObjData & o) const;
+	
 	QList<ObjData> objs;
 	int numObj;
 	
@@ -94,6 +96,10 @@ private:
 	bool is3D; ///< this flag controls if we jitter in Z, if rndtrial produces random Z values, and a bunch of other things
 	QVector<Vec3> savedLastPositions;
 	void initCameraDistance();
+	void initFrustumEdgeNormals();
+	
+	//// used for bounds checking for object bouncing, vector of size 6
+	QVector<Vec3> frustumEdgeNormals; ///< 0 = left edge, 1= right edge, 2 = bottom edge, 3 = top edge, 4 = near zbound, 5 = far zbounds
 	
 public:
 	double distanceToZ(double distance) const;

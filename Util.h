@@ -191,7 +191,21 @@ struct Vec2T {
 		struct { T v1, v2; };
 	};
 	Vec2T(T x = 0, T y = 0) : x(x), y(y) {}	
+
 	T & operator[](int i) { if (i == 0) return x; return y; }	
+
+	template <typename U> Vec2T<T> operator*(const U & u) const { return Vec2T<T>(x*u,y*u); }
+	template <typename U> Vec2T<T> operator/(const U & u) const { return Vec2T<T>(x/u,y/u); }
+	template <typename U> Vec2T<T> operator+(const U & u) const { return Vec2T<T>(x+u,y+u); }
+	template <typename U> Vec2T<T> operator-(const U & u) const { return Vec2T<T>(x-u,y-u); }
+	Vec2T<T> operator-(const Vec2T<T> & v) const { return Vec2T<T>(x-v.x,y-v.y); }
+	Vec2T<T> operator+(const Vec2T<T> & v) const { return Vec2T<T>(x+v.x,y+v.y); }
+	T dot(const Vec2T<T> & v) const { return x*v.x + y*v.y; }
+	T magnitude() const { return sqrt(x*x + y*y); }
+	Vec2T<T> normalized() const { 
+		const T m (magnitude());
+		return Vec2T<T>(x/m, y/m);
+	}
 };
 
 template <typename T=double> 
@@ -202,9 +216,33 @@ struct Vec3T {
 		struct { T v1, v2, v3; };
 	};
 	Vec3T(T v1 = 0, T v2 = 0, T v3 = 0) : v1(v1), v2(v2), v3(v3) {}	
-	T & operator[](int i) { if (i == 0) return x; else if (i==1) return y; return z; }
-};
 
+	T & operator[](int i) { if (i == 0) return x; else if (i==1) return y; return z; }
+
+	// some common vector operations
+	Vec3T<T> operator-(const Vec3T<T> & v) const { return Vec3T<T>(x-v.x,y-v.y,z-v.z); }
+	Vec3T<T> operator+(const Vec3T<T> & v) const { return Vec3T<T>(x+v.x,y+v.y,z+v.z); }
+	template <typename U> Vec3T<T> operator*(const U & u) const { return Vec3T<T>(x*u,y*u,z*u); }
+	template <typename U> Vec3T<T> operator/(const U & u) const { return Vec3T<T>(x/u,y/u,z/u); }
+	template <typename U> Vec3T<T> operator+(const U & u) const { return Vec3T<T>(x+u,y+u,z+u); }
+	template <typename U> Vec3T<T> operator-(const U & u) const { return Vec3T<T>(x-u,y-u,z-u); }
+	
+	T dot(const Vec3T<T> & v) const { return x*v.x + y*v.y + z*v.z; }
+	Vec3T<T> cross(const Vec3T<T> & v) const {
+		return Vec3T<T>(y*v.z - z*v.y, 
+						z*v.x - x*v.z,
+						x*v.y - y*v.x);
+	}
+	T magnitude() const { return sqrt(x*x + y*y + z*z); }
+	Vec3T<T> normalized() const { 
+		const T m (magnitude());
+		return Vec3T<T>(x/m, y/m, z/m);
+	}
+	Vec3T<T> reflect(const Vec3T<T> & normal) const {
+		Vec3T<T> n(normal.normalized()); // only needed if N isn't normalized already
+		return (*this) - (n * ( 2.0 * dot(n) ));
+	}
+};
 typedef Vec2T<double> Vec2d;
 typedef Vec2T<float> Vec2f;
 typedef Vec2T<int> Vec2i;

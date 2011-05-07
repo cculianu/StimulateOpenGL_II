@@ -364,6 +364,9 @@ bool MovingObjects::init()
 		else
 			Debug() << "Param spec lacking Z information for objects: plugin will use 2D compatibility mode for jitter and rndtrial generation.";
 	}
+	
+	initFrustumEdgeNormals();
+	
 	return true;
 }
 
@@ -546,57 +549,9 @@ void MovingObjects::doFrameDraw()
 														  || z < zBoundsNear))))
 								wrapObject(o, aabb);
 							
+							else if (!wrapEdge) 
+								doWallBounce(o);
 							
-							if (!wrapEdge) {
-#define P(m) ({ if (o.debugLvl >= 1) { \
-                  Vec2 c = o.shape->canvasPosition(), \
-					   cc = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz)); \
-                  Debug() << m << ": f" << frameNum << "o" << objNum << " xyz=" << x << "," << y << "," << z << " vxyz=" << vx << "," << vy << "," << vz \
-                          << " cxy=" << c.x << "," << c.y << " cxyz'=" << cc.x << "," << cc.y << "," << z+vz; \
-                } \
-                0; \
-             })
-								bool reversedX = false, reversedY = false, reversedZ = false;
-								if (z + vz < zBoundsNear || z + vz > zBoundsFar) // hit camera or hit farthest away edge
-									P("revZ"), vz = -vz, reversedZ = true;
-								Vec2 c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz));
-								// adjust for wall bounce 
-								if ((c2.x + aabb.size.w/2 > max_x_pix) ||  (c2.x - aabb.size.w/2 < min_x_pix))
-									P("revX"), vx = -vx, reversedX = true;
-								if ((c2.y + aabb.size.h/2 > max_y_pix) ||  (c2.y - aabb.size.h/2 < min_y_pix))
-									P("revY"), vy = -vy, reversedY = true; 
-								if (reversedX || reversedY) c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz)); 
-								if (vz < 0 && !reversedZ) {
-									// now also adjust for wall bounce due to z growing too small and object zooming close enough to hit wall!
-									if (!reversedX && ((c2.x + aabb.size.w/2 > max_x_pix) ||  (c2.x - aabb.size.w/2 < min_x_pix))) {
-										P("revX2");
-										vx = -vx, reversedX = true;
-										c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz));
-									}
-									if ((c2.x + aabb.size.w/2 > max_x_pix) ||  (c2.x - aabb.size.w/2 < min_x_pix)) {
-										// blergh!  still bounced....
-										P("revZ2");
-										vz = -vz, reversedZ = true;
-										c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz)); 
-										if (reversedX && !((c2.x + aabb.size.w/2 > max_x_pix) ||  (c2.x - aabb.size.w/2 < min_x_pix)))
-											P("revX3"), vx = -vx, reversedX = false; 
-									}
-									c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz));
-									if (!reversedY && ((c2.y + aabb.size.h/2 > max_y_pix) || (c2.y - aabb.size.h/2 < min_y_pix))) {
-										P("revY2");
-										vy = -vy, reversedY = true; 
-										c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz));
-									}
-									if (((c2.y + aabb.size.h/2 > max_y_pix) || (c2.y - aabb.size.h/2 < min_y_pix))) {
-										P("revZ3");
-										vz = -vz, reversedZ = true;
-										c2 = Shapes::Shape::canvasPosition(Vec3(x+vx,y+vy,z+vz));
-										if (reversedY && !((c2.y + aabb.size.h/2 > max_y_pix) || (c2.y - aabb.size.h/2 < min_y_pix)))
-											P("revY3"), vy = -vy, reversedY = false;
-									}
-								}
-
-							}
 							
 							// initialize position iff k==0 and frameNum is a multiple of tframes
 							if ( !k && !(frameNum%tframes)) {
@@ -698,8 +653,8 @@ void MovingObjects::doFrameDraw()
 										vz = vel.z;										
 									}
 								}
-								
 								objPhi = o.phi_o;
+								if (is3D) ensureObjectIsInBounds(o);
 								aabb = o.shape->AABB();
 							}
 							
@@ -906,6 +861,67 @@ void MovingObjects::wrapObject(ObjData & o, Rect & aabb) const {
 	aabb = s.AABB();
 }
 
+void MovingObjects::doWallBounce(ObjData & o) const {
+	const Vec3 & p (o.shape->position);
+	Vec3 porig(p);
+	Vec3 & v (o.v);
+	Vec3 fpos = p + v; ///< future position
+	
+	if (is3D) {
+		// first, wrap object in Z, if 3D mode
+		if (fpos.z > zBoundsFar) {
+			// reflect off far wall
+			v=v.reflect(frustumEdgeNormals[5]);
+			fpos = p + v;
+		}
+			
+		if (fpos.z < zBoundsNear) {
+			v=v.reflect(frustumEdgeNormals[4]);
+			fpos = p + v;
+		}
+	}
+	Rect aabb;
+#define REDO_AABB() ({ \
+	o.shape->position = fpos; \
+	aabb = (o.shape->AABB()); /* get aabb of future position */ \
+	o.shape->position = porig; 0; })
+	
+	REDO_AABB();
+				
+	if (aabb.left() < canvasAABB.left())
+		v = v.reflect(frustumEdgeNormals[0]), fpos = p + v, REDO_AABB();
+	if (aabb.right() > canvasAABB.right())
+		v = v.reflect(frustumEdgeNormals[1]), fpos = p + v, REDO_AABB();
+	if (aabb.bottom() < canvasAABB.bottom())
+		v = v.reflect(frustumEdgeNormals[2]), fpos = p + v, REDO_AABB();
+	if (aabb.top() > canvasAABB.top())
+		v = v.reflect(frustumEdgeNormals[3]), fpos = p + v, REDO_AABB();
+	
+}
+
+void MovingObjects::ensureObjectIsInBounds(ObjData & o) const
+{
+	Rect aabb;
+	Vec3 fpos (o.shape->position+o.v), porig(o.shape->position);
+	
+	REDO_AABB();
+	
+	// FUDGE: objects that are out-of-bounds get fudged in-bounds here...
+	Vec2 cpos = Shapes::Shape::canvasPosition(fpos);
+	double diff;
+	bool modified = false;
+	if ((diff = aabb.left() - canvasAABB.left()) < 0)
+		cpos.x += -diff, modified = true;
+	if ((diff = aabb.right() - canvasAABB.right()) > 0)
+		cpos.x -= diff, modified = true;
+	if ((diff = aabb.bottom() - canvasAABB.bottom()) < 0)
+		cpos.y += -diff, modified = true;
+	if ((diff = aabb.top() - canvasAABB.top()) > 0)
+		cpos.y -= diff, modified = true;
+	if (modified) 
+		o.shape->setCanvasPosition(cpos);
+}
+
 void MovingObjects::initCameraDistance()
 {
 	majorPixelWidth = width() > height() ? width() : height();
@@ -918,6 +934,67 @@ void MovingObjects::initCameraDistance()
 	}
 	cameraDistance = bestDist;
 	Log() << "Camera distance in Z is " << cameraDistance;
+}
+
+void MovingObjects::initFrustumEdgeNormals()
+{
+	frustumEdgeNormals.resize(6);
+	
+	if (is3D) {
+		Vec3 a,b,t;
+		Vec3 p1, p2, p3;
+		// left edge
+		p1 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix), 0.0); 
+		p2 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix+1), 0.0);
+		p3 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix+1), 1.0);
+		a = (p2-p1).normalized();
+		b = (p3-p1).normalized();
+		frustumEdgeNormals[0] = t = a.cross(b).normalized();
+		// right edge
+		p1 = Shapes::Shape::cposToRealPos(Vec2(max_x_pix, min_y_pix), 0.0); 
+		p2 = Shapes::Shape::cposToRealPos(Vec2(max_x_pix, min_y_pix), 1.0);
+		p3 = Shapes::Shape::cposToRealPos(Vec2(max_x_pix, min_y_pix+1), 1.0);
+		a = (p2-p1).normalized();
+		b = (p3-p1).normalized();
+		frustumEdgeNormals[1] = t = a.cross(b).normalized();
+		// bottom edge
+		p1 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix), 0.0); 
+		p2 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix), 1.0);
+		p3 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, min_y_pix), 1.0);
+		a = (p2-p1).normalized();
+		b = (p3-p1).normalized();
+		frustumEdgeNormals[2] = t = a.cross(b).normalized();
+		// top edge
+		p1 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, max_y_pix), 0.0); 
+		p2 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, max_y_pix), 0.0);
+		p3 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, max_y_pix), 1.0);
+		a = (p2-p1).normalized();
+		b = (p3-p1).normalized();
+		frustumEdgeNormals[3] = t = a.cross(b).normalized();
+		// near edge
+		const double z=distanceToZ(.5); 
+		p1 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix), z); 
+		p2 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, min_y_pix), z);
+		p3 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, min_y_pix+1), z);
+		a = (p2-p1).normalized();
+		b = (p3-p1).normalized();
+		frustumEdgeNormals[4] = t = a.cross(b).normalized();
+		// far edge
+		p1 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix), zBoundsFar); 
+		p2 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix+1), zBoundsFar);
+		p3 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, min_y_pix+1), zBoundsFar);
+		a = (p2-p1).normalized();
+		b = (p3-p1).normalized();
+		frustumEdgeNormals[5] = t = a.cross(b).normalized();
+	} else {
+		// 2D.. don't really use a frustum at all, since we want to bounce orthogonally to the screen edge
+		frustumEdgeNormals[0] = Vec3(1,0,0);
+		frustumEdgeNormals[1] = Vec3(-1,0,0);
+		frustumEdgeNormals[2] = Vec3(0,1,0);
+		frustumEdgeNormals[3] = Vec3(0,-1,0);
+		frustumEdgeNormals[4] = Vec3(0,0,1);
+		frustumEdgeNormals[5] = Vec3(0,0,-1);		
+	}
 }
 
 double MovingObjects::distanceToZ(double d) const
