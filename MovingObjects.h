@@ -101,6 +101,16 @@ private:
 	//// used for bounds checking for object bouncing, vector of size 6
 	QVector<Vec3> frustumEdgeNormals; ///< 0 = left edge, 1= right edge, 2 = bottom edge, 3 = top edge, 4 = near zbound, 5 = far zbounds
 	
+	enum FVCols { FV_frameNum=0, FV_objNum, FV_subFrameNum, FV_objType, FV_x, FV_y, FV_r1, FV_r2, FV_phi, FV_color, FV_z, FV_zScaled, 
+		          N_FVCols };
+	struct ConfigSuppressesFrameVar {
+		bool col[N_FVCols]; ///< iff elements of array here are true, the config file suppresses framevar, and not vice-versa 
+		ConfigSuppressesFrameVar() { for (int i = 0; i < (int)N_FVCols; ++i) col[i] = false; }
+		bool & operator[](int i) { return col[i]; }
+		const bool & operator[](int i) const { return col[i]; }
+	};
+	QVector<ConfigSuppressesFrameVar> configSuppressesFrameVar;
+	
 public:
 	double distanceToZ(double distance) const;
 	double zToDistance(double z) const;

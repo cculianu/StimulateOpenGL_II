@@ -38,7 +38,7 @@ MovingObjects::~MovingObjects()
 {
 }
 
-QString MovingObjects::objTypeStrs[] = { "box", "ellipsoid" };
+QString MovingObjects::objTypeStrs[] = { "box", "ellipsoid", "sphere", NULL };
 
 MovingObjects::ObjData::ObjData() : shape(0) { initDefaults(); }
 
@@ -85,6 +85,7 @@ bool MovingObjects::init()
     moveFlag = true;
 	is3D = false;
 
+	
 	// set up pixel color blending to enable 480Hz monitor mode
 
 	// set default parameters
@@ -99,7 +100,11 @@ bool MovingObjects::init()
 	fvHasPhiCol = fvHasZCol = fvHasZScaledCol = false;
 	didScaledZWarning = 0;
 	
+	
+	configSuppressesFrameVar.clear(); configSuppressesFrameVar.resize(numObj);
+	
 	for (int i = 0; i < numObj; ++i) {
+		ConfigSuppressesFrameVar & csfv (configSuppressesFrameVar[i]);
 		if (i > 0)	paramSuffixPush(QString::number(i+1)); // make the additional obj params end in a number
        	objs.push_back(!i ? ObjData() : objs.front()); // get defaults from first object
 		ObjData & o = objs.back();
@@ -108,6 +113,8 @@ bool MovingObjects::init()
 		
 		QString otype; 
 		if (getParam( "objType"     , otype)) {
+			csfv[FV_objType] = true;
+			
 			otype = otype.trimmed().toLower();
 			
 			if (otype == "ellipse" || otype == "ellipsoid" || otype == "circle" || otype == "disk" || otype == "sphere"
@@ -122,23 +129,25 @@ bool MovingObjects::init()
 		
 		QVector<double> r1, r2;
 		// be really tolerant with object maj/minor length variable names 
-		getParam( "objLenX" , r1)
-		|| getParam( "rx"          , r1) 
-		|| getParam( "r1"          , r1) 
-	    || getParam( "objLen"   , r1)
-		|| getParam( "objLenMaj", r1)
-		|| getParam( "objLenMajor" , r1)
-		|| getParam( "objMajorLen" , r1)
-		|| getParam( "objMajLen" , r1)
-		|| getParam( "xradius"   , r1);
-		getParam( "objLenY" , r2)
-		|| getParam( "ry"          , r2)
-		|| getParam( "r2"          , r2)
-		|| getParam( "objLenMinor" , r2) 
-		|| getParam( "objLenMin"   , r2)
-		|| getParam( "objMinorLen" , r2)
-		|| getParam( "objMinLen"   , r2)
-		|| getParam( "yradius"   , r2);
+		csfv[FV_r1] = 
+		  getParam( "objLenX" , r1)
+			|| getParam( "rx"          , r1) 
+			|| getParam( "r1"          , r1) 
+			|| getParam( "objLen"   , r1)
+			|| getParam( "objLenMaj", r1)
+			|| getParam( "objLenMajor" , r1)
+			|| getParam( "objMajorLen" , r1)
+			|| getParam( "objMajLen" , r1)
+			|| getParam( "xradius"   , r1);
+		csfv[FV_r2] =
+			getParam( "objLenY" , r2)
+			|| getParam( "ry"          , r2)
+			|| getParam( "r2"          , r2)
+			|| getParam( "objLenMinor" , r2) 
+			|| getParam( "objLenMin"   , r2)
+			|| getParam( "objMinorLen" , r2)
+			|| getParam( "objMinLen"   , r2)
+			|| getParam( "yradius"   , r2);
 		
 		if (!r2.size()) r2 = r1;
 		if (r1.size() != r2.size()) {
@@ -146,8 +155,13 @@ bool MovingObjects::init()
 			return false;
 		}
 		o.len_vec.resize(r1.size());
-		for (int j = 0; j < r1.size(); ++j)
+		for (int j = 0; j < r1.size(); ++j) {
+			if (o.type == SphereType && !eqf(r1[j],r2[j])) {
+				Warning() << "Obj " << i << ": sphere specified with objLenX != objLenY!  Ignoring objLenY (this means pure spheres only, spheroids not supported!)";
+				r2[j] = r1[j];
+			}
 			o.len_vec[j] = Vec2(r1[j], r2[j]);
+		}
 		
 		if (!o.len_vec.size()) {
 			if (i) o.len_vec = objs.front().len_vec; // grab the lengths from predecessor if not specified
@@ -159,8 +173,7 @@ bool MovingObjects::init()
 			return false;
 		}
 		
-		getParam( "objSpin"     , o.spin);
-		getParam( "objPhi" , o.phi_o) || getParam( "phi", o.phi_o );  
+		csfv[FV_phi] = getParam( "objPhi" , o.phi_o) || getParam( "phi", o.phi_o );  
 		QVector<double> vx, vy, vz;
 		getParam( "objVelx"     , vx); 
 		getParam( "objVely"     , vy); 
@@ -204,7 +217,7 @@ bool MovingObjects::init()
 		}
 		if (!is3D && !eqf(o.pos_o.z, 0.)) is3D = true;
 		
-		getParam( "objcolor"    , o.color);		ChkAndClampParam("objcolor", o.color, 0., 1., i);
+		csfv[FV_color] = getParam( "objcolor"    , o.color);		ChkAndClampParam("objcolor", o.color, 0., 1., i);
 		getParam( "objShininess", o.shininess); ChkAndClampParam("objShininess", o.shininess, 0., 1., i);
 		getParam( "objAmbient", o.ambient);     ChkAndClampParam("objAmbient", o.ambient, 0., 1., i);
 		getParam( "objDiffuse", o.diffuse);     ChkAndClampParam("objDiffuse", o.diffuse, 0., 1., i);
@@ -311,7 +324,7 @@ bool MovingObjects::init()
 	//if (!dontInitFvars) {
 		ObjData o = objs.front();
 		double x = o.pos_o.x, y = o.pos_o.y, r1 = o.len_vec.front().x, r2 = o.len_vec.front().y;
-		frameVars->setVariableNames(   QString(          "frameNum objNum subFrameNum objType(0=box,1=ellipse) x y r1 r2 phi color z zScaled").split(QString(" ")));
+		frameVars->setVariableNames(   QString(          "frameNum objNum subFrameNum objType(0=box,1=ellipse,2=sphere) x y r1 r2 phi color z zScaled").split(QString(" ")));
 		frameVars->setVariableDefaults(QVector<double>()  << 0     << 0   << 0        << o.type                << x
 									                                                                             << y
 									                                                                               << r1
@@ -353,7 +366,7 @@ bool MovingObjects::init()
 		Error() << "Specified zBoundsNear value is too small -- it needs to be positive nonzeo!";
 		return false;
 	}
-	if (!getParam("zBoundsNear", zBoundsNear)) zBoundsNear = -cameraDistance;
+	if (!getParam("zBoundsNear", zBoundsNear)) zBoundsNear = (-cameraDistance) + 100;
 	if (zBoundsNear >= zBoundsFar) {
 		Error() << "zBoundsNear needs to be less than zBoundsFar!  (zBoundsFar is " << zBoundsFar << ", zBoundsNear is " << zBoundsNear << ")";
 		return false;
@@ -376,6 +389,7 @@ void MovingObjects::initObj(ObjData & o) {
 	} else if (o.type == SphereType) {
 		Shapes::Sphere *sph = 0;
 		o.shape = sph = new Shapes::Sphere(o.len_vec[0].x);
+		for (int i = 0; i < (int)o.len_vec.size(); ++i) o.len_vec[i].y = o.len_vec[i].x; ///< enforce lengths in x/y equal for spheres
 		sph->lightIsFixedInSpace = lightIsFixedInSpace;
 		for (int i = 0; i < 3; ++i)	sph->lightPosition[i] = lightPos[i]*2.0;
 		sph->lightPosition[3] = lightIsDirectional ? 0.0f : 1.0f;
@@ -693,6 +707,8 @@ void MovingObjects::doFrameDraw()
 				} 
 			
 				if (have_fv_input_file) {
+					ConfigSuppressesFrameVar & csfv (configSuppressesFrameVar[objNum]);
+					
 					fv = frameVars->readNext();
 					if ( !frameNum ) {
 						fvHasPhiCol = frameVars->hasInputColumn("phi");
@@ -706,17 +722,17 @@ void MovingObjects::doFrameDraw()
 						stop();
 						return;
 					} 
-					if (fv.size() < NUM_FRAME_VARS || fv[0] != frameNum) {
+					if (fv.size() < NUM_FRAME_VARS || fv[FV_frameNum] != frameNum) {
 						Error() << "Error reading frame " << frameNum << " from frameVar file! Datafile frame num differs from current frame number!  Do all the fps_mode and numObj parameters of the frameVar file match the current fps mode and numObjs?";	
 						stop();
 						return;
 					}
-					if (fv[1] != objNum) {
+					if (fv[FV_objNum] != objNum) {
 						Error() << "Error reading object " << objNum << " from frameVar file! Datafile object num differs from current object number!  Do all the fps_mode and numObj parameters of the frameVar file match the current fps mode and numObjs?";	
 						stop();
 						return;						
 					}
-					if (fv[2] != k) {
+					if (fv[FV_subFrameNum] != k) {
 						Error() << "Error reading subframe " << k << " from frameVar file! Datafile subframe num differs from current subframe numer!  Do all the fps_mode and numObj parameters of the frameVar file match the current fps mode and numObjs?";	
 						stop();
 						return;												
@@ -725,8 +741,10 @@ void MovingObjects::doFrameDraw()
 
 					
 					bool didInitLen = false;
-					const ObjType otype = ObjType(int(fv[3]));
-					double r1 = fv[6], r2 = fv[7];
+					const ObjType otype = ObjType(int(fv[FV_objType]));
+					const double r1 = ( csfv[FV_r1] ? objLen : fv[FV_r1] ), ///< keep the old objlen if config file is set to suppress framevar...
+					             r2 = ( csfv[FV_r2] ? objLen_min : fv[FV_r2] );
+
 					if (!k && !frameNum) {
 						// do some required initialization if on frame 0 for this object to make sure r1, r2 and  obj type jive
 						if (otype != o.type || !eqf(r1, objLen) || !eqf(r2, objLen_min)) {
@@ -738,10 +756,10 @@ void MovingObjects::doFrameDraw()
 						}		
 					}
 					
-					x = fv[4];
-					y = fv[5];
+					x = fv[FV_x];
+					y = fv[FV_y];
 					// handle type change mid-plugin-run
-					if (o.type != otype) {
+					if (!csfv[FV_objType] && o.type != otype) {
 						Shapes::Shape *oldshape = o.shape;
 						o.shape = 0;
 						o.type = otype;
@@ -757,16 +775,16 @@ void MovingObjects::doFrameDraw()
 						o.shape->setRadii(r1, r2);
 					}
 					bool zChanged = false;
-					if (fvHasPhiCol) 
-						objPhi = fv[8];
-					if (fvHasZCol)
-						z = fv[10], zChanged = true;
+					if (fvHasPhiCol && !csfv[FV_phi]) 
+						objPhi = fv[FV_phi];
+					if (fvHasZCol && !csfv[FV_z])
+						z = fv[FV_z], zChanged = true;
 					else 
 						z = 0.0, zChanged = false;
 					
 					double newZ = z;
-					if (fvHasZScaledCol && fvHasZCol) {
-						newZ = distanceToZ(fv[11]);
+					if (fvHasZScaledCol && fvHasZCol && !csfv[FV_zScaled]) {
+						newZ = distanceToZ(fv[FV_zScaled]);
 						if (fabs(newZ - z) >= 0.0001 && didScaledZWarning <= 3) {
 							Warning() << "Encountered z & zScaled column in framevar file and they disagree.  Ignoring zScaled and using z. (Could the render window size have changed?)";						
 							++didScaledZWarning;
@@ -777,7 +795,7 @@ void MovingObjects::doFrameDraw()
 						z = newZ, zChanged = true;
 					}
 					if (zChanged) aabb = o.shape->AABB();
-					objcolor = fv[9];
+					if (!csfv[FV_color]) objcolor = fv[FV_color];
 					if (o.type == SphereType) objcolor = 1.0;
 				} //  end have_fv_input_file
 
@@ -901,25 +919,61 @@ void MovingObjects::doWallBounce(ObjData & o) const {
 
 void MovingObjects::ensureObjectIsInBounds(ObjData & o) const
 {
-	Rect aabb;
-	Vec3 fpos (o.shape->position+o.v), porig(o.shape->position);
+	int i = 0;
+	const Vec3 origOrigPos (o.shape->position);
 	
-	REDO_AABB();
+	do { 
+		
+		bool modified = false;
+		Rect aabb;
+		double diff;
+		Vec3 fpos (o.shape->position+o.v), porig(o.shape->position);
+
+		if (!i) {
+			if ( (diff=fpos.z-zBoundsNear) < 0) fpos.z -= diff, o.shape->position.z -= diff, porig = o.shape->position, modified = true;
+			if ( (diff=fpos.z-zBoundsFar) > 0)  fpos.z -= diff, o.shape->position.z -= diff, porig = o.shape->position, modified = true;
+		}
+		
+		REDO_AABB();
+		
+		// FUDGE: objects that are out-of-bounds get fudged in-bounds here...
+		Vec2 cpos = Shapes::Shape::canvasPosition(fpos);
+	/*	const double objLen (o.shape->scale.x * o.len_vec[0].x), objLen_min (o.shape->scale.y * o.len_vec[0].y); 
+		const double hw = objLen/2., hh = objLen_min/2.;
+		if (cpos.x-hw < min_x_pix) cpos.x = min_x_pix+hw, modified = true;
+		else if (cpos.x+hw > max_x_pix) cpos.x = max_x_pix-hw, modified = true;
+		if (cpos.y-hh < min_y_pix) cpos.y = min_y_pix+hh, modified = true;
+		else if (cpos.y+hh > max_y_pix) cpos.y = max_y_pix-hh, modified = true;*/
+		
+		if ((diff = aabb.left() - canvasAABB.left()) < 0)
+			cpos.x -= diff, modified = true;
+		if ((diff = aabb.right() - canvasAABB.right()) > 0)
+			cpos.x -= diff, modified = true;
+		if ((diff = aabb.bottom() - canvasAABB.bottom()) < 0)
+			cpos.y -= diff, modified = true;
+		if ((diff = aabb.top() - canvasAABB.top()) > 0)
+			cpos.y -= diff, modified = true;
+
+		if (rndtrial == 1 || rndtrial == 2) {
+			if (!i && modified) {
+				Warning() << "RndTrial: object " << int(&o-&objs[0]) << " randomly positioned out of bounds. Nudging it back in bounds...";				
+			}
+		} else {
+			if (modified) {
+				if (!i)
+					Warning() << "Object " << int(&o-&objs[0]) << " initial position out of bounds, will move it in bounds (if it fits)...";
+				else {
+					Error() << "Object " << int(&o-&objs[0]) << " cannot be fully placed in bounds (is objZinit too close to camera?).  Object may be lost offscreen and/or wall bouncing may fail spectacularly. Please specify saner initial position params for this object!";
+					o.shape->position = origOrigPos;
+					return;
+				}
+			}
+		}
+		
+		if (!i && modified) 
+			o.shape->setCanvasPosition(cpos);
+	} while (++i < 2);
 	
-	// FUDGE: objects that are out-of-bounds get fudged in-bounds here...
-	Vec2 cpos = Shapes::Shape::canvasPosition(fpos);
-	double diff;
-	bool modified = false;
-	if ((diff = aabb.left() - canvasAABB.left()) < 0)
-		cpos.x += -diff, modified = true;
-	if ((diff = aabb.right() - canvasAABB.right()) > 0)
-		cpos.x -= diff, modified = true;
-	if ((diff = aabb.bottom() - canvasAABB.bottom()) < 0)
-		cpos.y += -diff, modified = true;
-	if ((diff = aabb.top() - canvasAABB.top()) > 0)
-		cpos.y -= diff, modified = true;
-	if (modified) 
-		o.shape->setCanvasPosition(cpos);
 }
 
 void MovingObjects::initCameraDistance()
