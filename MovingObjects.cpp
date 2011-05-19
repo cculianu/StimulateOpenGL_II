@@ -80,8 +80,6 @@ bool MovingObjects::init()
 	
 	initCameraDistance();
 
-	bool haveSphere = false;
-	
     moveFlag = true;
 	is3D = false;
 
@@ -108,6 +106,7 @@ bool MovingObjects::init()
 		if (i > 0)	paramSuffixPush(QString::number(i+1)); // make the additional obj params end in a number
        	objs.push_back(!i ? ObjData() : objs.front()); // get defaults from first object
 		ObjData & o = objs.back();
+		o.objNum = i;
 			
 		// if any of the params below are missing, the defaults in initDefaults() above are taken
 		
@@ -120,7 +119,7 @@ bool MovingObjects::init()
 			if (otype == "ellipse" || otype == "ellipsoid" || otype == "circle" || otype == "disk" || otype == "sphere"
 				|| otype == "1") {
 				if (otype == "sphere") //Warning() << "`sphere' objType not supported, defaulting to ellipsoid.";
-					o.type = SphereType, haveSphere = true;
+					o.type = SphereType;
 				else
 					o.type = EllipseType;
 			} else
@@ -318,6 +317,16 @@ bool MovingObjects::init()
 	min_y_pix = bmargin;
 	max_y_pix = height() - tmargin;
 	
+	if (lmargin < 0 || bmargin < 0 || tmargin < 0 || rmargin < 0) {
+		Error() << "Specified a negative margin.  None of (tmargin,bmargin,lmargin,rmargin) can be negative.";
+		return false;
+	}
+	if (lmargin+rmargin >= int(width()) || bmargin+tmargin >= int(height())) {
+		Error() << "Specfied margins are larger than the window size!  Either specify mon_x_pix/mon_y_pix to encompass such" 
+		<< " generous margins, or shrink them!";
+		return false;
+	}
+	
     // the object area AABB -- a rect constrained by min_x_pix,min_y_pix and max_x_pix,max_y_pix
 	canvasAABB = Rect(Vec2(min_x_pix, min_y_pix), Vec2(max_x_pix-min_x_pix, max_y_pix-min_y_pix)); 
 
@@ -359,7 +368,6 @@ bool MovingObjects::init()
 	Shapes::InitStaticDisplayLists();
 	
 	if (!softCleanup) glGetIntegerv(GL_SHADE_MODEL, &savedShadeModel);
-	if (haveSphere) glShadeModel(GL_SMOOTH);
 	
 	if (!getParam("zBoundsFar", zBoundsFar)) zBoundsFar = DEFAULT_MAX_Z;
 	if (zBoundsFar < 0.0) {
@@ -499,10 +507,67 @@ void MovingObjects::drawFrame()
   	
 }
 
+void MovingObjects::reinitObj(ObjData & o, ObjType otype)
+{
+	Shapes::Shape *oldshape = o.shape;
+	o.shape = 0;
+	o.type = otype;
+	initObj(o);
+	o.shape->copyProperties(oldshape);
+	delete oldshape;	
+}
+
+void MovingObjects::applyRandomDirectionForRndTrial_2_4(ObjData & o)
+{
+	const double mag0 = o.debugLvl > 0 ? sqrt(o.vel.x*o.vel.x + o.vel.y*o.vel.y + o.vel.z*o.vel.z) : 0.;
+
+	
+	// now, try and get a fixed speed in a random direction, while respecting the 'plane' 
+	// the object wanted to move in.  If it was in the xy plane, keep the new direction
+	// in that plane, if xz plane, keep it in that plane, etc.
+	double * quantities[3] = { 0,0,0 }, 
+	* vs[3] = { 0,0,0 };
+	int ix = 0;
+	for (int j = 0; j < 3; ++j)
+		// figure out if we have 3 nonzero components or less to the velocity vector...
+		if (!eqf(o.vel[j],0.)) {
+			quantities[ix] = &o.vel[j];
+			vs[ix] = &o.v[j];
+			++ix;
+		}
+	if (ix < 2) {
+		// had less than 2 nonzero velocity components, so take whatever is left ...
+		for (int j = 0; j < 3 && ix < 2; ++j) {
+			if (!ix || quantities[0] != &o.vel[j]) {
+				quantities[ix] = &o.vel[j];
+				vs[ix] = &o.v[j];
+				++ix;
+			}
+		}
+	}
+	if (ix < 3) { 
+		// our original velocity was in a 2D plane, so pick a random direction in original plane
+		const double r = sqrt(*quantities[0] * *quantities[0] + *quantities[1] * *quantities[1]);
+		const double theta = ran1Gen()*2.*M_PI;
+		o.v = Vec3Zero;
+		*vs[0] = r*cos(theta);
+		*vs[1] = r*sin(theta);											
+	} else {
+		// in full 3D mode -- we have 3 quantities for velocity so we rotate our original velocity vector using yaw, picth, roll!
+		o.v = Vec3RotateEuler(o.vel, ran1Gen()*2.*M_PI, ran1Gen()*2.*M_PI, ran1Gen()*2.*M_PI);
+	}
+
+	if (o.debugLvl > 0) {
+		const double mag = sqrt(o.v.x*o.v.x + o.v.y*o.v.y + o.v.z*o.v.z);
+	    Debug() << "RndTrial" << rndtrial << " obj" << o.objNum << " vel=" << o.vel.x << "," << o.vel.y << "," << o.vel.z  <<  " |vel|=" << mag0
+				<< " v=" << o.v.x << "," << o.v.y << "," << o.v.z << " |v|=" << mag;
+	}
+
+}
+
 void MovingObjects::doFrameDraw()
 {
-	int objNum = 0;
-	for (QList<ObjData>::iterator it = objs.begin(); it != objs.end(); ++it, ++objNum) {		
+	for (QList<ObjData>::iterator it = objs.begin(); it != objs.end(); ++it) {		
 		ObjData & o = *it;
 		if (!o.shape) continue; // should never happen..		
 		double & x  (o.shape->position.x),					 
@@ -515,12 +580,12 @@ void MovingObjects::doFrameDraw()
 		       & objVely (o.vel.y),
 			   & objVelz (o.vel.z);
 		
-		const double
+		double
 		       & objXinit (o.pos_o.x),
 			   & objYinit (o.pos_o.y),
 		       & objZinit (o.pos_o.z);
 		
-		const double  & objLen_o (o.len_vec[0].x), & objLen_min_o (o.len_vec[0].y);
+		double  & objLen_o (o.len_vec[0].x), & objLen_min_o (o.len_vec[0].y);
 		double  & objPhi (o.shape->angle); 
 		
 		float  & jitterx (o.jitterx), & jittery (o.jittery), & jitterz(o.jitterz);
@@ -553,7 +618,7 @@ void MovingObjects::doFrameDraw()
 				QVector<double> fv;
 
 				Rect aabb = o.shape->AABB();
-
+			
 				{ // MOVEMENT/ROTATION computation happens *always* but the fvar file variables below may override the results of this computation!
 						if (moveFlag) {
 							
@@ -607,31 +672,16 @@ void MovingObjects::doFrameDraw()
 									o.shape->setCanvasPosition(cpos);
 									vx = ran1Gen()*objVelx*2 - objVelx;
 									vy = ran1Gen()*objVely*2 - objVely;
-									if (is3D) vz = ran1Gen()*objVelz*2 - objVelz;
-									else      vz = 0.;
+									vz = ran1Gen()*objVelz*2 - objVelz;
 								} else if (2 == rndtrial) {
 									// random position and direction
 									// static speed
 									x = ran1Gen()*canvasAABB.size.x + min_x_pix;
 									y = ran1Gen()*canvasAABB.size.y + min_y_pix;
-									if (is3D) z = ran1Gen()*(zBoundsFar-zBoundsNear) + zBoundsNear; // TODO: z?
+									if (is3D) z = ran1Gen()*(zBoundsFar-zBoundsNear) + zBoundsNear; 
 									else      z = 0.;
-									if (!is3D) {
-										const double r = sqrt(objVelx*objVelx + objVely*objVely);
-										const double theta = ran1Gen()*2.*M_PI;
-										vx = r*cos(theta); 
-										vy = r*sin(theta);
-										vz = 0.;
-									} else { // in 3D mode, we rotate our original velocity vector using yaw, picth, roll!
-										Vec3 vel(objVelx, objVely, objVelz);
-										//const double mag = sqrt(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
-										vel = Vec3RotateEuler(vel, ran1Gen()*2.*M_PI, ran1Gen()*2.*M_PI, ran1Gen()*2.*M_PI);
-										//const double mag2 = sqrt(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
-										//Debug() << "mag " << mag << " mag2 " << mag2;
-										vx = vel.x;
-										vy = vel.y;
-										vz = vel.z;
-									}
+									
+									applyRandomDirectionForRndTrial_2_4(o);
 									
 								} else if (3 == rndtrial) {
 									// position at t = position(t-1) + vx, vy
@@ -643,8 +693,7 @@ void MovingObjects::doFrameDraw()
 									}
 									vx = ran1Gen()*objVelx*2. - objVelx;
 									vy = ran1Gen()*objVely*2. - objVely;
-									if (is3D) vz = ran1Gen()*objVelz*2. - objVelz; // TODO: z ok here?
-									else      vz = 0.;
+									vz = ran1Gen()*objVelz*2. - objVelz; 
 								} else if (4 == rndtrial) {
 									// position at t = position(t-1) + vx, vy
 									// static speed, random direction
@@ -653,19 +702,7 @@ void MovingObjects::doFrameDraw()
 										y = o.lastPos.y;
 										z = o.lastPos.z;
 									}
-									if (!is3D) {
-										const double r = sqrt(objVelx*objVelx + objVely*objVely);
-										const double theta = ran1Gen()*2*M_PI;
-										vx = r*cos(theta); 
-										vy = r*sin(theta);
-										vz = 0.; 
-									} else {
-										Vec3 vel(objVelx, objVely, objVelz);
-										vel = Vec3RotateEuler(vel, ran1Gen()*2.*M_PI, ran1Gen()*2.*M_PI, ran1Gen()*2.*M_PI);
-										vx = vel.x;
-										vy = vel.y;
-										vz = vel.z;										
-									}
+									applyRandomDirectionForRndTrial_2_4(o);
 								}
 								objPhi = o.phi_o;
 								if (is3D) ensureObjectIsInBounds(o);
@@ -707,7 +744,7 @@ void MovingObjects::doFrameDraw()
 				} 
 			
 				if (have_fv_input_file) {
-					ConfigSuppressesFrameVar & csfv (configSuppressesFrameVar[objNum]);
+					ConfigSuppressesFrameVar & csfv (configSuppressesFrameVar[o.objNum]);
 					
 					fv = frameVars->readNext();
 					if ( !frameNum ) {
@@ -727,8 +764,8 @@ void MovingObjects::doFrameDraw()
 						stop();
 						return;
 					}
-					if (fv[FV_objNum] != objNum) {
-						Error() << "Error reading object " << objNum << " from frameVar file! Datafile object num differs from current object number!  Do all the fps_mode and numObj parameters of the frameVar file match the current fps mode and numObjs?";	
+					if (fv[FV_objNum] != o.objNum) {
+						Error() << "Error reading object " << o.objNum << " from frameVar file! Datafile object num differs from current object number!  Do all the fps_mode and numObj parameters of the frameVar file match the current fps mode and numObjs?";	
 						stop();
 						return;						
 					}
@@ -740,40 +777,14 @@ void MovingObjects::doFrameDraw()
 					
 
 					
-					bool didInitLen = false;
-					const ObjType otype = ObjType(int(fv[FV_objType]));
+					bool didInitLen = false, redoAABB = false;;
+					const ObjType otype = ObjType(csfv[FV_objType] ? o.type : int(fv[FV_objType]));
 					const double r1 = ( csfv[FV_r1] ? objLen : fv[FV_r1] ), ///< keep the old objlen if config file is set to suppress framevar...
 					             r2 = ( csfv[FV_r2] ? objLen_min : fv[FV_r2] );
 
-					if (!k && !frameNum) {
-						// do some required initialization if on frame 0 for this object to make sure r1, r2 and  obj type jive
-						if (otype != o.type || !eqf(r1, objLen) || !eqf(r2, objLen_min)) {
-							delete o.shape;							
-							o.type = otype;
-							o.len_vec[0] = Vec2(r1,r2);
-							didInitLen = true;
-							initObj(o);
-						}		
-					}
-					
 					x = fv[FV_x];
 					y = fv[FV_y];
-					// handle type change mid-plugin-run
-					if (!csfv[FV_objType] && o.type != otype) {
-						Shapes::Shape *oldshape = o.shape;
-						o.shape = 0;
-						o.type = otype;
-						initObj(o);
-						o.shape->position = oldshape->position;
-						o.shape->scale = oldshape->scale;
-						o.shape->color = oldshape->color;
-						o.shape->angle = oldshape->angle;
-						delete oldshape;
-					}					
-					// handle length changes mid-plugin-run
-					if (!didInitLen && (!eqf(r1, objLen) || !eqf(r2, objLen))) {
-						o.shape->setRadii(r1, r2);
-					}
+
 					bool zChanged = false;
 					if (fvHasPhiCol && !csfv[FV_phi]) 
 						objPhi = fv[FV_phi];
@@ -794,8 +805,37 @@ void MovingObjects::doFrameDraw()
 					if (fvHasZScaledCol && !fvHasZCol) {
 						z = newZ, zChanged = true;
 					}
-					if (zChanged) aabb = o.shape->AABB();
-					if (!csfv[FV_color]) objcolor = fv[FV_color];
+					
+					if (!is3D && !eqf(z, 0.)) is3D = true;
+					
+						
+					if (!k && !frameNum) {
+						// do some required initialization if on frame 0 for this object to make sure r1, r2 and  obj type jive
+						o.len_vec[0] = Vec2(r1,r2);
+						o.phi_o = objPhi;
+						o.pos_o = Vec3(x,y,z);
+						reinitObj(o, otype);
+						didInitLen = true;
+						objLen = objLen_o = r1;
+						objLen_min = objLen_min_o = r2;
+						o.shape->scale.x = 1.0;
+						o.shape->scale.y = 1.0;
+						redoAABB = true;
+					}
+					
+					// handle type change mid-plugin-run
+					if (o.type != otype) {
+						reinitObj(o, otype);
+						redoAABB = true;
+					}					
+					// handle length changes mid-plugin-run
+					if (!didInitLen && (!eqf(r1, objLen) || !eqf(r2, objLen_min))) {
+						o.shape->setRadii(r1, r2);
+						redoAABB = true;
+					}
+					
+					if (zChanged || redoAABB) aabb = o.shape->AABB();
+					objcolor = csfv[FV_color] ? objcolor : fv[FV_color];
 					if (o.type == SphereType) objcolor = 1.0;
 				} //  end have_fv_input_file
 
@@ -814,11 +854,17 @@ void MovingObjects::doFrameDraw()
 						b = g = r = objcolor;
 
 					o.shape->color = Vec3(r, g, b);
+					
+					if (o.type == SphereType) 
+						glShadeModel(GL_SMOOTH);
+					else
+						glShadeModel(savedShadeModel);
+					
 					if (o.debugLvl >= 2) {
 						const double t0 = getTime();
 						o.shape->draw();
 						const double tf = getTime();
-						Debug() << "frame:" << frameNum << " obj:" << objNum << " took " << (tf-t0)*1e6 << " usec to draw";
+						Debug() << "frame:" << frameNum << " obj:" << o.objNum << " took " << (tf-t0)*1e6 << " usec to draw";
 					} else
 						o.shape->draw();
 					
@@ -844,7 +890,7 @@ void MovingObjects::doFrameDraw()
 						if (rndtrial && loopCt && nFrames) fnum = frameNum + loopCt*nFrames;
 
 						// nb: push() needs to take all doubles as args!
-						frameVars->push(fnum, double(objNum), double(k), double(o.type), double(x), double(y), double(objLen), double(objLen_min), double(objPhi), double(objcolor), double(z), double(o.shape->distance()));
+						frameVars->push(fnum, double(o.objNum), double(k), double(o.type), double(x), double(y), double(objLen), double(objLen_min), double(objPhi), double(objcolor), double(z), double(o.shape->distance()));
 					}
 				}
 
@@ -954,16 +1000,16 @@ void MovingObjects::ensureObjectIsInBounds(ObjData & o) const
 		if ((diff = aabb.top() - canvasAABB.top()) > 0)
 			cpos.y -= diff, modified = true;
 
-		if (rndtrial == 1 || rndtrial == 2) {
+		if (rndtrial) {
 			if (!i && modified) {
-				Warning() << "RndTrial: object " << int(&o-&objs[0]) << " randomly positioned out of bounds. Nudging it back in bounds...";				
+				Debug() << "RndTrial: object " << o.objNum << " randomly positioned out of bounds. Nudging it back in bounds...";				
 			}
 		} else {
 			if (modified) {
 				if (!i)
-					Warning() << "Object " << int(&o-&objs[0]) << " initial position out of bounds, will move it in bounds (if it fits)...";
+					Warning() << "Object " << o.objNum << " initial position out of bounds, will move it in bounds (if it fits)...";
 				else {
-					Error() << "Object " << int(&o-&objs[0]) << " cannot be fully placed in bounds (is objZinit too close to camera?).  Object may be lost offscreen and/or wall bouncing may fail spectacularly. Please specify saner initial position params for this object!";
+					Error() << "Object " << o.objNum << " cannot be fully placed in bounds (is objZinit too close to camera?).  Object may be lost offscreen and/or wall bouncing may fail spectacularly. Please specify saner initial position params for this object!";
 					o.shape->position = origOrigPos;
 					return;
 				}

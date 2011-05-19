@@ -41,7 +41,15 @@ void Shape::drawEnd() {
 	} else
 		glLoadIdentity();
 }
-	
+
+void Shape::copyProperties(Shape *o)
+{
+	position = o->position;
+	scale = o->scale;
+	color = o->color;
+	angle = o->angle;
+	noMatrixAttribPush = o->noMatrixAttribPush;
+}
 	
 static MovingObjects * movingObjects()
 {

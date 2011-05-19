@@ -65,6 +65,8 @@ public:
 							  the camera. */
 	void setDistance(double d);
 	
+	virtual void copyProperties(Shape *from);
+	
 protected:
 	virtual void drawBegin();
 	virtual void drawEnd();
@@ -85,7 +87,7 @@ public:
 	Rect AABB() const;
 	
 	void setRadii(double r1, double r2) { width = r1; height = r2; }
-
+	
 	void draw();
 };
 
@@ -99,7 +101,7 @@ class Ellipse : public Shape {
 public:
 	double xradius,yradius;
 	static const unsigned numVertices;
-	
+
 protected:
 	static GLuint dl; ///< shared display list for _ALL_ ellipses since we use a unit circle at 0,0 with 128 vertices globally!
 	
@@ -134,6 +136,7 @@ public:
 	GLfloat lightAmbient[4], lightDiffuse[4], lightPosition[4], lightSpecular[4], 
 	        specular[4], ambient[4], diffuse[4], emission[4], shininess;
 	GLfloat lightAttenuations[3]; ///< constant, linear, and quadratic respectively
+	bool lightIsFixedInSpace; ///< default false.  if true, then the light source is fixed in space and is not relative to the sphere
 	
 	Sphere(double radius);
 	
@@ -142,8 +145,6 @@ public:
 	Rect AABB() const;
 	
 	void setRadii(double r1, double r2) { radius = r1; (void)r2; }
-	
-	bool lightIsFixedInSpace; ///< default false.  if true, then the light source is fixed in space and is not relative to the sphere
 	
 protected:
 	static GLUquadricObj *quadric;

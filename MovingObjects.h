@@ -41,6 +41,7 @@ private:
 	
 	struct ObjData {
 		ObjType type; /// box or disk or ellipse
+		int objNum; ///< which object number is this? used for debug printing mostly in the functions that operate on ObjData
 		Shapes::Shape *shape; ///< pointer to object's geometry drawing implementation (see Shapes.h)
 		float jitterx, jittery, jitterz;
 		float phi_o; ///< phi and original phi, or rotation
@@ -61,10 +62,13 @@ private:
 	};
 
 	void initObj(ObjData & o);
+	void reinitObj(ObjData & o, ObjType newType);
 	
 	void wrapObject(ObjData & o, Rect & aabb) const;
 	void doWallBounce(ObjData & o) const;
 	void ensureObjectIsInBounds(ObjData & o) const;
+	
+	void applyRandomDirectionForRndTrial_2_4(ObjData & o);
 	
 	QList<ObjData> objs;
 	int numObj;
@@ -85,7 +89,7 @@ private:
 	Vec3 lightPos;
 	double lightAmbient, lightDiffuse, lightSpecular, lightConstantAttenuation, lightLinearAttenuation, lightQuadraticAttenuation;
 	
-	float min_x_pix,max_x_pix,min_y_pix,max_y_pix;
+	double min_x_pix,max_x_pix,min_y_pix,max_y_pix;
 	
 	bool debugAABB; ///< comes from param file -- if true draw a green box around each shape's AABB to debug AABB
 	GLint savedShadeModel;

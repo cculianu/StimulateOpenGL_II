@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: May 17, 2011
+Last Updated: May 19, 2011
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -917,11 +917,11 @@ objZinitN (where N is 2 to numObj)
 
 rndtrial
         Synopsis:         This parameter is used in conjunction with `tframes'.
-                          Rndtrial is an integer specifying whether to randomly
-                          generate a new position and velocity for the target every
-                         `tframes' frames (and for frame 0).  If nonzero, then 
-                          position and/or velocity vectors for the target will 
-                          be reset (every `tframes' frames) to values as 
+                          `rndtrial' is an integer specifying whether to randomly
+                          generate a new position and velocity for all targets 
+						  every `tframes' frames (and for frame 0).  `rndtrial' 
+						  determines how position and/or velocity vectors for 
+						  all targets will be reset (every `tframes' frames) as 
                           follows:                          
                           IF rndtrial IS 0 THEN
                               - The target's position and velocity will be reset 
@@ -930,17 +930,43 @@ rndtrial
                           IF rndtrial IS 1 THEN                             
                               - Position will be a uniformly distributed random 
                                 X,Y pair within the visible area of the screen
-                                (taking into account margins, etc).
+                                (taking into account margins, etc). 
+								3D Mode: Z coordinates will also be randomly 
+								generated (between zBoundsNear and zBoundsFar) 
+								only if the plugin was in '3D Mode' (that is, if 
+								*any* objects had some Z informaton), otherwise 
+								Z is set to 0.								
                               - Velocity will be a uniformly distributed random
-                                velocity vector from (-objVelX,-objVelY) to
-                                (+objVelX,+objVelY).                                
+                                velocity vector from (-objVelX,-objVelY,-objVelZ) 
+								to (+objVelX,+objVelY,+objVelZ).                                
                           IF rndtrial IS 2 THEN
                               - Position will be a uniformly distributed random
                                 X,Y pair within the visible area of the screen
                                 (taking into account margins, etc).
+								3D Mode: Z coordinates will also be randomly 
+								generated (between zBoundsNear and zBoundsFar) 
+								only if the plugin was in '3D Mode' (that is, if 
+								*any* objects had some Z informaton), otherwise 
+								Z is set to 0.								
                               - Velocity will have the same magnitude as the 
-                                vector (objVelX,objVelY) but will point in a 
-                                uniformly distributed random direction.                                
+                                vector (objVelX,objVelY,objVelZ) but will point 
+								in a uniformly distributed random direction in
+								3D space, with the exception below.
+								Exceptions for 1D/2D Motion:  In order to 
+								maintain that objects that were not previously 
+								moving in Z (objVelZ = 0), not get any new 
+								velocity components in Z (that is, objects that 
+								previously were moving in an XY plane should 
+								stay in an XY plane),  the following special 
+								logic has been added:  Objects that have one of 
+								objVelX,objVelY,objVelZ equal to 0 (that is, 
+								they are moving in a plane or a line), will 
+								simply get a random direction in the plane (or 
+								line) that the object was moving in previously.  
+								So if objVelZ is 0, the object will get a new
+								random direction in the	XY plane.  If objVelX 
+								was 0, the object will get a new random 
+								direction in the YZ plane, etc. 
                           IF rndtrial IS 3 THEN
                               - Position will not be reset (appearance on screen
                                 will be that object has not jumped)
@@ -948,9 +974,25 @@ rndtrial
                                 based on objVelX,objVelY,objVelZ range.                                
                           IF rndtrial IS 4 THEN
                               - Position will not be reset as 3 above.
-                              - Velocity will have same magnitude as 
-                                (objVelX,objVelY) vector but will point in a 
-                                uniformly distributed random direction.                                                         
+                              - Velocity will have the same magnitude as the 
+                                vector (objVelX,objVelY,objVelZ) but will point 
+								in a uniformly distributed random direction in
+								3D space, with the exception below.
+								Exceptions for 1D/2D Motion:  In order to 
+								maintain that objects that were not previously 
+								moving in Z (objVelZ = 0), not get any new 
+								velocity components in Z (that is, objects that 
+								previously were moving in an XY plane should 
+								stay in an XY plane),  the following special 
+								logic has been added:  Objects that have one of 
+								objVelX,objVelY,objVelZ equal to 0 (that is, 
+								they are moving in a plane or a line), will 
+								simply get a random direction in the plane (or 
+								line) that the object was moving in previously.  
+								So if objVelZ is 0, the object will get a new
+								random direction in the	XY plane.  If objVelX 
+								was 0, the object will get a new random 
+								direction in the YZ plane, etc. 
         Datatype:         integer
         Possible values:  0, 1, 2, 3, 4
         Default value:    0
