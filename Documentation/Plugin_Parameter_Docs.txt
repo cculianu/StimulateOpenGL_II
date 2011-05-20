@@ -933,9 +933,9 @@ rndtrial
         Synopsis:         This parameter is used in conjunction with `tframes'.
                           `rndtrial' is an integer specifying whether to randomly
                           generate a new position and velocity for all targets 
-						  every `tframes' frames (and for frame 0).  `rndtrial' 
-						  determines how position and/or velocity vectors for 
-						  all targets will be reset (every `tframes' frames) as 
+                          every `tframes' frames (and for frame 0).  `rndtrial' 
+                          determines how position and/or velocity vectors for 
+                          all targets will be reset (every `tframes' frames) as 
                           follows:                          
                           IF rndtrial IS 0 THEN
                               - The target's position and velocity will be reset 
@@ -944,47 +944,47 @@ rndtrial
                           IF rndtrial IS 1 THEN                             
                               - Position will be a uniformly distributed random 
                                 X,Y,Z triplet within the visible area of the 
-								screen, taking into account margins, etc, and
-								also taking into account the 'dimensionality of 
-								motion' of the object.  That is, if an object's
-								(objVelX,objVelY,objVelZ) has all nonzero 
-								components, a 3D position is generated in the 
-								full 3D space of the simulation.  Otherwise,
-								a 1D or 2D position is generated for all nonzero
-								objVel* components. 
+                                screen, taking into account margins, etc, and
+                                also taking into account the 'dimensionality of 
+                                motion' of the object.  That is, if an object's
+                                (objVelX,objVelY,objVelZ) has all nonzero 
+                                components, a 3D position is generated in the 
+                                full 3D space of the simulation.  Otherwise,
+                                a 1D or 2D position is generated for all nonzero
+                                objVel* components. 
                               - Velocity will be a uniformly distributed random
                                 velocity vector from (-objVelX,-objVelY,-objVelZ) 
-								to (+objVelX,+objVelY,+objVelZ).                                
+                                to (+objVelX,+objVelY,+objVelZ).                                
                           IF rndtrial IS 2 THEN
                               - Position will be a uniformly distributed random 
                                 X,Y,Z triplet within the visible area of the 
-								screen, taking into account margins, etc, and
-								also taking into account the 'dimensionality of 
-								motion' of the object.  That is, if an object's
-								(objVelX,objVelY,objVelZ) has all nonzero 
-								components, a 3D position is generated in the 
-								full 3D space of the simulation.  Otherwise,
-								a 1D or 2D position is generated for all nonzero
-								objVel* components. 
+                                screen, taking into account margins, etc, and
+                                also taking into account the 'dimensionality of 
+                                motion' of the object.  That is, if an object's
+                                (objVelX,objVelY,objVelZ) has all nonzero 
+                                components, a 3D position is generated in the 
+                                full 3D space of the simulation.  Otherwise,
+                                a 1D or 2D position is generated for all nonzero
+                                objVel* components. 
                               - Velocity will have the same magnitude as the 
                                 vector (objVelX,objVelY,objVelZ) but will point 
-								in a uniformly distributed random direction in
-								3D space, with the exception below.
-								Exceptions for 1D/2D Motion:  In order to 
-								maintain that objects that were not previously 
-								moving in Z (objVelZ = 0), not get any new 
-								velocity components in Z (that is, objects that 
-								previously were moving in an XY plane should 
-								stay in an XY plane),  the following special 
-								logic has been added:  Objects that have one of 
-								objVelX,objVelY,objVelZ equal to 0 (that is, 
-								they are moving in a plane or a line), will 
-								simply get a random direction in the plane (or 
-								line) that the object was moving in previously.  
-								So if objVelZ is 0, the object will get a new
-								random direction in the	XY plane.  If objVelX 
-								was 0, the object will get a new random 
-								direction in the YZ plane, etc. 
+                                in a uniformly distributed random direction in
+                                3D space, with the exception below.
+                                Exceptions for 1D/2D Motion:  In order to 
+                                maintain that objects that were not previously 
+                                moving in Z (objVelZ = 0), not get any new 
+                                velocity components in Z (that is, objects that 
+                                previously were moving in an XY plane should 
+                                stay in an XY plane),  the following special 
+                                logic has been added:  Objects that have one of 
+                                objVelX,objVelY,objVelZ equal to 0 (that is, 
+                                they are moving in a plane or a line), will 
+                                simply get a random direction in the plane (or 
+                                line) that the object was moving in previously.  
+                                So if objVelZ is 0, the object will get a new
+                                random direction in the    XY plane.  If objVelX 
+                                was 0, the object will get a new random 
+                                direction in the YZ plane, etc. 
                           IF rndtrial IS 3 THEN
                               - Position will not be reset (appearance on screen
                                 will be that object has not jumped)
@@ -994,23 +994,23 @@ rndtrial
                               - Position will not be reset as 3 above.
                               - Velocity will have the same magnitude as the 
                                 vector (objVelX,objVelY,objVelZ) but will point 
-								in a uniformly distributed random direction in
-								3D space, with the exception below.
-								Exceptions for 1D/2D Motion:  In order to 
-								maintain that objects that were not previously 
-								moving in Z (objVelZ = 0), not get any new 
-								velocity components in Z (that is, objects that 
-								previously were moving in an XY plane should 
-								stay in an XY plane),  the following special 
-								logic has been added:  Objects that have one of 
-								objVelX,objVelY,objVelZ equal to 0 (that is, 
-								they are moving in a plane or a line), will 
-								simply get a random direction in the plane (or 
-								line) that the object was moving in previously.  
-								So if objVelZ is 0, the object will get a new
-								random direction in the	XY plane.  If objVelX 
-								was 0, the object will get a new random 
-								direction in the YZ plane, etc. 
+                                in a uniformly distributed random direction in
+                                3D space, with the exception below.
+                                Exceptions for 1D/2D Motion:  In order to 
+                                maintain that objects that were not previously 
+                                moving in Z (objVelZ = 0), not get any new 
+                                velocity components in Z (that is, objects that 
+                                previously were moving in an XY plane should 
+                                stay in an XY plane),  the following special 
+                                logic has been added:  Objects that have one of 
+                                objVelX,objVelY,objVelZ equal to 0 (that is, 
+                                they are moving in a plane or a line), will 
+                                simply get a random direction in the plane (or 
+                                line) that the object was moving in previously.  
+                                So if objVelZ is 0, the object will get a new
+                                random direction in the    XY plane.  If objVelX 
+                                was 0, the object will get a new random 
+                                direction in the YZ plane, etc. 
         Datatype:         integer
         Possible values:  0, 1, 2, 3, 4
         Default value:    0
