@@ -135,6 +135,7 @@ public:
 	double radius;
 	GLfloat lightAmbient[4], lightDiffuse[4], lightPosition[4], lightSpecular[4], 
 	        specular[4], ambient[4], diffuse[4], emission[4], shininess;
+	GLfloat lightPosition_xf[4];
 	GLfloat lightAttenuations[3]; ///< constant, linear, and quadratic respectively
 	bool lightIsFixedInSpace; ///< default false.  if true, then the light source is fixed in space and is not relative to the sphere
 	

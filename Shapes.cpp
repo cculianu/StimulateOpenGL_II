@@ -336,15 +336,15 @@ void Sphere::draw()
 	glLightfv(GL_LIGHT0, GL_AMBIENT, lAmb);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, lDif);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, lSpec);
-	GLfloat l[4];
 	if (lightIsFixedInSpace) {
 		glPushMatrix();
 		glLoadIdentity();
-		std::memcpy(l, lightPosition, sizeof(l));
+		GLfloat *l = lightPosition_xf;
+		std::memcpy(l, lightPosition, sizeof(lightPosition_xf));
 		l[0] -= position.x;
 		l[1] -= position.y;
 		l[2] += position.z;
-		glLightfv(GL_LIGHT0, GL_POSITION,l);
+		glLightfv(GL_LIGHT0, GL_POSITION, l);
 		glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, lightAttenuations[0]);
 		glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, lightAttenuations[1]);
 		glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, lightAttenuations[2]);
@@ -373,8 +373,6 @@ void Sphere::draw()
 	gluQuadricOrientation(quadric, GLU_OUTSIDE); 
 	gluSphere(quadric, radius_actual, NUM_VERTICES_FOR_SPHEROIDS, NUM_VERTICES_FOR_SPHEROIDS);
 
-	//glScalef(radius_actual, radius_actual, 1.0);
-//	glCallList(dl);
 	drawEnd();
 	
 	scale = scale_saved;
