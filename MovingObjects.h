@@ -55,7 +55,7 @@ private:
 		float color, 
 		      // params for sphere
 		      shininess, ambient, diffuse, emission, specular; // intensity value
-		int debugLvl;
+		int debugLvl;		
 		
 		ObjData(); // init all to 0
 		void initDefaults();		
@@ -69,6 +69,7 @@ private:
 	void ensureObjectIsInBounds(ObjData & o) const;
 	
 	void applyRandomDirectionForRndTrial_2_4(ObjData & o);
+	void applyRandomPositionForRndTrial_1_2(ObjData & o);
 	
 	QList<ObjData> objs;
 	int numObj;
@@ -100,10 +101,10 @@ private:
 	bool is3D; ///< this flag controls if we jitter in Z, if rndtrial produces random Z values, and a bunch of other things
 	QVector<Vec3> savedLastPositions;
 	void initCameraDistance();
-	void initFrustumEdgeNormals();
+	void initBoundingNormals();
 	
 	//// used for bounds checking for object bouncing, vector of size 6
-	QVector<Vec3> frustumEdgeNormals; ///< 0 = left edge, 1= right edge, 2 = bottom edge, 3 = top edge, 4 = near zbound, 5 = far zbounds
+	QVector<Vec3> frustumNormals, boxNormals; ///< 0 = left edge, 1= right edge, 2 = bottom edge, 3 = top edge, 4 = near zbound, 5 = far zbounds
 	
 	enum FVCols { FV_frameNum=0, FV_objNum, FV_subFrameNum, FV_objType, FV_x, FV_y, FV_r1, FV_r2, FV_phi, FV_color, FV_z, FV_zScaled, 
 		          N_FVCols };

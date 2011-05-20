@@ -386,7 +386,7 @@ bool MovingObjects::init()
 			Debug() << "Param spec lacking Z information for objects: plugin will use 2D compatibility mode for jitter and rndtrial generation.";
 	}
 	
-	initFrustumEdgeNormals();
+	initBoundingNormals();
 	
 	return true;
 }
@@ -565,6 +565,16 @@ void MovingObjects::applyRandomDirectionForRndTrial_2_4(ObjData & o)
 
 }
 
+void MovingObjects::applyRandomPositionForRndTrial_1_2(ObjData & o) 
+{
+	Vec2 cpos (ran1Gen()*canvasAABB.size.x + min_x_pix,
+			   ran1Gen()*canvasAABB.size.y + min_y_pix);
+	if (!eqf(o.vel.z,0.0)) ///< if we have some 3D Z motion, generate Z coord 
+		o.shape->position.z = ran1Gen()*(zBoundsFar-zBoundsNear) + zBoundsNear;
+	// otherwise keep old initial position...
+	o.shape->setCanvasPosition(cpos);	
+}
+
 void MovingObjects::doFrameDraw()
 {
 	for (QList<ObjData>::iterator it = objs.begin(); it != objs.end(); ++it) {		
@@ -665,22 +675,14 @@ void MovingObjects::doFrameDraw()
 								//} else 
 								if (1 == rndtrial) {
 									// random position and random V based on init sped 
-									Vec2 cpos (ran1Gen()*canvasAABB.size.x + min_x_pix,
-											   ran1Gen()*canvasAABB.size.y + min_y_pix);
-									if (is3D) z = ran1Gen()*(zBoundsFar-zBoundsNear) + zBoundsNear;
-									else      z = 0.;
-									o.shape->setCanvasPosition(cpos);
+									applyRandomPositionForRndTrial_1_2(o);
 									vx = ran1Gen()*objVelx*2 - objVelx;
 									vy = ran1Gen()*objVely*2 - objVely;
 									vz = ran1Gen()*objVelz*2 - objVelz;
 								} else if (2 == rndtrial) {
 									// random position and direction
 									// static speed
-									x = ran1Gen()*canvasAABB.size.x + min_x_pix;
-									y = ran1Gen()*canvasAABB.size.y + min_y_pix;
-									if (is3D) z = ran1Gen()*(zBoundsFar-zBoundsNear) + zBoundsNear; 
-									else      z = 0.;
-									
+									applyRandomPositionForRndTrial_1_2(o);
 									applyRandomDirectionForRndTrial_2_4(o);
 									
 								} else if (3 == rndtrial) {
@@ -900,7 +902,7 @@ void MovingObjects::doFrameDraw()
 
 void MovingObjects::wrapObject(ObjData & o, Rect & aabb) const {
 	Shapes::Shape & s = *o.shape;
-
+	
 	if (is3D) {
 		 // first, wrap object in Z, if 3D mode
 		if (s.position.z > zBoundsFar)
@@ -930,19 +932,25 @@ void MovingObjects::doWallBounce(ObjData & o) const {
 	Vec3 porig(p);
 	Vec3 & v (o.v);
 	Vec3 fpos = p + v; ///< future position
+	int dim = 0;
+	if (!eqf(v.x,0.)) ++dim;
+	if (!eqf(v.y,0.)) ++dim;
+	if (!eqf(v.z,0.)) ++dim;
 	
-	if (is3D) {
-		// first, wrap object in Z, if 3D mode
-		if (fpos.z > zBoundsFar) {
-			// reflect off far wall
-			v=v.reflect(frustumEdgeNormals[5]);
-			fpos = p + v;
-		}
-			
-		if (fpos.z < zBoundsNear) {
-			v=v.reflect(frustumEdgeNormals[4]);
-			fpos = p + v;
-		}
+	const QVector<Vec3> & normals (dim >= 3 ? frustumNormals : boxNormals);
+	//if (o.debugLvl > 0)
+	//	Debug() << "Obj" << o.objNum << " dimensionality: " << dim;
+		
+	// first, wrap object in Z, if 3D mode
+	if (fpos.z > zBoundsFar) {
+		// reflect off far wall
+		v=v.reflect(normals[5]);
+		fpos = p + v;
+	}
+		
+	if (fpos.z < zBoundsNear) {
+		v=v.reflect(normals[4]);
+		fpos = p + v;
 	}
 	Rect aabb;
 #define REDO_AABB() ( \
@@ -953,14 +961,13 @@ void MovingObjects::doWallBounce(ObjData & o) const {
 	REDO_AABB();
 				
 	if (aabb.left() < canvasAABB.left())
-		v = v.reflect(frustumEdgeNormals[0]), fpos = p + v, REDO_AABB();
+		v = v.reflect(normals[0]), fpos = p + v, REDO_AABB();
 	if (aabb.right() > canvasAABB.right())
-		v = v.reflect(frustumEdgeNormals[1]), fpos = p + v, REDO_AABB();
+		v = v.reflect(normals[1]), fpos = p + v, REDO_AABB();
 	if (aabb.bottom() < canvasAABB.bottom())
-		v = v.reflect(frustumEdgeNormals[2]), fpos = p + v, REDO_AABB();
+		v = v.reflect(normals[2]), fpos = p + v, REDO_AABB();
 	if (aabb.top() > canvasAABB.top())
-		v = v.reflect(frustumEdgeNormals[3]), fpos = p + v, REDO_AABB();
-	
+		v = v.reflect(normals[3]), fpos = p + v, REDO_AABB();
 }
 
 void MovingObjects::ensureObjectIsInBounds(ObjData & o) const
@@ -1036,65 +1043,66 @@ void MovingObjects::initCameraDistance()
 	Log() << "Camera distance in Z is " << cameraDistance;
 }
 
-void MovingObjects::initFrustumEdgeNormals()
+void MovingObjects::initBoundingNormals()
 {
-	frustumEdgeNormals.resize(6);
+	frustumNormals.resize(6);
 	
-	if (is3D) {
-		Vec3 a,b,t;
-		Vec3 p1, p2, p3;
-		// left edge
-		p1 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix), 0.0); 
-		p2 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix+1), 0.0);
-		p3 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix+1), 1.0);
-		a = (p2-p1).normalized();
-		b = (p3-p1).normalized();
-		frustumEdgeNormals[0] = t = a.cross(b).normalized();
-		// right edge
-		p1 = Shapes::Shape::cposToRealPos(Vec2(max_x_pix, min_y_pix), 0.0); 
-		p2 = Shapes::Shape::cposToRealPos(Vec2(max_x_pix, min_y_pix), 1.0);
-		p3 = Shapes::Shape::cposToRealPos(Vec2(max_x_pix, min_y_pix+1), 1.0);
-		a = (p2-p1).normalized();
-		b = (p3-p1).normalized();
-		frustumEdgeNormals[1] = t = a.cross(b).normalized();
-		// bottom edge
-		p1 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix), 0.0); 
-		p2 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix), 1.0);
-		p3 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, min_y_pix), 1.0);
-		a = (p2-p1).normalized();
-		b = (p3-p1).normalized();
-		frustumEdgeNormals[2] = t = a.cross(b).normalized();
-		// top edge
-		p1 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, max_y_pix), 0.0); 
-		p2 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, max_y_pix), 0.0);
-		p3 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, max_y_pix), 1.0);
-		a = (p2-p1).normalized();
-		b = (p3-p1).normalized();
-		frustumEdgeNormals[3] = t = a.cross(b).normalized();
-		// near edge
-		const double z=distanceToZ(.5); 
-		p1 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix), z); 
-		p2 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, min_y_pix), z);
-		p3 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, min_y_pix+1), z);
-		a = (p2-p1).normalized();
-		b = (p3-p1).normalized();
-		frustumEdgeNormals[4] = t = a.cross(b).normalized();
-		// far edge
-		p1 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix), zBoundsFar); 
-		p2 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix+1), zBoundsFar);
-		p3 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, min_y_pix+1), zBoundsFar);
-		a = (p2-p1).normalized();
-		b = (p3-p1).normalized();
-		frustumEdgeNormals[5] = t = a.cross(b).normalized();
-	} else {
-		// 2D.. don't really use a frustum at all, since we want to bounce orthogonally to the screen edge
-		frustumEdgeNormals[0] = Vec3(1,0,0);
-		frustumEdgeNormals[1] = Vec3(-1,0,0);
-		frustumEdgeNormals[2] = Vec3(0,1,0);
-		frustumEdgeNormals[3] = Vec3(0,-1,0);
-		frustumEdgeNormals[4] = Vec3(0,0,1);
-		frustumEdgeNormals[5] = Vec3(0,0,-1);		
-	}
+	Vec3 a,b,t;
+	Vec3 p1, p2, p3;
+	// left edge
+	p1 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix), 0.0); 
+	p2 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix+1), 0.0);
+	p3 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix+1), 1.0);
+	a = (p2-p1).normalized();
+	b = (p3-p1).normalized();
+	frustumNormals[0] = t = a.cross(b).normalized();
+	// right edge
+	p1 = Shapes::Shape::cposToRealPos(Vec2(max_x_pix, min_y_pix), 0.0); 
+	p2 = Shapes::Shape::cposToRealPos(Vec2(max_x_pix, min_y_pix), 1.0);
+	p3 = Shapes::Shape::cposToRealPos(Vec2(max_x_pix, min_y_pix+1), 1.0);
+	a = (p2-p1).normalized();
+	b = (p3-p1).normalized();
+	frustumNormals[1] = t = a.cross(b).normalized();
+	// bottom edge
+	p1 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix), 0.0); 
+	p2 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix), 1.0);
+	p3 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, min_y_pix), 1.0);
+	a = (p2-p1).normalized();
+	b = (p3-p1).normalized();
+	frustumNormals[2] = t = a.cross(b).normalized();
+	// top edge
+	p1 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, max_y_pix), 0.0); 
+	p2 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, max_y_pix), 0.0);
+	p3 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, max_y_pix), 1.0);
+	a = (p2-p1).normalized();
+	b = (p3-p1).normalized();
+	frustumNormals[3] = t = a.cross(b).normalized();
+	// near edge
+	const double z=distanceToZ(.5); 
+	p1 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix), z); 
+	p2 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, min_y_pix), z);
+	p3 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, min_y_pix+1), z);
+	a = (p2-p1).normalized();
+	b = (p3-p1).normalized();
+	frustumNormals[4] = t = a.cross(b).normalized();
+	// far edge
+	p1 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix), zBoundsFar); 
+	p2 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix, min_y_pix+1), zBoundsFar);
+	p3 = Shapes::Shape::cposToRealPos(Vec2(min_x_pix+1, min_y_pix+1), zBoundsFar);
+	a = (p2-p1).normalized();
+	b = (p3-p1).normalized();
+	frustumNormals[5] = t = a.cross(b).normalized();
+
+	// boxNormals apply to objects that have a dimensionality of 2 or less to their motion vector.. don't really use a frustum 
+	// at all, since we want to bounce orthogonally to the screen edge
+	boxNormals.resize(6);
+	boxNormals[0] = Vec3(1,0,0);
+	boxNormals[1] = Vec3(-1,0,0);
+	boxNormals[2] = Vec3(0,1,0);
+	boxNormals[3] = Vec3(0,-1,0);
+	boxNormals[4] = Vec3(0,0,1);
+	boxNormals[5] = Vec3(0,0,-1);		
+	
 }
 
 double MovingObjects::distanceToZ(double d) const

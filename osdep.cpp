@@ -18,7 +18,6 @@
 #include <GL/glx.h>
 // for XOpenDisplay
 #include <X11/Xlib.h>
-// for sched_setscheduler
 #endif
 
 #ifdef Q_WS_MACX
@@ -27,6 +26,7 @@
 #endif
 
 #ifdef Q_OS_LINUX
+// for sched_setscheduler
 #include <sched.h>
 // for getuid, etc
 #include <unistd.h>
@@ -37,6 +37,7 @@
 #include <sys/stat.h>
 #endif
 
+#include <stdlib.h>
 #include <string.h>
 #include <iostream>
 #include <QHostInfo>
@@ -234,6 +235,7 @@ bool hasExt(const char *ext_name)
      }
     }
      if (glx_exts) {
+		 bool ret = false;
          const char *prev, *cur, *s1, *s2; 
          const char space = ' ';
          // loop through all space-delimited strings..
@@ -241,8 +243,10 @@ bool hasExt(const char *ext_name)
         // compare strings
              for (s1 = prev, s2 = ext_name; *s1 && *s2 && *s1 == *s2 && s1 < cur; ++s1, ++s2)
             ;
-             if (*s1 == *s2 ||  (!*s2 && *s1 == space)) return true; // voila! found it!
+             if (*s1 == *s2 ||  (!*s2 && *s1 == space)) { ret = true; break; } // voila! found it!
          }
+		 free(glx_exts);
+		 return ret;
      }
 #endif
     return false;
