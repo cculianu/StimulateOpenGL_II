@@ -336,10 +336,10 @@ void Sphere::draw()
 	glLightfv(GL_LIGHT0, GL_AMBIENT, lAmb);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, lDif);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, lSpec);
+	GLfloat l[4];
 	if (lightIsFixedInSpace) {
 		glPushMatrix();
 		glLoadIdentity();
-		GLfloat l[4];
 		std::memcpy(l, lightPosition, sizeof(l));
 		l[0] -= position.x;
 		l[1] -= position.y;

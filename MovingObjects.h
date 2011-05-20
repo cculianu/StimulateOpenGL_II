@@ -43,12 +43,12 @@ private:
 		ObjType type; /// box or disk or ellipse
 		int objNum; ///< which object number is this? used for debug printing mostly in the functions that operate on ObjData
 		Shapes::Shape *shape; ///< pointer to object's geometry drawing implementation (see Shapes.h)
-		float jitterx, jittery, jitterz;
-		float phi_o; ///< phi and original phi, or rotation
+		double jitterx, jittery, jitterz;
+		double phi_o; ///< phi and original phi, or rotation
 		Vec3 v, vel,  // working velocity and real velocity?
 		     pos_o; // original velocity, position, for targetcycle stuff
 		Vec3 lastPos; // used for rndtrial > 1 stuff
-		float spin; // default is 0.. otherwise spin is applied to object per-frame
+		double spin; // default is 0.. otherwise spin is applied to object per-frame
 		QVector<Vec2> len_vec;
 		QVector<Vec3> vel_vec; ///< new targetcycle/speedcycle support for length and velocity vectors	
 		int len_vec_i, vel_vec_i;
@@ -72,6 +72,7 @@ private:
 	void applyRandomPositionForRndTrial_1_2(ObjData & o);
 	
 	QList<ObjData> objs;
+	QList<Shapes::Shape *> shapes2del;
 	int numObj;
 	
 	bool savedrng;  
@@ -111,6 +112,7 @@ private:
 	struct ConfigSuppressesFrameVar {
 		bool col[N_FVCols]; ///< iff elements of array here are true, the config file suppresses framevar, and not vice-versa 
 		ConfigSuppressesFrameVar() { for (int i = 0; i < (int)N_FVCols; ++i) col[i] = false; }
+		ConfigSuppressesFrameVar & operator=(ConfigSuppressesFrameVar & other) { for (int i = 0; i < N_FVCols; ++i) col[i] = other.col[i];  return *this; }
 		bool & operator[](int i) { return col[i]; }
 		const bool & operator[](int i) const { return col[i]; }
 	};

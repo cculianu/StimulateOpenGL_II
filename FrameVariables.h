@@ -61,6 +61,7 @@ private:
 	static QStringList splitHeader(const QString & ln);
 	bool computeCols(const QString & fileName);
 	bool checkComputeCols();
+	static QString readHeader(QFile & fin_already_opened_at_beginning);
 	
 	unsigned n_fields, cnt;
 	QString fname, fnameInp;

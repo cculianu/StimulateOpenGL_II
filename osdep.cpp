@@ -37,7 +37,6 @@
 #include <sys/stat.h>
 #endif
 
-#include <stdlib.h>
 #include <string.h>
 #include <iostream>
 #include <QHostInfo>
@@ -245,7 +244,6 @@ bool hasExt(const char *ext_name)
             ;
              if (*s1 == *s2 ||  (!*s2 && *s1 == space)) { ret = true; break; } // voila! found it!
          }
-		 free(glx_exts);
 		 return ret;
      }
 #endif

@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: May 19, 2011
+Last Updated: May 20, 2011
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -10,6 +10,20 @@ listed for that parameter.  Some parameters lack default values and
 therefore must be specified in the configuration file and/or
 configuration parameter struct given in Matlab.  However, the majority of
 parameters below do have (sensible) defaults.
+
+A note about floating point 'equality': In C++, you can't just say myfloat == 0  
+and hope the test for equality is accurate.  That is because '0' has multiple 
+binary representations in IEEE754 (!) and as such the == operator sometimes 
+fails, even when myfloat really is 0.   The floating point concept of 
+equality is a bit fuzzy, and what programs always do is define some epsilon 
+value such that if the abs(valueA - valueB) <= epsilon, they are considered 
+equal by the app. How does this come into play?  In this app epsilon is defined 
+as 0.0000001.   So for sufficiently small quantities, such as 0.00000009, the 
+app will treat this quantity as zero or equivalent to zero.  This is 
+particularly important in cases where parameters that are 0 have special 
+meaning.  For example, in the `MovingObjects' plugin, setting objVelZ less than
+epsilon (0.0000001) would result in objVelZ being treated as 0, which turns off 
+3D frustum boncing and rndtrial placement & velocity in Z for that object.
 
 A note about the 'global' plugin parameters: all of these parameters apply
 to all plugins.  For example, the ftrackbox_x coordinate is accepted by all 
@@ -929,25 +943,29 @@ rndtrial
                                 objVelX, etc). 
                           IF rndtrial IS 1 THEN                             
                               - Position will be a uniformly distributed random 
-                                X,Y pair within the visible area of the screen
-                                (taking into account margins, etc). 
-								3D Mode: Z coordinates will also be randomly 
-								generated (between zBoundsNear and zBoundsFar) 
-								only if the plugin was in '3D Mode' (that is, if 
-								*any* objects had some Z informaton), otherwise 
-								Z is set to 0.								
+                                X,Y,Z triplet within the visible area of the 
+								screen, taking into account margins, etc, and
+								also taking into account the 'dimensionality of 
+								motion' of the object.  That is, if an object's
+								(objVelX,objVelY,objVelZ) has all nonzero 
+								components, a 3D position is generated in the 
+								full 3D space of the simulation.  Otherwise,
+								a 1D or 2D position is generated for all nonzero
+								objVel* components. 
                               - Velocity will be a uniformly distributed random
                                 velocity vector from (-objVelX,-objVelY,-objVelZ) 
 								to (+objVelX,+objVelY,+objVelZ).                                
                           IF rndtrial IS 2 THEN
-                              - Position will be a uniformly distributed random
-                                X,Y pair within the visible area of the screen
-                                (taking into account margins, etc).
-								3D Mode: Z coordinates will also be randomly 
-								generated (between zBoundsNear and zBoundsFar) 
-								only if the plugin was in '3D Mode' (that is, if 
-								*any* objects had some Z informaton), otherwise 
-								Z is set to 0.								
+                              - Position will be a uniformly distributed random 
+                                X,Y,Z triplet within the visible area of the 
+								screen, taking into account margins, etc, and
+								also taking into account the 'dimensionality of 
+								motion' of the object.  That is, if an object's
+								(objVelX,objVelY,objVelZ) has all nonzero 
+								components, a 3D position is generated in the 
+								full 3D space of the simulation.  Otherwise,
+								a 1D or 2D position is generated for all nonzero
+								objVel* components. 
                               - Velocity will have the same magnitude as the 
                                 vector (objVelX,objVelY,objVelZ) but will point 
 								in a uniformly distributed random direction in

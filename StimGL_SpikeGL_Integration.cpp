@@ -1,5 +1,6 @@
 #include "StimGL_SpikeGL_Integration.h"
 #include "Util.h"
+#include "Version.h"
 #include <QTcpSocket>
 #include <QHostAddress>
 
@@ -121,6 +122,7 @@ namespace StimGL_SpikeGL_Integration
 			if (!sockSend(sock, QString(isStart ? PLUGIN_START_STRING : PLUGIN_END_STRING) + " " + pname.trimmed() + "\n", timeout_msecs, errStr_out)) return false;
 		}
         if (!sockSend(sock, QString(PLUGIN_PARAMS_STRING) + "\n", timeout_msecs, errStr_out)) return false;
+        if (!sockSend(sock, QString("StimGLVersion = %1 (0x%2)\n").arg(VERSION_STR).arg(VERSION,0,16), timeout_msecs, errStr_out)) return false;
         for (QMap<QString, QVariant> ::const_iterator it = pparms.begin();
              it != pparms.end();
              ++it) {

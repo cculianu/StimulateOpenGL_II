@@ -103,7 +103,10 @@ bool MovingObjects::init()
 	
 	for (int i = 0; i < numObj; ++i) {
 		ConfigSuppressesFrameVar & csfv (configSuppressesFrameVar[i]);
-		if (i > 0)	paramSuffixPush(QString::number(i+1)); // make the additional obj params end in a number
+		if (i > 0)	{
+			paramSuffixPush(QString::number(i+1)); // make the additional obj params end in a number
+		    csfv = configSuppressesFrameVar[0]; // copy csfv from first object as default for all objects, as per Leonardo 5.20.2011 email
+		}
        	objs.push_back(!i ? ObjData() : objs.front()); // get defaults from first object
 		ObjData & o = objs.back();
 		o.objNum = i;
@@ -450,6 +453,7 @@ void MovingObjects::cleanupObjs() {
 		delete o.shape, o.shape = 0;
 	}	
 	objs.clear();
+	shapes2del.clear();
 	numObj = 0;
 }
 
@@ -513,8 +517,11 @@ void MovingObjects::reinitObj(ObjData & o, ObjType otype)
 	o.shape = 0;
 	o.type = otype;
 	initObj(o);
-	o.shape->copyProperties(oldshape);
-	delete oldshape;	
+	if (oldshape) {
+		o.shape->copyProperties(oldshape);
+		// this is because some references to oldshape are still scoped in calling code!
+		shapes2del.push_back(oldshape);
+	}
 }
 
 void MovingObjects::applyRandomDirectionForRndTrial_2_4(ObjData & o)
@@ -567,9 +574,13 @@ void MovingObjects::applyRandomDirectionForRndTrial_2_4(ObjData & o)
 
 void MovingObjects::applyRandomPositionForRndTrial_1_2(ObjData & o) 
 {
-	Vec2 cpos (ran1Gen()*canvasAABB.size.x + min_x_pix,
-			   ran1Gen()*canvasAABB.size.y + min_y_pix);
-	if (!eqf(o.vel.z,0.0)) ///< if we have some 3D Z motion, generate Z coord 
+	const bool hasX = !eqf(o.vel.x,0.),
+			   hasY = !eqf(o.vel.y,0.),
+	           hasZ = !eqf(o.vel.z,0.);
+	Vec2 cpos = o.shape->canvasPosition();
+	if (hasX) cpos.x = ran1Gen()*canvasAABB.size.x + min_x_pix;
+	if (hasY) cpos.y = ran1Gen()*canvasAABB.size.y + min_y_pix; 
+	if (hasZ) ///< if we have some 3D Z motion, generate Z coord 
 		o.shape->position.z = ran1Gen()*(zBoundsFar-zBoundsNear) + zBoundsNear;
 	// otherwise keep old initial position...
 	o.shape->setCanvasPosition(cpos);	
@@ -598,7 +609,7 @@ void MovingObjects::doFrameDraw()
 		double  & objLen_o (o.len_vec[0].x), & objLen_min_o (o.len_vec[0].y);
 		double  & objPhi (o.shape->angle); 
 		
-		float  & jitterx (o.jitterx), & jittery (o.jittery), & jitterz(o.jitterz);
+		double  & jitterx (o.jitterx), & jittery (o.jittery), & jitterz(o.jitterz);
 		
 		float  & objcolor (o.color);
 		
@@ -813,7 +824,6 @@ void MovingObjects::doFrameDraw()
 						
 					if (!k && !frameNum) {
 						// do some required initialization if on frame 0 for this object to make sure r1, r2 and  obj type jive
-						o.len_vec[0] = Vec2(r1,r2);
 						o.phi_o = objPhi;
 						o.pos_o = Vec3(x,y,z);
 						reinitObj(o, otype);
@@ -898,6 +908,10 @@ void MovingObjects::doFrameDraw()
 
 		}
 	}
+	// guard against possible dangling references above...?
+	for (QList<Shapes::Shape *>::iterator it = shapes2del.begin(); it != shapes2del.end(); ++it)
+		delete *it;
+	shapes2del.clear();
 }
 
 void MovingObjects::wrapObject(ObjData & o, Rect & aabb) const {
