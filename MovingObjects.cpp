@@ -14,7 +14,7 @@
 #define DEFAULT_TFRAMES 120*60*60*10 /* 120fps*s */
 #define DEFAULT_JITTERMAG 2
 #define DEFAULT_RSEED -1
-#define NUM_FRAME_VARS 10
+#define NUM_FRAME_VARS N_FVCols
 #define DEFAULT_MAX_Z 1000
 #define DEFAULT_SHININESS (50./128.)
 #define DEFAULT_AMBIENT .2f
@@ -391,6 +391,10 @@ bool MovingObjects::init()
 	
 	initBoundingNormals();
 	
+	nSubFrames = ((int)fps_mode)+1; // hack :)	
+
+	fvs_block.fill(QVector<QVector<double> >(nSubFrames),numObj);
+	
 	return true;
 }
 
@@ -586,185 +590,208 @@ void MovingObjects::applyRandomPositionForRndTrial_1_2(ObjData & o)
 	o.shape->setCanvasPosition(cpos);	
 }
 
-void MovingObjects::doFrameDraw()
+
+void MovingObjects::prereadFrameVarsForThisRenderBlock()
 {
-	for (QList<ObjData>::iterator it = objs.begin(); it != objs.end(); ++it) {		
-		ObjData & o = *it;
-		if (!o.shape) continue; // should never happen..		
-		double & x  (o.shape->position.x),					 
-		       & y  (o.shape->position.y),	
-			   & z  (o.shape->position.z),
-		       & vx (o.v.x),
-		       & vy (o.v.y),
-			   & vz (o.v.z),
-		       & objVelx (o.vel.x),
-		       & objVely (o.vel.y),
-			   & objVelz (o.vel.z);
-		
-		double
-		       & objXinit (o.pos_o.x),
-			   & objYinit (o.pos_o.y),
-		       & objZinit (o.pos_o.z);
-		
-		double  & objLen_o (o.len_vec[0].x), & objLen_min_o (o.len_vec[0].y);
-		double  & objPhi (o.shape->angle); 
-		
-		double  & jitterx (o.jitterx), & jittery (o.jittery), & jitterz(o.jitterz);
-		
-		float  & objcolor (o.color);
-		
-		double objLen (o.shape->scale.x * objLen_o), objLen_min (o.shape->scale.y * objLen_min_o); 
+	for (int i = 0; i < numObj; ++i)
+		for (int k = 0; k < nSubFrames; ++k) {
+			QVector<double> & defs = frameVars->variableDefaults();
+			// re-set the defaults because we *know* what the frameNum and subframeNum *should* be!
+			defs[0] = frameNum;
+			defs[2] = k;				
+			QVector<double> & fv(fvs_block[i][k] = frameVars->readNext());
+			if ( !frameNum && !i && !k ) {
+				fvHasPhiCol = frameVars->hasInputColumn("phi");
+				fvHasZCol = frameVars->hasInputColumn("z");
+				fvHasZScaledCol = frameVars->hasInputColumn("zScaled");
+			}
+			if (fv.size() < NUM_FRAME_VARS && (frameNum || i || k)) {
+				// at end of file?
+				i = numObj;
+				break;
+			} 
+			if (fv.size() < NUM_FRAME_VARS) {
+				Error() << "Error reading frame " << frameNum << " from frameVar file! Datafile frame num differs from current frame number!  Do all the fps_mode and numObj parameters of the frameVar file match the current fps mode and numObjs?";	
+				stop();
+				return;
+			}
+		}	
+}
 
-		// local target jitter
-		if (jitterlocal) {
-			jitterx = (ran1Gen()*jittermag - jittermag/2);
-			jittery = (ran1Gen()*jittermag - jittermag/2);
-			if (is3D)
-				jitterz = (ran1Gen()*jittermag - jittermag/2);
-			else
-				jitterz = 0.;
-		}
-		else 
-			jitterx = jittery = jitterz = 0.;
+void MovingObjects::doFrameDraw()
+{		
+	if (have_fv_input_file) {
+		prereadFrameVarsForThisRenderBlock();
+	} 	
 		
-		const int niters = ((int)fps_mode)+1; // hack :)
+	for (int k=0; k < nSubFrames; k++) {
 		
-		for (int k=0; k < niters; k++) {
-				if (have_fv_input_file && frameVars) {
-					QVector<double> & defs = frameVars->variableDefaults();
-					// re-set the defaults because we *know* what the frameNum and subframeNum *should* be!
-					defs[0] = frameNum;
-					defs[2] = k;
+		QMap <double, Obj2Render> objs2Render; ///< objects will be rendered in this order, this is ordered in reverse depth order
+
+		
+		for (QList<ObjData>::iterator it = objs.begin(); it != objs.end(); ++it) {		
+			ObjData & o = *it;
+			if (!o.shape) continue; // should never happen..
+
+			Rect aabb = o.shape->AABB();
+			double objLen, objLen_min;
+			float  & objcolor (o.color);
+
+			{ // Create a scope for the below references...				
+				double & x  (o.shape->position.x),					 
+					   & y  (o.shape->position.y),	
+					   & z  (o.shape->position.z),
+					   & vx (o.v.x),
+					   & vy (o.v.y),
+					   & vz (o.v.z),
+					   & objVelx (o.vel.x),
+					   & objVely (o.vel.y),
+					   & objVelz (o.vel.z);
+				
+				double
+					   & objXinit (o.pos_o.x),
+					   & objYinit (o.pos_o.y),
+					   & objZinit (o.pos_o.z);
+				
+				double  & objLen_o (o.len_vec[0].x), & objLen_min_o (o.len_vec[0].y);
+				double  & objPhi (o.shape->angle); 
+				
+				double  & jitterx (o.jitterx), & jittery (o.jittery), & jitterz(o.jitterz);
+								
+				objLen = o.shape->scale.x * objLen_o;
+				objLen_min = o.shape->scale.y * objLen_min_o; 
+
+				// local target jitter
+				if (jitterlocal) {
+					jitterx = (ran1Gen()*jittermag - jittermag/2);
+					jittery = (ran1Gen()*jittermag - jittermag/2);
+					if (is3D)
+						jitterz = (ran1Gen()*jittermag - jittermag/2);
+					else
+						jitterz = 0.;
 				}
-				QVector<double> fv;
-
-				Rect aabb = o.shape->AABB();
-			
-				{ // MOVEMENT/ROTATION computation happens *always* but the fvar file variables below may override the results of this computation!
-						if (moveFlag) {
+				else 
+					jitterx = jittery = jitterz = 0.;
 							
-							// wrap objects that floated past the edge of the screen
-							if (wrapEdge && (!canvasAABB.intersects(aabb) 
-											 || (is3D && (z > zBoundsFar 
-														  || z < zBoundsNear))))
-								wrapObject(o, aabb);
-							
-							else if (!wrapEdge) 
-								doWallBounce(o);
-							
-							
-							// initialize position iff k==0 and frameNum is a multiple of tframes
-							if ( !k && !(frameNum%tframes)) {
-								if (++o.vel_vec_i >= o.vel_vec.size()) {
-									o.vel_vec_i = 0;
-									++o.len_vec_i;
-								}
-								if (o.len_vec_i >= o.len_vec.size()) o.len_vec_i = 0;
-								
-								objLen = o.len_vec[o.len_vec_i].x;
-								objLen_min = o.len_vec[o.len_vec_i].y;
-								
-								
-								// apply new length by adjusting object scale
-								o.shape->scale.x = objLen / objLen_o;
-								o.shape->scale.y = objLen_min / objLen_min_o;
-								
-								objVelx = o.vel_vec[o.vel_vec_i].x;
-								objVely = o.vel_vec[o.vel_vec_i].y;
-								objVelz = o.vel_vec[o.vel_vec_i].z;
-								
-								// init position
-								//if (0 == rndtrial) {
-								// setup defaults for x,y,z and vx,vy,vz
-								// these may be overridden by rndtrial code below
-									x = objXinit;
-									y = objYinit;
-									z = objZinit;
-									vx = objVelx; 
-									vy = objVely;
-									vz = objVelz;
-								//} else 
-								if (1 == rndtrial) {
-									// random position and random V based on init sped 
-									applyRandomPositionForRndTrial_1_2(o);
-									vx = ran1Gen()*objVelx*2 - objVelx;
-									vy = ran1Gen()*objVely*2 - objVely;
-									vz = ran1Gen()*objVelz*2 - objVelz;
-								} else if (2 == rndtrial) {
-									// random position and direction
-									// static speed
-									applyRandomPositionForRndTrial_1_2(o);
-									applyRandomDirectionForRndTrial_2_4(o);
-									
-								} else if (3 == rndtrial) {
-									// position at t = position(t-1) + vx, vy
-									// random v based on objVelx objVely range
-									if (loopCt > 0) {
-										x = o.lastPos.x;
-										y = o.lastPos.y;
-										z = o.lastPos.z;
-									}
-									vx = ran1Gen()*objVelx*2. - objVelx;
-									vy = ran1Gen()*objVely*2. - objVely;
-									vz = ran1Gen()*objVelz*2. - objVelz; 
-								} else if (4 == rndtrial) {
-									// position at t = position(t-1) + vx, vy
-									// static speed, random direction
-									if (loopCt > 0) {
-										x = o.lastPos.x;
-										y = o.lastPos.y;
-										z = o.lastPos.z;
-									}
-									applyRandomDirectionForRndTrial_2_4(o);
-								}
-								objPhi = o.phi_o;
-								if (is3D) ensureObjectIsInBounds(o);
-								aabb = o.shape->AABB();
-							}
-							
-							{
-								Vec2 c = Shapes::Shape::canvasPosition(Vec3(x+vx+jitterx,y+vy+jittery,z+vz+jitterz));
-								// update position after delay period
-								// if jitter pushes us outside of motion box then do not jitter this frame
-								if ((int(frameNum)%tframes /*- delay*/) >= 0) { 
-									if (!wrapEdge && ((c.x + aabb.size.w/2 > max_x_pix) 
-													  ||  (c.x - aabb.size.w/2 < min_x_pix)))
-										x += vx;
-									else 
-										x += vx + jitterx;
-									if (!wrapEdge && ((c.y + aabb.size.h/2 > max_y_pix) 
-													  || (c.y - aabb.size.h/2 < min_y_pix))) 
-										y += vy;
-									else 
-										y += vy + jittery;
-									
-									if (!wrapEdge && (z+vz+jitterz > zBoundsFar
-													  || z+vz+jitterz < zBoundsNear)) 
-										z += vz;
-									else 
-										z += vz + jitterz;
-									
-									aabb = o.shape->AABB();
-									o.lastPos = o.shape->position; // save last pos
-
-									// also apply spin
-									objPhi += o.spin;
-								}
-							}
-							
+				// MOVEMENT/ROTATION computation happens *always* but the fvar file variables below may override the results of this computation!
+				if (moveFlag) {
+					
+					// wrap objects that floated past the edge of the screen
+					if (wrapEdge && (!canvasAABB.intersects(aabb) 
+									 || (is3D && (z > zBoundsFar 
+												  || z < zBoundsNear))))
+						wrapObject(o, aabb);
+					
+					else if (!wrapEdge) 
+						doWallBounce(o);
+					
+					
+					// initialize position iff k==0 and frameNum is a multiple of tframes
+					if ( !k && !(frameNum%tframes)) {
+						if (++o.vel_vec_i >= o.vel_vec.size()) {
+							o.vel_vec_i = 0;
+							++o.len_vec_i;
 						}
+						if (o.len_vec_i >= o.len_vec.size()) o.len_vec_i = 0;
 						
-				} 
-			
+						objLen = o.len_vec[o.len_vec_i].x;
+						objLen_min = o.len_vec[o.len_vec_i].y;
+						
+						
+						// apply new length by adjusting object scale
+						o.shape->scale.x = objLen / objLen_o;
+						o.shape->scale.y = objLen_min / objLen_min_o;
+						
+						objVelx = o.vel_vec[o.vel_vec_i].x;
+						objVely = o.vel_vec[o.vel_vec_i].y;
+						objVelz = o.vel_vec[o.vel_vec_i].z;
+						
+						// init position
+						//if (0 == rndtrial) {
+						// setup defaults for x,y,z and vx,vy,vz
+						// these may be overridden by rndtrial code below
+							x = objXinit;
+							y = objYinit;
+							z = objZinit;
+							vx = objVelx; 
+							vy = objVely;
+							vz = objVelz;
+						//} else 
+						if (1 == rndtrial) {
+							// random position and random V based on init sped 
+							applyRandomPositionForRndTrial_1_2(o);
+							vx = ran1Gen()*objVelx*2 - objVelx;
+							vy = ran1Gen()*objVely*2 - objVely;
+							vz = ran1Gen()*objVelz*2 - objVelz;
+						} else if (2 == rndtrial) {
+							// random position and direction
+							// static speed
+							applyRandomPositionForRndTrial_1_2(o);
+							applyRandomDirectionForRndTrial_2_4(o);
+							
+						} else if (3 == rndtrial) {
+							// position at t = position(t-1) + vx, vy
+							// random v based on objVelx objVely range
+							if (loopCt > 0) {
+								x = o.lastPos.x;
+								y = o.lastPos.y;
+								z = o.lastPos.z;
+							}
+							vx = ran1Gen()*objVelx*2. - objVelx;
+							vy = ran1Gen()*objVely*2. - objVely;
+							vz = ran1Gen()*objVelz*2. - objVelz; 
+						} else if (4 == rndtrial) {
+							// position at t = position(t-1) + vx, vy
+							// static speed, random direction
+							if (loopCt > 0) {
+								x = o.lastPos.x;
+								y = o.lastPos.y;
+								z = o.lastPos.z;
+							}
+							applyRandomDirectionForRndTrial_2_4(o);
+						}
+						objPhi = o.phi_o;
+						if (is3D) ensureObjectIsInBounds(o);
+						aabb = o.shape->AABB();
+					}
+					
+					{
+						Vec2 c = Shapes::Shape::canvasPosition(Vec3(x+vx+jitterx,y+vy+jittery,z+vz+jitterz));
+						// update position after delay period
+						// if jitter pushes us outside of motion box then do not jitter this frame
+						if ((int(frameNum)%tframes /*- delay*/) >= 0) { 
+							if (!wrapEdge && ((c.x + aabb.size.w/2 > max_x_pix) 
+											  ||  (c.x - aabb.size.w/2 < min_x_pix)))
+								x += vx;
+							else 
+								x += vx + jitterx;
+							if (!wrapEdge && ((c.y + aabb.size.h/2 > max_y_pix) 
+											  || (c.y - aabb.size.h/2 < min_y_pix))) 
+								y += vy;
+							else 
+								y += vy + jittery;
+							
+							if (!wrapEdge && (z+vz+jitterz > zBoundsFar
+											  || z+vz+jitterz < zBoundsNear)) 
+								z += vz;
+							else 
+								z += vz + jitterz;
+							
+							aabb = o.shape->AABB();
+							o.lastPos = o.shape->position; // save last pos
+
+							// also apply spin
+							objPhi += o.spin;
+						}
+					}
+					
+				} // END if moveFlag
+
 				if (have_fv_input_file) {
 					ConfigSuppressesFrameVar & csfv (configSuppressesFrameVar[o.objNum]);
-					
-					fv = frameVars->readNext();
-					if ( !frameNum ) {
-						fvHasPhiCol = frameVars->hasInputColumn("phi");
-						fvHasZCol = frameVars->hasInputColumn("z");
-						fvHasZScaledCol = frameVars->hasInputColumn("zScaled");
-					}
+						
+					const QVector<double> & fv (fvs_block[o.objNum][k]); 
+										
 					if (fv.size() < NUM_FRAME_VARS && frameNum) {
 						// at end of file?
 						Warning() << name() << "'s frame_var file ended input, stopping plugin.";
@@ -793,7 +820,7 @@ void MovingObjects::doFrameDraw()
 					bool didInitLen = false, redoAABB = false;;
 					const ObjType otype = ObjType(csfv[FV_objType] ? o.type : int(fv[FV_objType]));
 					const double r1 = ( csfv[FV_r1] ? objLen : fv[FV_r1] ), ///< keep the old objlen if config file is set to suppress framevar...
-					             r2 = ( csfv[FV_r2] ? objLen_min : fv[FV_r2] );
+								 r2 = ( csfv[FV_r2] ? objLen_min : fv[FV_r2] );
 
 					x = fv[FV_x];
 					y = fv[FV_y];
@@ -851,67 +878,123 @@ void MovingObjects::doFrameDraw()
 					if (o.type == SphereType) objcolor = 1.0;
 				} //  end have_fv_input_file
 
-				// draw stim if out of delay period
-				if (fv.size() || (int(frameNum)%tframes /*- delay*/) >= 0) {
-					float r,g,b;
+			} // end alias reference scope
+			
+			// enqueue draw stim if after delay period, or if have fv file
+			if (have_fv_input_file || (int(frameNum)%tframes) >= 0) {
+				/// enqueue object to be rendered in depth order
+				objs2Render.insertMulti(-o.shape->position.z, Obj2Render(o, aabb));
+				
+				if (!have_fv_input_file /**< doing output.. */) {
+					double fnum = frameNum;
 
-					if (fps_mode == FPS_Triple || fps_mode == FPS_Dual) {
-						b = g = r = bgcolor;					
-						// order of frames comes from config parameter 'color_order' but defaults to RGB
-						if (k == b_index) b = objcolor;
-						else if (k == r_index) r = objcolor;
-						else if (k == g_index) g = objcolor;
+					// in rndtrial mode, save 1 big file with fnum being a derived value.  HACK!
+					if (rndtrial && loopCt && nFrames) fnum = frameNum + loopCt*nFrames;
 
-					} else 
-						b = g = r = objcolor;
-
-					o.shape->color = Vec3(r, g, b);
-					
-					if (o.type == SphereType) 
-						glShadeModel(GL_SMOOTH);
-					else
-						glShadeModel(savedShadeModel);
-					
-					if (o.debugLvl >= 2) {
-						const double t0 = getTime();
-						o.shape->draw();
-						const double tf = getTime();
-						Debug() << "frame:" << frameNum << " obj:" << o.objNum << " took " << (tf-t0)*1e6 << " usec to draw";
-					} else
-						o.shape->draw();
-					
-					///DEBUG HACK FOR AABB VERIFICATION					
-					if (debugAABB && k==0) {
-						Rect r = aabb;
-						glColor3f(0.,1.,0); 
-						glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-						glBegin(GL_QUADS);
-						glVertex2f(r.origin.x,r.origin.y);
-						glVertex2f(r.origin.x+r.size.w,r.origin.y);
-						glVertex2f(r.origin.x+r.size.w,r.origin.y+r.size.h);
-						glVertex2f(r.origin.x,r.origin.y+r.size.h);	
-						glEnd();
-						glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-						//objPhi += 1.;
-					}					
-					
-					if (!fv.size()) {
-						double fnum = frameNum;
-
-						// in rndtrial mode, save 1 big file with fnum being a derived value.  HACK!
-						if (rndtrial && loopCt && nFrames) fnum = frameNum + loopCt*nFrames;
-
-						// nb: push() needs to take all doubles as args!
-						frameVars->push(fnum, double(o.objNum), double(k), double(o.type), double(x), double(y), double(objLen), double(objLen_min), double(objPhi), double(objcolor), double(z), double(o.shape->distance()));
-					}
+					// nb: push() needs to take all doubles as args!
+					QVector<double> & fv (fvs_block[o.objNum][k]);
+					fv.resize(N_FVCols);
+					fv[FV_frameNum] = fnum;
+					fv[FV_objNum] = o.objNum;
+					fv[FV_subFrameNum] = k;
+					fv[FV_objType] = o.type;
+					fv[FV_x] = o.shape->position.x;
+					fv[FV_y] = o.shape->position.y;
+					fv[FV_r1] = objLen;
+					fv[FV_r2] = objLen_min;
+					fv[FV_phi] = o.shape->angle;
+					fv[FV_color] = objcolor;
+					fv[FV_z] = o.shape->position.z;
+					fv[FV_zScaled] = o.shape->distance();
 				}
-
-		}
-	}
+			}
+		} // end obj loop
+		
+		for (QMap<double,Obj2Render>::iterator it = objs2Render.begin(); it != objs2Render.end(); ++it) {
+			drawObject(k, it->obj, it->aabb);
+		} // end obj2Render loop
+		
+	} // end K loop
+	
 	// guard against possible dangling references above...?
 	for (QList<Shapes::Shape *>::iterator it = shapes2del.begin(); it != shapes2del.end(); ++it)
 		delete *it;
 	shapes2del.clear();
+	
+	// lastly, write out fvars for this block -- we need to do this because framevar order in file no longer matches
+	// rendering order in this plugin, so we enqueue them then reorder them in blocks
+	for (int i = 0; i < numObj; ++i) {
+		for (int k = 0; k < nSubFrames; ++k) {
+			const QVector<double> & fv (fvs_block[i][k]);
+			if (unsigned(fv.size()) != frameVars->nFields()) {
+				Error() << "INTERNAL PLUGIN ERROR: FrameVar file configured for different number of fields than are being written!";
+				stop();
+				return;
+			}
+			frameVars->push(fv);
+		}
+	}
+	
+}
+
+void MovingObjects::drawObject(const int k, ObjData & o, const Rect & aabb)
+{
+	const bool depthWorkaround = fps_mode == FPS_Single;
+	
+	if (depthWorkaround) {
+		glMatrixMode(GL_MODELVIEW);
+		glPushMatrix();
+		glTranslatef(0.,0.,-o.shape->position.z);
+	}
+	
+	const float & objcolor (o.color);
+	
+	float r,g,b;
+	
+	if (fps_mode == FPS_Triple || fps_mode == FPS_Dual) {
+		b = g = r = bgcolor;	
+		
+		// order of frames comes from config parameter 'color_order' but defaults to RGB
+		if (k == b_index) b = objcolor;
+		else if (k == r_index) r = objcolor;
+		else if (k == g_index) g = objcolor;
+		
+	} else 
+		b = g = r = objcolor;
+	
+	o.shape->color = Vec3(r, g, b);
+	
+	if (o.type == SphereType) 
+		glShadeModel(GL_SMOOTH);
+	else
+		glShadeModel(savedShadeModel);
+	
+	if (o.debugLvl >= 2) {
+		const double t0 = getTime();
+		o.shape->draw();
+		const double tf = getTime();
+		Debug() << "frame:" << frameNum << " obj:" << o.objNum << " took " << (tf-t0)*1e6 << " usec to draw";
+	} else
+		o.shape->draw();
+	
+	///DEBUG HACK FOR AABB VERIFICATION					
+	if (debugAABB && k==0) {
+		const Rect & r (aabb);
+		glColor3f(0.,1.,0); 
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glBegin(GL_QUADS);
+		glVertex2f(r.origin.x,r.origin.y);
+		glVertex2f(r.origin.x+r.size.w,r.origin.y);
+		glVertex2f(r.origin.x+r.size.w,r.origin.y+r.size.h);
+		glVertex2f(r.origin.x,r.origin.y+r.size.h);	
+		glEnd();
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	}
+
+	if (depthWorkaround) {
+		glPopMatrix();
+	}
+	
 }
 
 void MovingObjects::wrapObject(ObjData & o, Rect & aabb) const {

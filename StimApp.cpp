@@ -232,6 +232,11 @@ void StimApp::setSaveFrameVars(bool b)
 {
     saveFrameVars = b;
     saveSettings();
+	if (glWindow->runningPlugin()) {
+		QMessageBox::information(0, "Plugin Restart Required",
+								 "The new Save Frame Vars setting requires a plugin unload/reload to take effect, or will automatically take effect for the next plugin to run."
+								 );
+	}
 }
 
 void StimApp::setNoDropFrameWarn(bool b) {

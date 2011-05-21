@@ -61,6 +61,16 @@ private:
 		void initDefaults();		
 	};
 
+	struct Obj2Render ///< used internally in doFrameDraw()
+	{
+		ObjData & obj;
+		Rect aabb;
+		Obj2Render(ObjData & obj, const Rect & aabb) : obj(obj), aabb(aabb) {}
+	};
+
+	void drawObject(const int k, ///< subframe Num 
+					ObjData & o, const Rect & aabb);
+	
 	void initObj(ObjData & o);
 	void reinitObj(ObjData & o, ObjType newType);
 	
@@ -70,10 +80,15 @@ private:
 	
 	void applyRandomDirectionForRndTrial_2_4(ObjData & o);
 	void applyRandomPositionForRndTrial_1_2(ObjData & o);
+
+	void prereadFrameVarsForThisRenderBlock();
 	
 	QList<ObjData> objs;
 	QList<Shapes::Shape *> shapes2del;
+	QVector<QVector<QVector<double> > >  fvs_block; ///< framevar data buffer -- indexed by [objnum][subframenum][fvarnum]
+
 	int numObj;
+	int nSubFrames;
 	
 	bool savedrng;  
 	int saved_ran1state;

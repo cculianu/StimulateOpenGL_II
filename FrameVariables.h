@@ -27,7 +27,8 @@ public:
 	void setPrecision(unsigned varNum, int precision=6); ///< default precision for fractional part of outputted variables is 6 digits, but for some save vars, more precision is required
 
 	void push(double varval0...); ///< all vars must be doubles, and they must be the same number of parameters as the variableNames() list length!
-
+	void push(const QVector<double> & vec); ///< like above but uses a vector rather than a variadic function
+	
 	/// read back the contents of the file to a vector and return it
 	static bool readAllFromFile(const QString & filename, QVector<double> & out, int * nrows_out = 0, int * ncols_out = 0, bool matlab = true);
 
