@@ -81,7 +81,8 @@ private:
 	void applyRandomDirectionForRndTrial_2_4(ObjData & o);
 	void applyRandomPositionForRndTrial_1_2(ObjData & o);
 
-	void prereadFrameVarsForThisRenderBlock();
+	void preReadFrameVarsForWholeFrame();
+	void postWriteFrameVarsForWholeFrame();
 	
 	QList<ObjData> objs;
 	QList<Shapes::Shape *> shapes2del;

@@ -591,7 +591,7 @@ void MovingObjects::applyRandomPositionForRndTrial_1_2(ObjData & o)
 }
 
 
-void MovingObjects::prereadFrameVarsForThisRenderBlock()
+void MovingObjects::preReadFrameVarsForWholeFrame()
 {
 	for (int i = 0; i < numObj; ++i)
 		for (int k = 0; k < nSubFrames; ++k) {
@@ -618,11 +618,25 @@ void MovingObjects::prereadFrameVarsForThisRenderBlock()
 		}	
 }
 
+void MovingObjects::postWriteFrameVarsForWholeFrame()
+{
+	for (int i = 0; i < numObj; ++i) {
+		for (int k = 0; k < nSubFrames; ++k) {
+			const QVector<double> & fv (fvs_block[i][k]);
+			if (unsigned(fv.size()) != frameVars->nFields()) {
+				Error() << "INTERNAL PLUGIN ERROR: FrameVar file configured for different number of fields than are being written!";
+				stop();
+				return;
+			}
+			frameVars->push(fv);
+		}
+	}
+}
+
 void MovingObjects::doFrameDraw()
 {		
-	if (have_fv_input_file) {
-		prereadFrameVarsForThisRenderBlock();
-	} 	
+	if (have_fv_input_file) 
+		preReadFrameVarsForWholeFrame();
 		
 	for (int k=0; k < nSubFrames; k++) {
 		
@@ -676,15 +690,18 @@ void MovingObjects::doFrameDraw()
 				// MOVEMENT/ROTATION computation happens *always* but the fvar file variables below may override the results of this computation!
 				if (moveFlag) {
 					
-					// wrap objects that floated past the edge of the screen
-					if (wrapEdge && (!canvasAABB.intersects(aabb) 
-									 || (is3D && (z > zBoundsFar 
-												  || z < zBoundsNear))))
-						wrapObject(o, aabb);
-					
-					else if (!wrapEdge) 
-						doWallBounce(o);
-					
+					if (!have_fv_input_file) {
+						
+						// wrap objects that floated past the edge of the screen
+						if (wrapEdge && (!canvasAABB.intersects(aabb) 
+										 || (is3D && (z > zBoundsFar 
+													  || z < zBoundsNear))))
+							wrapObject(o, aabb);
+						
+						else if (!wrapEdge) 
+							doWallBounce(o);
+
+					}
 					
 					// initialize position iff k==0 and frameNum is a multiple of tframes
 					if ( !k && !(frameNum%tframes)) {
@@ -751,7 +768,7 @@ void MovingObjects::doFrameDraw()
 							applyRandomDirectionForRndTrial_2_4(o);
 						}
 						objPhi = o.phi_o;
-						if (is3D) ensureObjectIsInBounds(o);
+						if (is3D && !have_fv_input_file) ensureObjectIsInBounds(o);
 						aabb = o.shape->AABB();
 					}
 					
@@ -853,12 +870,12 @@ void MovingObjects::doFrameDraw()
 						// do some required initialization if on frame 0 for this object to make sure r1, r2 and  obj type jive
 						o.phi_o = objPhi;
 						o.pos_o = Vec3(x,y,z);
-						reinitObj(o, otype);
-						didInitLen = true;
 						objLen = objLen_o = r1;
 						objLen_min = objLen_min_o = r2;
 						o.shape->scale.x = 1.0;
 						o.shape->scale.y = 1.0;
+						reinitObj(o, otype);
+						didInitLen = true;
 						redoAABB = true;
 					}
 					
@@ -870,6 +887,8 @@ void MovingObjects::doFrameDraw()
 					// handle length changes mid-plugin-run
 					if (!didInitLen && (!eqf(r1, objLen) || !eqf(r2, objLen_min))) {
 						o.shape->setRadii(r1, r2);
+						objLen = objLen_o = r1;
+						objLen_min = objLen_min_o = r2;
 						redoAABB = true;
 					}
 					
@@ -910,32 +929,26 @@ void MovingObjects::doFrameDraw()
 			}
 		} // end obj loop
 		
+		// now, render all objects for this subframe that were enqueued above, and render them in
+		// depth order, ascending.
 		for (QMap<double,Obj2Render>::iterator it = objs2Render.begin(); it != objs2Render.end(); ++it) {
 			drawObject(k, it->obj, it->aabb);
-		} // end obj2Render loop
+		} 
 		
 	} // end K loop
 	
-	// guard against possible dangling references above...?
+	// shapes2del guards against possible dangling alias/references...
 	for (QList<Shapes::Shape *>::iterator it = shapes2del.begin(); it != shapes2del.end(); ++it)
 		delete *it;
 	shapes2del.clear();
 	
-	// lastly, write out fvars for this block -- we need to do this because framevar order in file no longer matches
-	// rendering order in this plugin, so we enqueue them above and then write them out in a different order
+	// lastly, write out fvars for this frame -- we need to do it this way because framevar order in file no longer matches
+	// rendering order in this plugin, so we save them above as we render, and then write them out 
+	//  in subframe order, grouped by object number
 	// .. we do them in blocks for all the objects and subframes for this frame
-	for (int i = 0; i < numObj; ++i) {
-		for (int k = 0; k < nSubFrames; ++k) {
-			const QVector<double> & fv (fvs_block[i][k]);
-			if (unsigned(fv.size()) != frameVars->nFields()) {
-				Error() << "INTERNAL PLUGIN ERROR: FrameVar file configured for different number of fields than are being written!";
-				stop();
-				return;
-			}
-			frameVars->push(fv);
-		}
-	}
-	
+	// the inverse of this (read a frame's worth of vars and reorder it) is at the beginning of this function
+	if (!have_fv_input_file)
+		postWriteFrameVarsForWholeFrame();	
 }
 
 void MovingObjects::drawObject(const int k, ObjData & o, const Rect & aabb)
