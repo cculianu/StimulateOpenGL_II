@@ -922,7 +922,8 @@ void MovingObjects::doFrameDraw()
 	shapes2del.clear();
 	
 	// lastly, write out fvars for this block -- we need to do this because framevar order in file no longer matches
-	// rendering order in this plugin, so we enqueue them then reorder them in blocks
+	// rendering order in this plugin, so we enqueue them above and then write them out in a different order
+	// .. we do them in blocks for all the objects and subframes for this frame
 	for (int i = 0; i < numObj; ++i) {
 		for (int k = 0; k < nSubFrames; ++k) {
 			const QVector<double> & fv (fvs_block[i][k]);
