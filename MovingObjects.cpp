@@ -690,18 +690,15 @@ void MovingObjects::doFrameDraw()
 				// MOVEMENT/ROTATION computation happens *always* but the fvar file variables below may override the results of this computation!
 				if (moveFlag) {
 					
-					if (!have_fv_input_file) {
-						
-						// wrap objects that floated past the edge of the screen
-						if (wrapEdge && (!canvasAABB.intersects(aabb) 
-										 || (is3D && (z > zBoundsFar 
-													  || z < zBoundsNear))))
-							wrapObject(o, aabb);
-						
-						else if (!wrapEdge) 
-							doWallBounce(o);
+					// wrap objects that floated past the edge of the screen
+					if (wrapEdge && (!canvasAABB.intersects(aabb) 
+									 || (is3D && (z > zBoundsFar 
+												  || z < zBoundsNear))))
+						wrapObject(o, aabb);
+					
+					else if (!wrapEdge) 
+						doWallBounce(o);
 
-					}
 					
 					// initialize position iff k==0 and frameNum is a multiple of tframes
 					if ( !k && !(frameNum%tframes)) {
@@ -768,7 +765,7 @@ void MovingObjects::doFrameDraw()
 							applyRandomDirectionForRndTrial_2_4(o);
 						}
 						objPhi = o.phi_o;
-						if (is3D && !have_fv_input_file) ensureObjectIsInBounds(o);
+						if (is3D) ensureObjectIsInBounds(o);
 						aabb = o.shape->AABB();
 					}
 					
