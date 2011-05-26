@@ -577,6 +577,12 @@ jittermag
                           will not get jitter in the Z direction, and similarly 
                           an object with velocity vector (3,0,3) will not get 
                           jitter in the Y direction (but will in X and Z).
+                          Technical note:  When wrapEdge=false wall bouncing is 
+                          in effect and the plugin may produce screen flicker
+                          for objects with extremely large jitter.  Jitter 
+                          magnitude should be sufficiently small such that 
+                          objects do not cross more than one screenful in 
+                          between frames.               
        Datatype:          integer
        Possible values:   -2147483648 - +2147483647
        Default value:     2
