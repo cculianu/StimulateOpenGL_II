@@ -677,12 +677,9 @@ void MovingObjects::doFrameDraw()
 
 				// local target jitter
 				if (jitterlocal) {
-					jitterx = (ran1Gen()*jittermag - jittermag/2);
-					jittery = (ran1Gen()*jittermag - jittermag/2);
-					if (is3D)
-						jitterz = (ran1Gen()*jittermag - jittermag/2);
-					else
-						jitterz = 0.;
+					jitterx = eqf(objVelx,0.) ? 0. : (ran1Gen()*jittermag - jittermag/2);
+					jittery = eqf(objVely,0.) ? 0. : (ran1Gen()*jittermag - jittermag/2);
+					jitterz = eqf(objVelz,0.) ? 0. : (ran1Gen()*jittermag - jittermag/2);
 				}
 				else 
 					jitterx = jittery = jitterz = 0.;

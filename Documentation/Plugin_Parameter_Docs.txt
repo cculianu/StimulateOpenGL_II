@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: May 20, 2011
+Last Updated: May 26, 2011
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -552,13 +552,16 @@ jitterlocal
                           is performed to perturb the target's position
                           randomly by at most `jittermag' pixels in either
                           axis direction. (This feature is meant to emulate 
-                          the jittery flightpath of a fly).
+                          the jittery flightpath of a fly).  The 'j' key can be
+                          used to toggle this flag during the course of a plugin
+                          run.
        Datatype:          boolean
        Possible values:   0, 1, false, true, no, yes
        Default value:     0
 
 jittermag
-       Synopsis:          If `jitterlocal' is true, then `jittermag' magnitude
+       Synopsis:          If `jitterlocal' is true (and/or the 'j' key has been 
+                          used to enable jitter), then `jittermag' magnitude
                           jitter is applied to the target for each frame. 
                           Jitter is applied as follows: 
                           After the target's position is adjusted based on its
@@ -566,7 +569,14 @@ jittermag
                           performed to perturb the target's position randomly
                           by at most `jittermag' pixels in either axis 
                           direction. (This feature is meant to emulate the 
-                          jittery flightpath of a fly).
+                          jittery flightpath of a fly).  Note that if a 
+                          particular object is not moving in a particular axis
+                          direction (that is, if objVel* is 0) then no jitter
+                          motion will be generated in that direction.  For
+                          example an object with velocity vector (x,y,z)=(3,3,0) 
+                          will not get jitter in the Z direction, and similarly 
+                          an object with velocity vector (3,0,3) will not get 
+                          jitter in the Y direction (but will in X and Z).
        Datatype:          integer
        Possible values:   -2147483648 - +2147483647
        Default value:     2
@@ -859,7 +869,12 @@ objVelXN (where N is 2 to numObj)
                           per frame.  Note that a vector of values may be used 
                           here if you want to do target speedcycling.  In which
                           case the target speed is cycled every `tFrames' from 
-                          values in this vector. (See the 'tFrames' parameter).              
+                          values in this vector. (See the 'tFrames' parameter).
+                          Technical note:  When wrapEdge=false wall bouncing is 
+                          in effect and the plugin may produce screen flicker
+                          for objects with extremely large velocity.  Velocities
+                          should be sufficiently small such that objects do not 
+                          cross more than one screenful in between frames.               
         Datatype:         integer tuple, comma (or space) delimited
         Possible values:  -2147483648 - +2147483647 [, -2147483648 - +2147483647 ... ]
         Default value:    first object: 4
@@ -875,6 +890,11 @@ objVelYN (where N is 2 to numObj)
                           here if you want to do target speedcycling.  In which
                           case the target speed is cycled every `tFrames' from 
                           values in this vector. (See the 'tFrames' parameter).              
+                          Technical note:  When wrapEdge=false wall bouncing is 
+                          in effect and the plugin may produce screen flicker
+                          for objects with extremely large velocity.  Velocities
+                          should be sufficiently small such that objects do not 
+                          cross more than one screenful in between frames.               
         Datatype:         integer tuple, comma (or space) delimited
         Possible values:  -2147483648 - +2147483647 [, -2147483648 - +214748364 ... ]
         Default value:    first object: 4
@@ -890,6 +910,11 @@ objVelZN (where N is 2 to numObj)
                           here if you want to do target speedcycling.  In which
                           case the target speed is cycled every `tFrames' from 
                           values in this vector. (See the 'tFrames' parameter).              
+                          Technical note:  When wrapEdge=false wall bouncing is 
+                          in effect and the plugin may produce screen flicker
+                          for objects with extremely large velocity.  Velocities
+                          should be sufficiently small such that objects do not 
+                          cross more than one screenful in between frames.               
         Datatype:         integer tuple, comma (or space) delimited
         Possible values:  -2147483648 - +2147483647 [, -2147483648 - +214748364 ... ]
         Default value:    first object: 0
@@ -1055,7 +1080,39 @@ tFrames
 wrapEdge
         Synopsis:         If true, objects wrap off the edge onto the opposite
                           edge of the plugin drawing area.  If false, objects
-                          bounce off the edges.
+                          bounce off the edges.  
+                          How objects bounce: With wrapEdge=off, objects bounce 
+                          off the walls of the drawing area using a hybrid 
+                          frustum/box scheme to define the walls.  If an object 
+                          is moving in all three dimensions (that is, it has 
+                          nonzero X,Y and Z components to its velocity vector), 
+                          then when it hits the side of the screen (or the 
+                          zBoundsNear or zBoundsFar bondaries), it will bounce 
+                          in all 3 dimensions using the viewing frustum's 
+                          "walls" to calculate the angle of bounce. (A frustum 
+                          is a cutoff-pyramid, oriented such that its tip would 
+                          be at the camera).
+                          However, if an object lacks motion in all 3 dimensions 
+                          (at least one of X,Y,Z components to velocity is 0), 
+                          then the plugin will not use a frustum to calculate 
+                          the angle of bounce, but rather use a box or cube to 
+                          define the bounds and to determine the angle of 
+                          bounce.  So, each object either sees the sides of the 
+                          drawing area as a flat wall (box bounds) or angled 
+                          wall (frustum bounds), depending on whether that 
+                          object is moving in all 3 dimensions or not.  This 
+                          scheme allows objects to preserve their linear or 
+                          planar motion if they are moving in 1 or 2 
+                          dimensions, but to bounce correctly in 3D space 
+                          (off of a frustum and not a box) when they are moving 
+                          in all 3 dimensions.  Hence the hybrid box/frustum 
+                          nature of the walls.
+                          Technical note:  When wrapEdge=false (wall bouncing is 
+                          in effect) the plugin may produce screen flicker
+                          for objects with extremely large velocities.  
+                          Velocities should be sufficiently small such that 
+                          objects do not cross more than one screenful in 
+                          between frames.               
         Datatype:         boolean
         Possible values:  true, false or 1, 0
         Default value:    false (0)
