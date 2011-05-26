@@ -492,18 +492,6 @@ bool MovingObjects::processKey(int key)
 
 void MovingObjects::drawFrame()
 {
-	const bool depthWorkaround = fps_mode == FPS_Single;
-	
-	if (depthWorkaround) {			
-		glMatrixMode( GL_PROJECTION );
-		glPushMatrix();
-		glLoadIdentity();
-		GLint vp[4];
-		glGetIntegerv(GL_VIEWPORT, vp);
-		glOrtho( 0.0, vp[2], 0.0, vp[3], -10000.0, 10000.0 );	
-		glMatrixMode( GL_MODELVIEW );
-	}
-	
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ); 
         
     if (fps_mode != FPS_Single) {
@@ -523,12 +511,6 @@ void MovingObjects::drawFrame()
 
 		glDisable(GL_BLEND);
     } 
-
-	if (depthWorkaround) {
-		glMatrixMode(GL_PROJECTION);
-		glPopMatrix();
-		glMatrixMode(GL_MODELVIEW);
-	}
 }
 
 void MovingObjects::reinitObj(ObjData & o, ObjType otype)

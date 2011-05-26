@@ -99,7 +99,7 @@ void GLWindow::resizeGL(int w, int h)
     glViewport(0, 0,(GLsizei)w, (GLsizei)h );
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity();
-    gluOrtho2D( 0.0, (GLdouble)w, 0.0, (GLdouble) h );
+    glOrtho( 0.0, (GLdouble)w, 0.0, (GLdouble) h, -1e6, 1e6 );
 }
 
 

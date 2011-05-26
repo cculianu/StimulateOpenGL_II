@@ -304,13 +304,6 @@ void Sphere::draw()
 {
 	double d = distance();
 	if (d < 0.0) d = 1e-9;
-	glMatrixMode( GL_PROJECTION );
-	glPushMatrix();
-    glLoadIdentity();
-	GLint vp[4];
-	glGetIntegerv(GL_VIEWPORT, vp);
-    glOrtho( 0.0, vp[2], 0.0, vp[3], -10000.0, 10000.0 );	
-	glMatrixMode( GL_MODELVIEW );
 	GLfloat lAmb[4], lDif[4], lSpec[4], spec[4], amb[4], dif[4], emis[4];
 	for (int i = 0; i < 4; ++i) {
 		GLfloat c = 1.f;
@@ -381,11 +374,7 @@ void Sphere::draw()
 	glDisable(GL_LIGHT0);
 	glDisable(GL_LIGHTING);
 	if (!blendEnabled && !depthEnabled) 
-		glDisable(GL_DEPTH_TEST);
-	
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
-	glMatrixMode(GL_MODELVIEW);
+		glDisable(GL_DEPTH_TEST);	
 }
 
 Rect Sphere::AABB() const {
