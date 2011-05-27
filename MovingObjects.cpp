@@ -919,7 +919,7 @@ void MovingObjects::doFrameDraw()
 					}					
 					// handle length changes mid-plugin-run
 					if (!didInitLen && (!eqf(r1, objLen) || !eqf(r2, objLen_min))) {
-						o.shape->setRadii(r1, r2);
+						o.shape->setLengths(r1, r2);
 						objLen = objLen_o = r1;
 						objLen_min = objLen_min_o = r2;
 						redoAABB = true;

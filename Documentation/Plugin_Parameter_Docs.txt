@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: May 26, 2011
+Last Updated: May 27, 2011
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -806,12 +806,12 @@ objTypeN (where N is 2 to numObj)
                             sizes are of objLenX length (in pixels, see the
                             objLenX parameter).
                ellipse    - Indicates you want the target to be an ellipsoid
-                            of objLenX/objLenY radii (in pixels, see the 
-                            objLenX/objLenY params). The ellipsoid is approximated
-                            using 128 vertices.
+                            of objLenX/objLenY diameter (in pixels, see the 
+                            objLenX/objLenY params). The ellipsoid is 
+                            approximated using 128 vertices.
                sphere     - Indicates you want the target to be a 3D sphere
-                            of objLenX radius (objLenY is ignored) (radius is in 
-                            pixels, see the objLenX param). The sphere is 
+                            of objLenX diameter (objLenY is ignored) (diameter 
+                            is in pixels, see the objLenX param). The sphere is 
                             approximated using 32 vertices.  (Note that objColor
                             is ignored for spheres.  Instead, specify intensity
                             using the various light*, ambient, diffuse, and

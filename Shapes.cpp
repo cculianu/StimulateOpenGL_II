@@ -66,8 +66,8 @@ void Ellipse::copyProperties(const Shape *o)
 	Shape::copyProperties(o);
 	const Ellipse *e;
 	if ((e = dynamic_cast<const Ellipse *>(o))) {
-		xradius = e->xradius;
-		yradius = e->yradius;
+		xdiameter = e->xdiameter;
+		ydiameter = e->ydiameter;
 	}
 }
 
@@ -76,7 +76,7 @@ void Sphere::copyProperties(const Shape *o)
 	Shape::copyProperties(o);
 	const Sphere *s;
 	if ((s=dynamic_cast<const Sphere *>(o))) {
-		radius = s->radius;
+		diameter = s->diameter;
 		std::memcpy(lightAmbient, s->lightAmbient, sizeof(lightAmbient));
 		std::memcpy(lightDiffuse, s->lightDiffuse, sizeof(lightDiffuse));
 		std::memcpy(lightPosition, s->lightPosition, sizeof(lightDiffuse));
@@ -151,8 +151,8 @@ Vec3 Shape::cposToRealPos(const Vec2 & cpos, double z)
 /* static */ GLuint Ellipse::dl = 0;
 const unsigned Ellipse::numVertices = NUM_VERTICES_FOR_ELLIPSOIDS;
 	
-Ellipse::Ellipse(double rx, double ry)
-	: xradius(rx), yradius(ry)
+Ellipse::Ellipse(double lx, double ly)
+	: xdiameter(lx), ydiameter(ly)
 {
 	if (!dl) {
 		const double incr = DEG2RAD(360.0) / numVertices;
@@ -161,7 +161,7 @@ Ellipse::Ellipse(double rx, double ry)
 		glNewList(dl, GL_COMPILE);
 			glBegin(GL_POLYGON);
 				for (unsigned i = 0; i < numVertices; ++i) {
-					glVertex2d(cos(radian), sin(radian));
+					glVertex2d(cos(radian)/2., sin(radian)/2.);
 					radian += incr;
 				}
 			glEnd();
@@ -172,8 +172,8 @@ Ellipse::Ellipse(double rx, double ry)
 void Ellipse::draw() {
 	Vec2 scale_saved = scale;
 	// emulate the xradius,yradius thing with just a glScale.. muahahaha!
-	scale.x *= xradius;
-	scale.y *= yradius;
+	scale.x *= xdiameter;
+	scale.y *= ydiameter;
 	drawBegin();
 	glCallList(dl);
 	drawEnd();
@@ -182,15 +182,15 @@ void Ellipse::draw() {
 
 Rect Ellipse::AABB() const { 
 	const double d = distance() > 0.0 ? distance() : 0.000000001;
-	const double r_max (xradius/d);
-	const double r_min (yradius/d);
+	const double r_max (xdiameter/d);
+	const double r_min (ydiameter/d);
 	const double rot = DEG2RAD(angle);
 	const double sin_rot = sin(rot);
 	const double cos_rot = cos(rot);
 	double t_nil = atan( -r_min * tan(rot) / r_max);
 	double t_inf = atan(r_min * (cos_rot / sin_rot) / r_max);
-	double rect_width = scale.x * fabs(2. * (r_max * cos(t_nil) * cos_rot - r_min * sin(t_nil) * sin_rot));
-	double rect_height = scale.y * fabs(2. * (r_min * sin(t_inf) * cos_rot + r_max * cos(t_inf) * sin_rot));
+	double rect_width = .5 * scale.x * fabs(2. * (r_max * cos(t_nil) * cos_rot - r_min * sin(t_nil) * sin_rot));
+	double rect_height = .5 * scale.y * fabs(2. * (r_min * sin(t_inf) * cos_rot + r_max * cos(t_inf) * sin_rot));
 	Vec2 cpos(canvasPosition());
 	return Rect(Vec2(cpos.x-rect_width/2.,cpos.y-rect_height/2.),Vec2(rect_width,rect_height));
 }
@@ -230,7 +230,9 @@ void Rectangle::draw() {
 
 
 Rect Rectangle::AABB() const {
-	const double d = distance() > 0.0 ? distance() : 0.000000001;
+	double d0 = distance();
+	const double d = d0 > 0.0 ? d0 : EPSILON*2.;
+	Vec2 cpos (canvasPosition());
 	
 	if (!eqf(fmod(angle, 360.0),0.0)) {
 		// we are rotated, do this complicated thing to account for rotation!
@@ -245,7 +247,6 @@ Rect Rectangle::AABB() const {
 									Vec2( -.5*(width/d), .5*(height/d) ) };
 			
 		double minx = 1e6, miny = 1e6, maxx = -1e6, maxy = -1e6;
-		Vec2 cpos (canvasPosition());
 		const double x0 = cpos.x;
 		const double y0 = cpos.y;
 		for (int i = 0; i < n; ++i) {
@@ -265,7 +266,7 @@ Rect Rectangle::AABB() const {
 	// else.. we are not rotatated
 	// since we are aligned to origin, return *this rectangle* (scaled)
 	return Rect(
-				Vec2( (-width/2. * scale.x + position.x)/d, (-height/2. * scale.y + position.y)/d ), 
+				Vec2( (-width/2. * scale.x)/d + cpos.x, (-height/2. * scale.y)/d + cpos.y ), 
 				Vec2( (width*scale.x)/d, (height*scale.y)/d ) 
 				);
 }
@@ -312,8 +313,8 @@ Sphere::DefaultShininess =        50.0f;
 /* static */ GLUquadricObj * Sphere::quadric = 0;
 /* static */ GLuint Sphere::dl = 0;
 
-Sphere::Sphere(double radius)
-: radius(radius), lightIsFixedInSpace(true)
+Sphere::Sphere(double diam)
+: diameter(diam), lightIsFixedInSpace(true)
 {
 	if (!quadric) {
 		quadric = gluNewQuadric();
@@ -395,7 +396,7 @@ void Sphere::draw()
 	glMaterialfv(GL_FRONT, GL_EMISSION, emis);
 	
 	const Vec2 scale_saved = scale;
-	double radius_actual = scale.x * radius / d;
+	double diam_actual = scale.x * diameter / d;
 	scale.x = 1.0 * d; // multiply by d to counter-balance scaling in drawBegin()
 	scale.y = 1.0 * d;
 	double angle_saved = angle;
@@ -406,7 +407,7 @@ void Sphere::draw()
 	gluQuadricNormals(quadric, GLU_SMOOTH);
 	gluQuadricDrawStyle(quadric , GLU_FILL);
 	gluQuadricOrientation(quadric, GLU_OUTSIDE); 
-	gluSphere(quadric, radius_actual, NUM_VERTICES_FOR_SPHEROIDS, NUM_VERTICES_FOR_SPHEROIDS);
+	gluSphere(quadric, diam_actual/2.0, NUM_VERTICES_FOR_SPHEROIDS, NUM_VERTICES_FOR_SPHEROIDS);
 
 	drawEnd();
 	
@@ -424,9 +425,9 @@ Rect Sphere::AABB() const {
 	const double d = distance() > 0.0 ? distance() : 0.000000001;
 	Vec2 cpos(canvasPosition());
 	return Rect(
-				 Vec2( cpos.x-radius*scale.x/d,
-					   cpos.y-radius*scale.y/d ),
-				 Vec2( (2.*radius*scale.x)/d, (2.*radius*scale.y)/d )
+				 Vec2( cpos.x-diameter*.5*scale.x/d,
+					   cpos.y-diameter*.5*scale.y/d ),
+				 Vec2( (diameter*scale.x)/d, (diameter*scale.y)/d )
 				);	
 }
 	

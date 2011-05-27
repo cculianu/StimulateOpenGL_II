@@ -49,7 +49,7 @@ public:
 	
 	virtual Rect AABB() const = 0; ///< must reimplement in subclasses to return the axis-aligned-bounding-box (with scale, rotation, and position applied!)
 	
-	virtual void setRadii(double r1, double r2) = 0;
+	virtual void setLengths(double l1, double l2) = 0;
 	
 	Vec2 bottomLeft() const { return AABB().origin; }
 	
@@ -86,7 +86,7 @@ public:
 	/// not as trivial as it seems since we have to account for rotation of the box!
 	Rect AABB() const;
 	
-	void setRadii(double r1, double r2) { width = r1; height = r2; }
+	void setLengths(double l1, double l2) { width = l1; height = l2; }
 	
 	void draw();
 
@@ -101,17 +101,17 @@ public:
 class Ellipse : public Shape {
 	friend void CleanupStaticDisplayLists();
 public:
-	double xradius,yradius;
+	double xdiameter,ydiameter;
 	static const unsigned numVertices;
 
 protected:
 	static GLuint dl; ///< shared display list for _ALL_ ellipses since we use a unit circle at 0,0 with 128 vertices globally!
 	
 public:
-	Ellipse(double radiusX = 1., double radiusY = 1.);
+	Ellipse(double diamX = 1., double diamY = 1.);
 	
 	void draw();
-	void setRadii(double r1, double r2) { xradius = r1; yradius = r2; }
+	void setLengths(double l1, double l2) { xdiameter = l1; ydiameter = l2; }
 	
 	Rect AABB() const;
 	
@@ -136,19 +136,19 @@ public:
 						 DefaultEmission[4], // 0,0,0,1
 						 DefaultShininess; // 50.0
 	
-	double radius;
+	double diameter;
 	GLfloat lightAmbient[4], lightDiffuse[4], lightPosition[4], lightSpecular[4], 
 	        specular[4], ambient[4], diffuse[4], emission[4], shininess;
 	GLfloat lightAttenuations[3]; ///< constant, linear, and quadratic respectively
 	bool lightIsFixedInSpace; ///< default false.  if true, then the light source is fixed in space and is not relative to the sphere
 	
-	Sphere(double radius = 1.0);
+	Sphere(double diameter = 1.0);
 	
 	void draw();
 	
 	Rect AABB() const;
 	
-	void setRadii(double r1, double r2) { radius = r1; (void)r2; }
+	void setLengths(double l1, double l2) { diameter = l1; (void)l2; }
 	
 	void copyProperties(const Shape *from);
 	
