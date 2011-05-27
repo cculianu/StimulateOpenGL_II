@@ -88,6 +88,8 @@ private:
 	void preReadFrameVarsForWholeFrame();
 	void postWriteFrameVarsForWholeFrame();
 	
+	void postFillBG();
+	
 	QList<ObjData> objs;
 	QList<Shapes::Shape *> shapes2del;
 	QVector<QVector<QVector<double> > >  fvs_block; ///< framevar data buffer -- indexed by [objnum][subframenum][fvarnum]

@@ -502,25 +502,51 @@ bool MovingObjects::processKey(int key)
 
 void MovingObjects::drawFrame()
 {
+	GLfloat clc[4];
+	glGetFloatv(GL_COLOR_CLEAR_VALUE, clc); // save clear color to not break calling code..
+
+	if (fps_mode == FPS_Single) {
+		glClearColor(bgcolor, bgcolor, bgcolor, 1.0);
+	} else {
+		glClearColor(0.,0.,0.,1.); /// always clear to black in this plugin.  We draw the BG later with depth = zFar and GL_DEPTH_TEST enabled.
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_ALWAYS);
+	}
+	
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ); 
-        
+	
     if (fps_mode != FPS_Single) {
 		glEnable(GL_BLEND);
-		
-		if (bgcolor >  0.5)
-			glBlendFunc(GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR);
-		else glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
+		glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
     } 
 	
 	doFrameDraw();
    
     if (fps_mode != FPS_Single) {
-		if (bgcolor >  0.5)
-			glBlendFunc(GL_DST_COLOR,GL_ONE);
-        else glBlendFunc(GL_SRC_COLOR,GL_ONE);
-
+		glBlendFunc(GL_SRC_COLOR,GL_ONE);
 		glDisable(GL_BLEND);
-    } 
+		postFillBG();
+		glDisable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+		glClearColor(bgcolor, bgcolor, bgcolor, 1.0);
+	}
+}
+
+void MovingObjects::postFillBG()
+{
+	// draw BG	
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+	glColor4f(bgcolor, bgcolor, bgcolor, 1.0);
+	glDepthFunc(GL_LESS);
+	const double z = -(1e6-1.);
+	glTranslated(0.,0.,z);
+	const double w = width(), h = height();
+	glRecti(0,0,w,h);
+	glPopMatrix();	
+
+	glDepthFunc(GL_ALWAYS);
 }
 
 void MovingObjects::reinitObj(ObjData & o, ObjType otype)
@@ -963,6 +989,7 @@ void MovingObjects::doFrameDraw()
 
 void MovingObjects::drawObject(const int i, Obj2Render & o2r)
 {
+	(void)i;
 	const Rect & aabb (o2r.aabb);
 	Shapes::Shape *s = o2r.shapeCopy;
 	const ObjData & o (o2r.obj);

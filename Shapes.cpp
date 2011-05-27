@@ -360,11 +360,13 @@ void Sphere::draw()
 		dif[i] = diffuse[i]*c;
 		emis[i] = emission[i]*c;
 	}
-	GLint blendEnabled = 0, depthEnabled = 0;
+	GLint blendEnabled = 0, depthEnabled = 0, depthFunc = 0;
 	glGetIntegerv(GL_BLEND, &blendEnabled);
 	glGetIntegerv(GL_DEPTH_TEST, &depthEnabled);
+	glGetIntegerv(GL_DEPTH_FUNC, &depthFunc);
 	if (!blendEnabled && !depthEnabled) 
 		glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 	glEnable(GL_LIGHTING);
 	glLightfv(GL_LIGHT0, GL_AMBIENT, lAmb);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, lDif);
@@ -415,6 +417,7 @@ void Sphere::draw()
 	glDisable(GL_LIGHTING);
 	if (!blendEnabled && !depthEnabled) 
 		glDisable(GL_DEPTH_TEST);	
+	glDepthFunc(depthFunc);
 }
 
 Rect Sphere::AABB() const {
