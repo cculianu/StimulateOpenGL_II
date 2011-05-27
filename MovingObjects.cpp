@@ -227,7 +227,7 @@ bool MovingObjects::init()
 		getParam( "objSpecular", o.specular);   ChkAndClampParam("objSpecular", o.specular, -1., 1., i);
 			
 		if (!getParam( "objDebug", o.debugLvl)) o.debugLvl = 0;
-		
+		getParam( "objSpin", o.spin );
 		paramSuffixPop();
 		
 	}
@@ -398,6 +398,16 @@ bool MovingObjects::init()
 	return true;
 }
 
+Shapes::Shape * MovingObjects::newShape(ObjType t) {
+	Shapes::Shape *ret = 0;
+	switch(t) {
+		case EllipseType: ret = new Shapes::Ellipse; break; 
+		case SphereType: ret = new Shapes::Sphere; break; 
+		default: ret = new Shapes::Rectangle; break; 
+	}
+	return ret;
+}
+
 void MovingObjects::initObj(ObjData & o) {
 	if (o.type == EllipseType) {
 		o.shape = new Shapes::Ellipse(o.len_vec[0].x, o.len_vec[0].y);
@@ -517,11 +527,16 @@ void MovingObjects::reinitObj(ObjData & o, ObjType otype)
 {
 	Shapes::Shape *oldshape = o.shape;
 	o.shape = 0;
+	ObjType oldtype = o.type;
 	o.type = otype;
-	initObj(o);
-	if (oldshape) {
+	if (!oldshape || oldtype != o.type) {
+		initObj(o);
+	} else {
+		o.shape = newShape(o.type);
 		o.shape->copyProperties(oldshape);
-		// this is because some references to oldshape are still scoped in calling code!
+	}
+	if (oldshape) {
+		// this is because some references to oldshape are still scoped in calling code, so we defer delete till later
 		shapes2del.push_back(oldshape);
 	}
 }
@@ -635,11 +650,10 @@ void MovingObjects::doFrameDraw()
 {		
 	if (have_fv_input_file) 
 		preReadFrameVarsForWholeFrame();
+
+	QMap <double, Obj2Render> objs2Render; ///< objects will be rendered in this order, this is ordered in reverse depth order
 		
 	for (int k=0; k < nSubFrames; k++) {
-		
-		QMap <double, Obj2Render> objs2Render; ///< objects will be rendered in this order, this is ordered in reverse depth order
-
 		
 		for (QList<ObjData>::iterator it = objs.begin(); it != objs.end(); ++it) {		
 			ObjData & o = *it;
@@ -785,12 +799,13 @@ void MovingObjects::doFrameDraw()
 								z += vz;
 							else 
 								z += vz + jitterz;
-							
-							aabb = o.shape->AABB();
-							o.lastPos = o.shape->position; // save last pos
 
 							// also apply spin
 							objPhi += o.spin;
+
+							aabb = o.shape->AABB();
+							o.lastPos = o.shape->position; // save last pos
+
 						}
 					}
 					
@@ -894,7 +909,10 @@ void MovingObjects::doFrameDraw()
 			// enqueue draw stim if after delay period, or if have fv file
 			if (have_fv_input_file || (int(frameNum)%tframes) >= 0) {
 				/// enqueue object to be rendered in depth order
-				objs2Render.insertMulti(-o.shape->position.z, Obj2Render(o, aabb));
+				Obj2Render o2r(o, k, aabb);
+				shapes2del.push_back(o2r.shapeCopy = newShape(o.type));
+				o2r.shapeCopy->copyProperties(o.shape);				
+				objs2Render.insertMulti(-o.shape->position.z, o2r);
 				
 				if (!have_fv_input_file /**< doing output.. */) {
 					double fnum = frameNum;
@@ -920,14 +938,14 @@ void MovingObjects::doFrameDraw()
 				}
 			}
 		} // end obj loop
-		
-		// now, render all objects for this subframe that were enqueued above, and render them in
-		// depth order, ascending.
-		for (QMap<double,Obj2Render>::iterator it = objs2Render.begin(); it != objs2Render.end(); ++it) {
-			drawObject(k, it->obj, it->aabb);
-		} 
-		
+				
 	} // end K loop
+	
+	// now, render all objects for this entire frame in depth-first order, ascending.
+	int i = 0;
+	for (QMap<double,Obj2Render>::iterator it = objs2Render.begin(); it != objs2Render.end(); ++it, ++i) {
+		drawObject(i, *it);
+	} 
 	
 	// shapes2del guards against possible dangling alias/references...
 	for (QList<Shapes::Shape *>::iterator it = shapes2del.begin(); it != shapes2del.end(); ++it)
@@ -943,14 +961,24 @@ void MovingObjects::doFrameDraw()
 		postWriteFrameVarsForWholeFrame();	
 }
 
-void MovingObjects::drawObject(const int k, ObjData & o, const Rect & aabb)
+void MovingObjects::drawObject(const int i, Obj2Render & o2r)
 {
+	const Rect & aabb (o2r.aabb);
+	Shapes::Shape *s = o2r.shapeCopy;
+	const ObjData & o (o2r.obj);
+	const int k (o2r.k);
+	
 	const bool depthWorkaround = fps_mode == FPS_Single;
 	
 	if (depthWorkaround) {
 		glMatrixMode(GL_MODELVIEW);
 		glPushMatrix();
-		glTranslatef(0.,0.,-o.shape->position.z);
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LEQUAL);
+		glTranslatef(0.,0.,-s->position.z); /* TODO: FIX THIS!!  BROKEN!
+											    this affects light position for lightisfixed in space=true! 
+		                                       lights don't render consistently between single/triple fps because of this.
+		                                        FIXME BUG HACK XXX (related to Sphere::draw()) */
 	}
 	
 	const float & objcolor (o.color);
@@ -968,7 +996,7 @@ void MovingObjects::drawObject(const int k, ObjData & o, const Rect & aabb)
 	} else 
 		b = g = r = objcolor;
 	
-	o.shape->color = Vec3(r, g, b);
+	s->color = Vec3(r, g, b);
 	
 	if (o.type == SphereType) 
 		glShadeModel(GL_SMOOTH);
@@ -977,11 +1005,11 @@ void MovingObjects::drawObject(const int k, ObjData & o, const Rect & aabb)
 	
 	if (o.debugLvl >= 2) {
 		const double t0 = getTime();
-		o.shape->draw();
+		s->draw();
 		const double tf = getTime();
 		Debug() << "frame:" << frameNum << " obj:" << o.objNum << " took " << (tf-t0)*1e6 << " usec to draw";
 	} else
-		o.shape->draw();
+		s->draw();
 	
 	///DEBUG HACK FOR AABB VERIFICATION					
 	if (debugAABB && k==0) {
@@ -999,6 +1027,7 @@ void MovingObjects::drawObject(const int k, ObjData & o, const Rect & aabb)
 
 	if (depthWorkaround) {
 		glPopMatrix();
+		glDisable(GL_DEPTH_TEST);
 	}
 	
 }

@@ -42,13 +42,53 @@ void Shape::drawEnd() {
 		glLoadIdentity();
 }
 
-void Shape::copyProperties(Shape *o)
+void Shape::copyProperties(const Shape *o)
 {
 	position = o->position;
 	scale = o->scale;
 	color = o->color;
 	angle = o->angle;
 	noMatrixAttribPush = o->noMatrixAttribPush;
+}
+
+void Rectangle::copyProperties(const Shape *o)
+{
+	Shape::copyProperties(o);
+	const Rectangle *r;
+	if ((r=dynamic_cast<const Rectangle *>(o))) {
+		width = r->width;
+		height = r->height;
+	}
+}
+
+void Ellipse::copyProperties(const Shape *o)
+{
+	Shape::copyProperties(o);
+	const Ellipse *e;
+	if ((e = dynamic_cast<const Ellipse *>(o))) {
+		xradius = e->xradius;
+		yradius = e->yradius;
+	}
+}
+
+void Sphere::copyProperties(const Shape *o)
+{
+	Shape::copyProperties(o);
+	const Sphere *s;
+	if ((s=dynamic_cast<const Sphere *>(o))) {
+		radius = s->radius;
+		std::memcpy(lightAmbient, s->lightAmbient, sizeof(lightAmbient));
+		std::memcpy(lightDiffuse, s->lightDiffuse, sizeof(lightDiffuse));
+		std::memcpy(lightPosition, s->lightPosition, sizeof(lightDiffuse));
+		std::memcpy(lightSpecular, s->lightSpecular, sizeof(lightSpecular));
+		std::memcpy(ambient, s->ambient, sizeof(ambient));
+		std::memcpy(diffuse, s->diffuse, sizeof(diffuse));
+		std::memcpy(emission, s->emission, sizeof(emission));
+		std::memcpy(specular, s->specular, sizeof(specular));
+		std::memcpy(lightAttenuations, s->lightAttenuations, sizeof(lightAttenuations));
+		shininess = s->shininess;
+		lightIsFixedInSpace = s->lightIsFixedInSpace;
+	}
 }
 	
 static MovingObjects * movingObjects()

@@ -65,7 +65,7 @@ public:
 							  the camera. */
 	void setDistance(double d);
 	
-	virtual void copyProperties(Shape *from);
+	virtual void copyProperties(const Shape *from);
 	
 protected:
 	virtual void drawBegin();
@@ -81,7 +81,7 @@ protected:
 	static GLuint dl; ///< shared display list for all rectangles since it's just a unit square and we do our magic in the scaling
 	
 public:
-	Rectangle(double width, double height);
+	Rectangle(double width = 1., double height = 1.);
 	
 	/// not as trivial as it seems since we have to account for rotation of the box!
 	Rect AABB() const;
@@ -89,11 +89,13 @@ public:
 	void setRadii(double r1, double r2) { width = r1; height = r2; }
 	
 	void draw();
+
+	void copyProperties(const Shape *from);
 };
 
 class Square : public Rectangle {
 public:
-	Square(double length) : Rectangle(length, length) {}
+	Square(double length = 1.) : Rectangle(length, length) {}
 };
 
 class Ellipse : public Shape {
@@ -106,12 +108,14 @@ protected:
 	static GLuint dl; ///< shared display list for _ALL_ ellipses since we use a unit circle at 0,0 with 128 vertices globally!
 	
 public:
-	Ellipse(double radiusX, double radiusY);
+	Ellipse(double radiusX = 1., double radiusY = 1.);
 	
 	void draw();
 	void setRadii(double r1, double r2) { xradius = r1; yradius = r2; }
 	
 	Rect AABB() const;
+	
+	void copyProperties(const Shape *from);
 };
 
 class Sphere : public Shape {
@@ -135,11 +139,10 @@ public:
 	double radius;
 	GLfloat lightAmbient[4], lightDiffuse[4], lightPosition[4], lightSpecular[4], 
 	        specular[4], ambient[4], diffuse[4], emission[4], shininess;
-	GLfloat lightPosition_xf[4];
 	GLfloat lightAttenuations[3]; ///< constant, linear, and quadratic respectively
 	bool lightIsFixedInSpace; ///< default false.  if true, then the light source is fixed in space and is not relative to the sphere
 	
-	Sphere(double radius);
+	Sphere(double radius = 1.0);
 	
 	void draw();
 	
@@ -147,9 +150,14 @@ public:
 	
 	void setRadii(double r1, double r2) { radius = r1; (void)r2; }
 	
+	void copyProperties(const Shape *from);
+	
 protected:
 	static GLUquadricObj *quadric;
 	static GLuint dl;
+	
+private:
+	GLfloat lightPosition_xf[4]; ///< tmp buffer used internally for computed lightPosition
 };
 	
 /// call this to pre-create the display lists for Rectangle and Ellipses so that it's ready for us and primed

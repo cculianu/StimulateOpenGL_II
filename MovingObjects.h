@@ -63,17 +63,21 @@ private:
 
 	struct Obj2Render ///< used internally in doFrameDraw()
 	{
-		ObjData & obj;
+		const ObjData & obj;
+		const int k; /**< subframe number */
+		Shapes::Shape *shapeCopy;
 		Rect aabb;
-		Obj2Render(ObjData & obj, const Rect & aabb) : obj(obj), aabb(aabb) {}
+		Obj2Render(const ObjData & obj, int k, const Rect & aabb) : obj(obj), k(k), shapeCopy(0), aabb(aabb) {}
 	};
+	friend struct Obj2Render;
 
-	void drawObject(const int k, ///< subframe Num 
-					ObjData & o, const Rect & aabb);
-	
+	void drawObject(const int i, ///< rednered obj Num 
+					Obj2Render & o2r);
+
 	void initObj(ObjData & o);
 	void reinitObj(ObjData & o, ObjType newType);
-	
+	static Shapes::Shape * newShape(ObjType t);
+
 	void wrapObject(ObjData & o, Rect & aabb) const;
 	void doWallBounce(ObjData & o) const;
 	void ensureObjectIsInBounds(ObjData & o) const;
