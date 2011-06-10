@@ -952,11 +952,16 @@ void MovingObjects::doFrameDraw()
 
 void MovingObjects::drawObject(const int i, Obj2Render & o2r)
 {
+	(void)i;
 	const Rect & aabb (o2r.aabb);
 	Shapes::Shape *s = o2r.shapeCopy;
 	const ObjData & o (o2r.obj);
 	const int k (o2r.k);
+	double t0;
 		
+	if (o.debugLvl >= 2)
+		t0 = getTime();
+	
 	const float & objcolor (o.color);
 	
 	float r,g,b;
@@ -974,39 +979,23 @@ void MovingObjects::drawObject(const int i, Obj2Render & o2r)
 		b = g = r = objcolor;
 	
 	s->color = Vec3(r, g, b);
-	
-	bool needPopMatrix = false;
-		
+			
 	if (o.type == SphereType) {
 		glShadeModel(GL_SMOOTH);
-		
-		// spheres in triple fps mode interfere with each other since subframes might overlap 
-		// and all spheres have depth test enabled.  So.. we fudge the sphere's depth to guarantee
-		// overlapping pieces don't interfere.  
-		Shapes::Sphere *sphere = dynamic_cast<Shapes::Sphere *>(s);
-		if (sphere && fpsTrick) {
-			glMatrixMode(GL_MODELVIEW);
-			glPushMatrix();
-			glTranslated(0., 0., i * sphere->diameter);
-			needPopMatrix = true;
-		}
 	} else
 		glShadeModel(savedShadeModel);
 	
-	
-	if (o.debugLvl >= 2) {
-		const double t0 = getTime();
-		s->draw();
-		const double tf = getTime();
-		Debug() << "frame:" << frameNum << " obj:" << o.objNum << " took " << (tf-t0)*1e6 << " usec to draw";
-	} else		
-		s->draw();
-	
-	if (needPopMatrix)
-		glPopMatrix();
-	
+	s->draw();
+			
 	if (fpsTrick)
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	
+	glClear(GL_DEPTH_BUFFER_BIT); // clear depth buffer so subframes don't depth-test-block each other	
+	
+	if (o.debugLvl >= 2) {
+		const double tf = getTime();
+		Debug() << "frame:" << frameNum << " obj:" << o.objNum << " took " << (tf-t0)*1e6 << " usec to draw";
+	}
 	
 	///DEBUG HACK FOR AABB VERIFICATION					
 	if (debugAABB && k==0) {
