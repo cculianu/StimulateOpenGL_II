@@ -505,48 +505,12 @@ void MovingObjects::drawFrame()
 	GLfloat clc[4];
 	glGetFloatv(GL_COLOR_CLEAR_VALUE, clc); // save clear color to not break calling code..
 
-	if (fps_mode == FPS_Single) {
-		glClearColor(bgcolor, bgcolor, bgcolor, 1.0);
-	} else {
-		glClearColor(0.,0.,0.,1.); /// always clear to black in this plugin.  We draw the BG later with depth = zFar and GL_DEPTH_TEST enabled.
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_ALWAYS);
-	}
-	
+	glClearColor(bgcolor, bgcolor, bgcolor, 1.0);
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ); 
-	
-    if (fps_mode != FPS_Single) {
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
-    } 
 	
 	doFrameDraw();
    
-    if (fps_mode != FPS_Single) {
-		glBlendFunc(GL_SRC_COLOR,GL_ONE);
-		glDisable(GL_BLEND);
-		postFillBG();
-		glDisable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LESS);
-		glClearColor(bgcolor, bgcolor, bgcolor, 1.0);
-	}
-}
-
-void MovingObjects::postFillBG()
-{
-	// draw BG	
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glLoadIdentity();
-	glColor4f(bgcolor, bgcolor, bgcolor, 1.0);
-	glDepthFunc(GL_LESS);
-	const double z = -(1e6-1.);
-	glTranslated(0.,0.,z);
-	const double w = width(), h = height();
-	glRecti(0,0,w,h);
-	glPopMatrix();	
-
-	glDepthFunc(GL_ALWAYS);
+	glClearColor(clc[0], clc[1], clc[2], clc[3]);
 }
 
 void MovingObjects::reinitObj(ObjData & o, ObjType otype)
@@ -684,7 +648,6 @@ void MovingObjects::doFrameDraw()
 		for (QList<ObjData>::iterator it = objs.begin(); it != objs.end(); ++it) {		
 			ObjData & o = *it;
 			if (!o.shape) continue; // should never happen..
-
 			Rect aabb = o.shape->AABB();
 			double objLen, objLen_min;
 			float  & objcolor (o.color);
@@ -989,54 +952,61 @@ void MovingObjects::doFrameDraw()
 
 void MovingObjects::drawObject(const int i, Obj2Render & o2r)
 {
-	(void)i;
 	const Rect & aabb (o2r.aabb);
 	Shapes::Shape *s = o2r.shapeCopy;
 	const ObjData & o (o2r.obj);
 	const int k (o2r.k);
-	
-	const bool depthWorkaround = fps_mode == FPS_Single;
-	
-	if (depthWorkaround) {
-		glMatrixMode(GL_MODELVIEW);
-		glPushMatrix();
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LEQUAL);
-		glTranslatef(0.,0.,-s->position.z); /* TODO: FIX THIS!!  BROKEN!
-											    this affects light position for lightisfixed in space=true! 
-		                                       lights don't render consistently between single/triple fps because of this.
-		                                        FIXME BUG HACK XXX (related to Sphere::draw()) */
-	}
-	
+		
 	const float & objcolor (o.color);
 	
 	float r,g,b;
+	bool fpsTrick = false;
 	
 	if (fps_mode == FPS_Triple || fps_mode == FPS_Dual) {
 		b = g = r = bgcolor;	
-		
+		fpsTrick = true;
 		// order of frames comes from config parameter 'color_order' but defaults to RGB
-		if (k == b_index) b = objcolor;
-		else if (k == r_index) r = objcolor;
-		else if (k == g_index) g = objcolor;
+		if (k == b_index) b = objcolor, glColorMask(GL_FALSE, GL_FALSE, GL_TRUE, GL_FALSE);
+		else if (k == r_index) r = objcolor, glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE);
+		else if (k == g_index) g = objcolor, glColorMask(GL_FALSE, GL_TRUE, GL_FALSE, GL_FALSE);
 		
 	} else 
 		b = g = r = objcolor;
 	
 	s->color = Vec3(r, g, b);
 	
-	if (o.type == SphereType) 
+	bool needPopMatrix = false;
+		
+	if (o.type == SphereType) {
 		glShadeModel(GL_SMOOTH);
-	else
+		
+		// spheres in triple fps mode interfere with each other since subframes might overlap 
+		// and all spheres have depth test enabled.  So.. we fudge the sphere's depth to guarantee
+		// overlapping pieces don't interfere.  
+		Shapes::Sphere *sphere = dynamic_cast<Shapes::Sphere *>(s);
+		if (sphere && fpsTrick) {
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix();
+			glTranslated(0., 0., i * sphere->diameter);
+			needPopMatrix = true;
+		}
+	} else
 		glShadeModel(savedShadeModel);
+	
 	
 	if (o.debugLvl >= 2) {
 		const double t0 = getTime();
 		s->draw();
 		const double tf = getTime();
 		Debug() << "frame:" << frameNum << " obj:" << o.objNum << " took " << (tf-t0)*1e6 << " usec to draw";
-	} else
+	} else		
 		s->draw();
+	
+	if (needPopMatrix)
+		glPopMatrix();
+	
+	if (fpsTrick)
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	
 	///DEBUG HACK FOR AABB VERIFICATION					
 	if (debugAABB && k==0) {
@@ -1050,13 +1020,7 @@ void MovingObjects::drawObject(const int i, Obj2Render & o2r)
 		glVertex2f(r.origin.x,r.origin.y+r.size.h);	
 		glEnd();
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	}
-
-	if (depthWorkaround) {
-		glPopMatrix();
-		glDisable(GL_DEPTH_TEST);
-	}
-	
+	}	
 }
 
 void MovingObjects::wrapObject(ObjData & o, Rect & aabb) const {
