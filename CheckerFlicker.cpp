@@ -731,9 +731,10 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
 #       undef CLR
 #endif
     }
-    lastFramegen = static_cast<int>((getTime()-t0)*1000.);
+	const double fgen_secs = getTime()-t0; 
+    lastFramegen = static_cast<int>(fgen_secs*1000.);
     const unsigned nFrames = MIN(frameNum, 1000);
-    frameGenAvg_usec = static_cast<unsigned int>(((double(frameGenAvg_usec) * (nFrames-1)) + lastFramegen*1e3) / double(nFrames));
+    frameGenAvg_usec = static_cast<unsigned int>(((double(frameGenAvg_usec) * (nFrames-1)) + fgen_secs*1e6) / double(nFrames));
     return f;
 }
 
