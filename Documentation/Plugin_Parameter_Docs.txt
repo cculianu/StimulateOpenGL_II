@@ -296,6 +296,23 @@ inexact by 1-2 frames, maximum.  That is, if you specify a delay of say 320, you
 may find that the actual delay experienced as CheckerFlicker loops and re-iterates 
 is 319-321 frames. (See also the 'delay' parameter description above).
 
+Additional peformance notes from Anthony Leonardo submitted on 6/28/2011:
+
+"I get the following performance with build 110622, using my 2008 Dell box 
+(quad-core 3.3Ghz, 2Gb RAM, dual nvidia 8800GTS).
+
+These are all 2x2 checkers, rendered at 360Hz (120Hz monitor running with 
+fps_mode=triple), in Gaussian mode:
+
+1280x768: 3600us/frame, lots and lots of frame drops
+1000x768: 2700us/frame, ~14 drops/hr
+800x768:  2050us/frame, no drops
+625x768:  1400us/frame, no drops (equivalent to 800x600)
+
+This suggests my box can handle about 614,000 gauss rnd num updates/frame, 
+around 2ms rendering time, before things get unreliable."
+
+
 stixelwidth
        Synopsis:         Specifies the width of the checker squares in pixels.
        Datatype:         integer
