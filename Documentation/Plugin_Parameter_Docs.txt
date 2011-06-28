@@ -561,6 +561,18 @@ wave
 `MovingObjects' PLUGIN PARAMETERS
 ----------------------------------------------------------------------------------
 
+Performance notes:  This plugin generally can render hundreds of objects 
+onscreen without any dropped frames.  The only exception to this are objects
+of type sphere, which are considerably more complex due to their shading and
+lighting properties, as well as the fact that they contain many more vertices
+than other simple 2D objects such as the box or ellipse.  At the time of this
+writing (June, 2011) Anthony Leonardo's lab reports the following upper limits
+on spheres rendered at 1280x768 at 360Hz (120Hz monitor running with 
+fps_mode=triple).
+
+"My 2008 Dell box (quad-core 3.3Ghz, 2Gb RAM, dual NVidia 8800GTS) will
+run 15 simultaneous spheres with no recorded frame drops per hour."
+
 jitterlocal
         Synopsis:         Specifies whether to enable or disable local
                           target jitter.  If enabled, then each frame, after
