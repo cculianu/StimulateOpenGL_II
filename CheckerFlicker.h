@@ -45,6 +45,7 @@ class CheckerFlicker : public StimPlugin
     unsigned fbo;       ///< iff nonzero, the number of framebuffer objects to use for prerendering -- this is faster than `prerender' but not always supported?
     int ifmt, fmt, type; ///< for glTexImage2D() call..
     int nConsecSkips;
+	bool verboseDebug; ///< iff true, spam lots of debug output to app console 
 	unsigned rand_displacement_x, rand_displacement_y; ///< if either are nonzero, each frame is displaced by this amont in pixels (not stixels!) randomly in x or y direction
     // Note only one of display_lists, prerender, or fbo may be active above
 

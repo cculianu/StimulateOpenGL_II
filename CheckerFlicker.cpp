@@ -273,6 +273,7 @@ bool CheckerFlicker::init()
 {
     glGetError(); // clear error flag
 
+	if (!getParam("verboseDebug", verboseDebug)) verboseDebug = false;
 	QString tmp;
 	if ((getParam("blackwhite", tmp) && (tmp="blackwhite").length()) || (getParam("meanintensity", tmp) && (tmp="meanintensity").length())) {
 		// reject deprecated params!
@@ -397,7 +398,7 @@ bool CheckerFlicker::init()
 	}
 	
 	if (!fbo) {
-		Warning() << "Prerender/fbo not specified -- defaulting to prerender setting of 30 -- Please look into using either `fbo' or `prerender' as a configuration parameter.";
+		Warning() << "Prerender/fbo not specified -- defaulting to fbo setting of 30 -- Please look into using either `fbo' or `prerender' as a configuration parameter.";
 		fbo = 30;            
 	}
 	
@@ -633,7 +634,7 @@ void CheckerFlicker::genGaussColors()
 Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
 {
     static QMutex rngmut;
-    double t0 = getTime();
+    const double t0 = getTime();
 
     Frame *f = new Frame(Nx, Ny, 4);
     __m128i *quads = (__m128i *)f->texels; (void)quads;
@@ -816,28 +817,30 @@ void CheckerFlicker::afterVSync(bool isSimulated)
         if ( fc->nWaiting()+fc->createMore.available() < nQMax)
             fc->createMore.release();
 
-        QTime tim2;         
         if ( ( fc->haveMore.available() // if there are frames to consume, that is, we won't block
                || isSimulated)  // or we are simulated, in which case we are ok with blocking
              //&& blinkCt==0 // only get frames if blinkCt==0 so that we don't lose our frame order
              && oldnums.size()) { // only grab frames if our 'queue' has room
-            tim2.restart();
+            const double t0 = getTime();
             unsigned idx = newFrameNum();
             
             //qDebug("idx %u hwfc %u", idx, (unsigned)getHWFrameCount());
-            fc->haveMore.acquire(); // NB: should block here, except for isSimulated mode where it may
+            fc->haveMore.acquire(); // NB: should not block here, except for isSimulated mode where it may
             Frame *f = fc->popOne();
             if ( fc->nWaiting()+fc->createMore.available() < nQMax )
                 fc->createMore.release();
+			//const double t0b = getTime(); // XXX
             glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[idx]);
+			//qDebug("glBindTexture took: %g secs", getTime()-t0b); /// XXX
 			//Debug() << "Texidx: " << idx << " framenum " << frameNum;
+			//const double t0si = getTime();
             glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, Nx, Ny, fmt, type, f->texels);
+			//qDebug("glTexSubImage2D took: %g secs", getTime()-t0si); /// XXX
 			disps[idx] = f->displacement;
             glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
             delete f;
             ++n;
-            
-            const float secs = tim2.elapsed()/1e3;
+            const double secs = getTime()-t0;
             lastAvgTexSubImgProcTime += secs;
             cycleTimeLeft -= secs;
         }/* else if (!isSimulated && blinkCt == 0 && !nums.size()) {
@@ -852,8 +855,13 @@ void CheckerFlicker::afterVSync(bool isSimulated)
     if (nConsecSkips < 0) nConsecSkips = 0;
 
     if (n) {
-        lastAvgTexSubImgProcTime /= n; // convert to avg        
-        //qDebug("fcount: %d xferred %d textures in %d msecs avgTexSubImgTime %g msecs cycletime left %g msecs haveMore %d createMore %d nWaiting %u nConsecSkips %d lastFGenTime: %d msecs", getHWFrameCount(), n, tim.elapsed(), lastAvgTexSubImgProcTime*1e3, cycleTimeLeft*1e3, havmor, avail, nwait, nConsecSkips, lastFramegen); 
+        lastAvgTexSubImgProcTime /= n; // convert to avg       
+		if (verboseDebug && !(frameNum % 10)) {
+			/* DEBUG */
+			QString s = "";
+			s.sprintf("fcount: %d xferred %d textures in %d msecs avgTexSubImgTime %g msecs cycletime left %g msecs haveMore %d createMore %d nWaiting %u nConsecSkips %d lastFGenTime: %d msecs", getHWFrameCount(), n, tim.elapsed(), lastAvgTexSubImgProcTime*1e3, cycleTimeLeft*1e3, havmor, avail, nwait, nConsecSkips, lastFramegen); 
+			Debug() << s;
+		}
     }
 
     if (nConsecSkips >= (int)fbo) {
