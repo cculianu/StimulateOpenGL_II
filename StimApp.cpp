@@ -284,11 +284,13 @@ bool StimApp::eventFilter(QObject *watched, QEvent *event)
         // globally forward all keypresses to the glwindow
         // if they aren't handled, then return false for normal event prop.
         QKeyEvent *k = dynamic_cast<QKeyEvent *>(event);
-        if (k && (watched == consoleWindow || watched == consoleWindow->textEdit())) 
-            // force events for consoleWindow or textedit to the glwindow
-            // note that the glWindow will also end up in this function
-            // but will propagate down to QApplication::eventFilter() at bottom
-            return sendEvent(glWindow, k);
+	    if (k 
+			&& k->modifiers() == Qt::NoModifier // make sure CTRL/ALT/COMMAND not pressed so that CTRL-C works		
+			&& (watched == consoleWindow || watched == consoleWindow->textEdit()))  
+			// force events for consoleWindow or textedit to the glwindow
+			// note that the glWindow will also end up in this function
+			// but will propagate down to QApplication::eventFilter() at bottom
+			return sendEvent(glWindow, k);
     } 
     ConsoleWindow *cw = dynamic_cast<ConsoleWindow *>(watched);
     if (cw) {
