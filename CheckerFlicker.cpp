@@ -4,7 +4,6 @@
 #include <QMutex>
 #include <deque>
 #include <QThread>
-#include <QTimer.h>
 #ifdef Q_OS_WIN
 #define __SSE2__
 #include <windows.h>
@@ -349,7 +348,9 @@ bool CheckerFlicker::init()
 
     nConsecSkips = 0;
 
-        lastAvgTexSubImgProcTime = 0.0045;
+	lastAvgTexSubImgProcTime = 0.0045;
+	minTexSubImageProcTime = 1e9;
+	maxTexSubImageProcTime = -1e9;
 
 	if (!getParam("rand_displacement_x", rand_displacement_x)) rand_displacement_x = 0;
 	if (!getParam("rand_displacement_y", rand_displacement_y)) rand_displacement_y = 0;
@@ -425,13 +426,13 @@ bool CheckerFlicker::init()
 		Log() << "Set affinity mask of main thread to: " << mask;
 	}
 
-	QTime tim; tim.start();
+	const double t0 = getTime();
 	Log() << "Pregenerating gaussian color table of size " << colortable << ".. (please be patient)";
 	Status() << "Generating gaussian color table ...";
 //        stimApp()->console()->update(); // ensure message is printed
 	//stimApp()->processEvents(QEventLoop::ExcludeUserInputEvents); // ensure message is printed
 	genGaussColors();
-	Log() << "Generated " << gaussColors.size() << " colors in " << tim.elapsed()/1000.0 << " secs";
+	Log() << "Generated " << gaussColors.size() << " colors in " << (getTime()-t0) << " secs";
 	
 	// fastest, not as compatible on some boards
 	if (!initFBO()) {
@@ -467,8 +468,7 @@ bool CheckerFlicker::initFBO()
 
             stimApp()->console()->update(); // ensure message is printed
             stimApp()->processEvents(QEventLoop::ExcludeUserInputEvents); // ensure message is printed
-            QTime tim;
-            tim.start();
+			const double t0 = getTime();
 
             cleanupFCs();
             FrameCreator *fc = new FrameCreator(*this);
@@ -578,7 +578,7 @@ bool CheckerFlicker::initFBO()
             // Re-enable rendering to the window
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
             
-            Log() << "FBO texture generation completed in " << tim.elapsed()/1000. << " seconds.";
+            Log() << "FBO texture generation completed in " << (getTime()-t0) << " seconds.";
             setNums();
             return true;
 }
@@ -789,8 +789,7 @@ void CheckerFlicker::setNums()
 void CheckerFlicker::afterVSync(bool isSimulated)
 {
     if (!initted) return;
-    QTime tim;
-    tim.start();
+	const double func_t0 = getTime();
     unsigned n = 0, avail = 0, havmor = 0, nwait = 0;
     if (!fcs.size()) { 
         // single processor mode..
@@ -798,7 +797,8 @@ void CheckerFlicker::afterVSync(bool isSimulated)
         Frame *f = genFrame(hack_entr_vec);
         ++n;
         glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[idx]);
-        glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, Nx, Ny, fmt, type, f->texels);
+        // XXX THIS WAS SLOW WTF glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, Nx, Ny, fmt, type, f->texels);
+		glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, ifmt, Nx, Ny, 0, fmt, type, f->texels);
 		disps[idx] = f->displacement; // save displacement as well
         glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
         delete f;        
@@ -834,13 +834,16 @@ void CheckerFlicker::afterVSync(bool isSimulated)
 			//qDebug("glBindTexture took: %g secs", getTime()-t0b); /// XXX
 			//Debug() << "Texidx: " << idx << " framenum " << frameNum;
 			//const double t0si = getTime();
-            glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, Nx, Ny, fmt, type, f->texels);
+            //  XXX THIS WAS SLOW WTF! XXX glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, Nx, Ny, fmt, type, f->texels);
+			glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, ifmt, Nx, Ny, 0, fmt, type, f->texels);
 			//qDebug("glTexSubImage2D took: %g secs", getTime()-t0si); /// XXX
 			disps[idx] = f->displacement;
-            glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
+            //  XXX THIS WAS SLOW WTF! XXX glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
             delete f;
             ++n;
             const double secs = getTime()-t0;
+			if (secs < minTexSubImageProcTime) minTexSubImageProcTime = secs;
+			else if (secs > maxTexSubImageProcTime) maxTexSubImageProcTime = secs;
             lastAvgTexSubImgProcTime += secs;
             cycleTimeLeft -= secs;
         }/* else if (!isSimulated && blinkCt == 0 && !nums.size()) {
@@ -859,8 +862,11 @@ void CheckerFlicker::afterVSync(bool isSimulated)
 		if (verboseDebug && !(frameNum % 10)) {
 			/* DEBUG */
 			QString s = "";
-			s.sprintf("fcount: %d xferred %d textures in %d msecs avgTexSubImgTime %g msecs cycletime left %g msecs haveMore %d createMore %d nWaiting %u nConsecSkips %d lastFGenTime: %d msecs", getHWFrameCount(), n, tim.elapsed(), lastAvgTexSubImgProcTime*1e3, cycleTimeLeft*1e3, havmor, avail, nwait, nConsecSkips, lastFramegen); 
+			s.sprintf("fcount: %d xferred %d textures in %g ms / texSubImgTime avg:%g min:%g max:%g ms / lastFGenTime: %d ms / cycime_left %g ms / haveMore %d createMore %d nWaiting %u nConsecSkips %d", getHWFrameCount(), n, (getTime()-func_t0)*1e3, lastAvgTexSubImgProcTime*1e3, minTexSubImageProcTime*1e3, maxTexSubImageProcTime*1e3, lastFramegen, cycleTimeLeft*1e3, havmor, avail, nwait, nConsecSkips); 
 			Debug() << s;
+			if (!(frameNum % 300))
+				// reset min/max stats
+				minTexSubImageProcTime = 1e9, maxTexSubImageProcTime = -1e9;
 		}
     }
 

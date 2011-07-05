@@ -63,7 +63,7 @@ class CheckerFlicker : public StimPlugin
 
     std::deque<unsigned> nums, oldnums; ///< queue of texture indices into the texs[] array above.  oldest onest are in back, newest onest in front
     unsigned num;
-    double lastAvgTexSubImgProcTime;
+    double lastAvgTexSubImgProcTime, minTexSubImageProcTime, maxTexSubImageProcTime;
     volatile int lastFramegen;
 	volatile unsigned frameGenAvg_usec;
 	unsigned origThreadAffinityMask;
