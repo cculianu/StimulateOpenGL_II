@@ -205,7 +205,15 @@ void GLWindow::paintGL()
     tooFastWarned = false;
 
     if (tooSlow && !stimApp()->isNoDropFrameWarn()) {
-        Warning() << "Dropped frame " << getHWFrameCount();
+		unsigned fr = getHWFrameCount(); ///< some drivers don't return a hardware frame count!
+		if (!fr) {
+			StimPlugin *p = runningPlugin();
+			if (p) fr = p->getFrameNum();
+		} 
+		if (fr)
+			Warning() << "Dropped frame " << fr;
+		else 
+			Warning() << "Dropped a frame";
     }
                
     bool doBufSwap = false;
