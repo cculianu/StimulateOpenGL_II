@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: May 27, 2011
+Last Updated: September 20, 2011
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -89,6 +89,17 @@ bgcolor
         Datatype:         float
         Possible values:  0.0 - 1.0
         Default value:    0.5
+
+clearColor 
+ *AKA* 
+interTrialBg
+        Synopsis:         Specify the background (clear) color of the experiment 
+                          that is to be used in between trials, when no stim 
+                          plugin is loaded. 
+        Datatype:         float
+        Possible values:  0.0 - 1.0
+        Default value:    0.5 if never set, or the last value set (this value
+                          is saved after subsequent runs of the program).
 
 delay
         Synopsis:         Specify the number of frames to use as a pre-delay for

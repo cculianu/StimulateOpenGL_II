@@ -96,6 +96,9 @@ StimApp::StimApp(int & argc, char ** argv)
     consoleWindow->textEdit()->installEventFilter(this);
 
     createGLWindow(false);
+	loadSettings(); /* NB we loadSettings again because it has a side-effect of 
+					   setting some glWindow class properties, and the first time 
+					   we ran loadSettings(), glWindow was NULL */
     glWindow->show();
 
     getHWFrameCount(); // forces error message to print once if frame count func is not found
@@ -418,6 +421,11 @@ void StimApp::loadSettings()
 	if (!DAQ::DOChannelExists(defs.DO_with_vsync)) {
 		defs.DO_with_vsync = "off";
 	}
+	if (glWindow) {
+		bool ok;
+		double tmpd = settings.value("clearColor").toDouble(&ok);
+		if (ok) glWindow->setClearColor(Vec3(tmpd, tmpd, tmpd));
+	}
 }
 
 void StimApp::saveSettings()
@@ -456,6 +464,7 @@ void StimApp::saveSettings()
 	settings.setValue("color_order", QString(defs.color_order));
 	settings.setValue("fps_mode", defs.fps_mode);
 	settings.setValue("DO_with_vsync", defs.DO_with_vsync);
+	if (glWindow) settings.setValue("clearColor", glWindow->getClearColor().x);
 }
 
 

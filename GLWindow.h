@@ -3,9 +3,11 @@
 
 #include <QGLWidget>
 #include <QList>
+#include "Util.h"
 class StimPlugin;
 class QTimer;
 class StimApp;
+
 
 /**
    \brief The main Open GL display window.
@@ -46,6 +48,10 @@ public:
 
      /// Iff true, then the GLWindow is in 'a' mode, that is, fullscreen
      volatile bool aMode;
+	
+	 /// Used to set the inter-trial bg color and/or the default clear color
+	 void setClearColor(const Util::Vec3 & c) { clearColor = c; }
+	 Util::Vec3 getClearColor() const { return clearColor; }
 
 public slots:
     /// Toggles the paused/unpaused state of the plugin execution engine.
@@ -89,26 +95,27 @@ protected:
      void keyPressEvent(QKeyEvent *event);
 
 private:
- 	 bool blockPaint;
-     StimPlugin *running;
-     QList<StimPlugin *> pluginsList;
-     QTimer *timer;
-	 QByteArray blinkBuf;
-	
-	 void copyBlinkBuf();
-	 void drawBlinkBuf();
-	
-     void initPlugins(); 
-	 void drawEndStateBlankScreen(StimPlugin *, bool isBlankBGFrame);
-	 void drawEndStateBlankScreenImmediately(StimPlugin *, bool isBlankBGFrame);
+	bool blockPaint;
+	StimPlugin *running;
+	QList<StimPlugin *> pluginsList;
+	QTimer *timer;
+	QByteArray blinkBuf;
 
-     bool paused, tooFastWarned;
-     unsigned lastHWFC; ///< last hardware frame count, only iff platform has an accurate hwfc
-     double tThisFrame, tLastFrame, tLastLastFrame;
- 	 int delayCtr;
-	 double delayt0, delayFPS;
+	void copyBlinkBuf();
+	void drawBlinkBuf();
+
+	void initPlugins(); 
+	void drawEndStateBlankScreen(StimPlugin *, bool isBlankBGFrame);
+	void drawEndStateBlankScreenImmediately(StimPlugin *, bool isBlankBGFrame);
+
+	bool paused, tooFastWarned;
+	unsigned lastHWFC; ///< last hardware frame count, only iff platform has an accurate hwfc
+	double tThisFrame, tLastFrame, tLastLastFrame;
+	int delayCtr;
+	double delayt0, delayFPS;
 	
 	bool debugLogFrames;
+	Util::Vec3 clearColor;
 };
 
 #endif

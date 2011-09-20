@@ -135,6 +135,9 @@ public:
     /// Returns true if and only if the application is still initializing and not done with its startup.  This is mainly used by the socket connection code to make incoming connections stall until the application is finished initializing.
     bool busy() const { return initializing; }
 
+	void loadSettings();
+    void saveSettings();
+
 public slots:    
     /// Set/unset the application-wide 'debug' mode setting.  If the application is in debug mode, Debug() messages are printed to the console window, otherwise they are not
     void setDebugMode(bool); 
@@ -187,8 +190,6 @@ protected slots:
 
 private:
     void initServer();
-    void loadSettings();
-    void saveSettings();
     void initPlugins();
     void createAppIcon();
     void createGLWindow(bool initPlugins = true);

@@ -233,6 +233,12 @@ bool StimPlugin::start(bool startUnpaused)
 		}
 	}
 	if(!getParam( "bgcolor" , bgcolor))	bgcolor = 0.5;
+	double tmpd;
+	if ( getParam("clearColor", tmpd) || getParam("interTrialBg", tmpd) ) {
+		parent->setClearColor(Vec3(tmpd, tmpd, tmpd));
+		StimApp::instance()->saveSettings();
+	}
+	
 	if (bgcolor > 1.0) bgcolor /= 255.0f; // deal with 0->255 values
 	QString tmp;
 	if ((getParam("quad_fps", tmp) && (tmp="quad_fps").length()) || (getParam("dual_fps", tmp) && (tmp="dual_fps").length())) {

@@ -16,7 +16,11 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 #ifdef Q_OS_WIN														
 															Qt::MSWindowsOwnDC|
 #endif
-															(frameless ? Qt::FramelessWindowHint : (Qt::WindowFlags)0))), aMode(false), running(0), paused(false), tooFastWarned(false),  lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.), delayCtr(0), delayt0(0.), delayFPS(0.), debugLogFrames(false)
+															(frameless ? Qt::FramelessWindowHint : (Qt::WindowFlags)0))), 
+       aMode(false), running(0), paused(false), tooFastWarned(false),  
+       lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.), delayCtr(0), delayt0(0.), 
+       delayFPS(0.), debugLogFrames(false), clearColor(0.5,0.5,0.5)
+
 {
 	blockPaint = false;
     QSize s(w, h);
@@ -70,7 +74,6 @@ void GLWindow::resizeEvent(QResizeEvent *evt)
             evt->ignore();
 }
 
-static const Vec3 clearColor(0.5,0.5,0.5);
 
 // Set up the rendering context, define display lists etc.:
 void GLWindow::initializeGL()
