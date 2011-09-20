@@ -421,11 +421,7 @@ void StimApp::loadSettings()
 	if (!DAQ::DOChannelExists(defs.DO_with_vsync)) {
 		defs.DO_with_vsync = "off";
 	}
-	if (glWindow) {
-		bool ok;
-		double tmpd = settings.value("clearColor").toDouble(&ok);
-		if (ok) glWindow->setClearColor(Vec3(tmpd, tmpd, tmpd));
-	}
+	defs.interTrialBg = settings.value("clearColor_interTrialBg", defs.interTrialBg).toString();
 }
 
 void StimApp::saveSettings()
@@ -464,7 +460,7 @@ void StimApp::saveSettings()
 	settings.setValue("color_order", QString(defs.color_order));
 	settings.setValue("fps_mode", defs.fps_mode);
 	settings.setValue("DO_with_vsync", defs.DO_with_vsync);
-	if (glWindow) settings.setValue("clearColor", glWindow->getClearColor().x);
+	settings.setValue("clearColor_interTrialBg", defs.interTrialBg);
 }
 
 
@@ -805,6 +801,7 @@ void StimApp::globalDefaultsDialog()
 	controls.le_ftrack_change->setText(g.ftrack_change_color);
 	controls.le_ftrack_start->setText(g.ftrack_start_color);
 	controls.le_ftrack_end->setText(g.ftrack_end_color);
+	controls.le_inter_trial_bg->setText(g.interTrialBg);
 	DAQ::DeviceChanMap chanMap (DAQ::ProbeAllDOChannels());
 	int selected = 0;
 	for (DAQ::DeviceChanMap::const_iterator it = chanMap.begin(); it != chanMap.end(); ++it) {
@@ -833,6 +830,8 @@ void StimApp::globalDefaultsDialog()
 		g.ftrack_change_color = controls.le_ftrack_change->text();
 		g.ftrack_start_color = controls.le_ftrack_start->text();
 		g.ftrack_end_color = controls.le_ftrack_end->text();
+		g.interTrialBg = controls.le_inter_trial_bg->text();
+		if (glWindow) glWindow->setClearColor(g.interTrialBg); // take effect right now!
     }
     saveSettings();
 }

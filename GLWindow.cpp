@@ -52,6 +52,18 @@ GLWindow::~GLWindow() {
         delete pluginsList.front(); // StimPlugin * should auto-remove itself from list so list will shrink..
 }
 
+void GLWindow::setClearColor(const QString & c)
+{
+	QVector<double> csv = parseCSV(c);
+	if (csv.size() >= 3) {
+		setClearColor(Vec3(csv[0], csv[1], csv[2]));
+	} else {
+		bool ok;
+		double d = c.toDouble(&ok);
+		if (ok) setClearColor(Vec3(d, d, d));
+	}
+}
+
 void GLWindow::closeEvent(QCloseEvent *evt)
 {
     if (stimApp()->console()->isHidden()) {

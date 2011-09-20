@@ -73,7 +73,8 @@ public:
 			ftrack_off_color,
 			ftrack_change_color,
 			ftrack_start_color,
-			ftrack_end_color;
+			ftrack_end_color,
+		    interTrialBg;
 		
 		QString DO_with_vsync;
 
@@ -81,6 +82,7 @@ public:
 			qstrncpy(color_order, "brg", 4);
 			ftrack_track_color = ftrack_change_color = ftrack_start_color = ftrack_end_color = "1, 1, 1";
 			ftrack_off_color = "0, 0, 0";			
+			interTrialBg = ".5, .5, .5";
 		}
 	} globalDefaults;
     

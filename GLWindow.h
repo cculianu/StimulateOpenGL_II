@@ -51,6 +51,7 @@ public:
 	
 	 /// Used to set the inter-trial bg color and/or the default clear color
 	 void setClearColor(const Util::Vec3 & c) { clearColor = c; }
+	 void setClearColor(const QString & c);
 	 Util::Vec3 getClearColor() const { return clearColor; }
 
 public slots:
