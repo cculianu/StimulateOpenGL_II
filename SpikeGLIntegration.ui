@@ -187,6 +187,14 @@
    </widget>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>enabledGB</tabstop>
+  <tabstop>hostNameLE</tabstop>
+  <tabstop>portSB</tabstop>
+  <tabstop>timeoutSB</tabstop>
+  <tabstop>nloopsNotifyCB</tabstop>
+  <tabstop>buttonBox</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>

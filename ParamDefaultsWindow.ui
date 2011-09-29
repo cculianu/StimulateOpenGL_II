@@ -572,6 +572,24 @@
    </property>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>sb_mon_x_pix</tabstop>
+  <tabstop>sb_mon_y_pix</tabstop>
+  <tabstop>cb_color_order</tabstop>
+  <tabstop>cb_fps_mode</tabstop>
+  <tabstop>cb_do_with_vsync</tabstop>
+  <tabstop>sb_nblinks</tabstop>
+  <tabstop>le_inter_trial_bg</tabstop>
+  <tabstop>sb_ftrackbox_x</tabstop>
+  <tabstop>sb_ftrackbox_y</tabstop>
+  <tabstop>sb_ftrackbox_w</tabstop>
+  <tabstop>le_ftrack_track</tabstop>
+  <tabstop>le_ftrack_off</tabstop>
+  <tabstop>le_ftrack_change</tabstop>
+  <tabstop>le_ftrack_start</tabstop>
+  <tabstop>le_ftrack_end</tabstop>
+  <tabstop>buttonBox</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>
