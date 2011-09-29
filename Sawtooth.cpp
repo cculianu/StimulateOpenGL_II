@@ -14,12 +14,9 @@ Sawtooth::Sawtooth()
 {
 }
 
-bool Sawtooth::init()
+bool Sawtooth::initFromParams()
 {
-	//if (getHWRefreshRate() != 120) {
-	//	Error() << "Flicker plugin requires running on a monitor that is locked at 120Hz refresh rate!  Move the window to a monitor running at 120Hz and try again!";
-	//	return false;
-	//}
+	
 	if (!getParam("Nloops", Nloops)) Nloops = -1;
 	if (!Nloops) Nloops = -1;
 	float intensity_lof, intensity_hif;
@@ -47,7 +44,7 @@ bool Sawtooth::init()
 		return false;
 	}
 	if (!getParam("bgcolor", bgcolor)) bgcolor = 0.0; // re-default bgcolor to 0.0
-
+	
 	// verify params
 	GLint v[4][2] = {
 		{ 0         ,  0          },
@@ -57,15 +54,23 @@ bool Sawtooth::init()
 	};
 	memcpy(vertices, v, sizeof(v));
 
-	loopct = cyclen = cyccur;
 	cyclen = intensity_high - intensity_low + 1;
+
+	return true;
+}
+
+bool Sawtooth::init()
+{
+	if (!initFromParams()) return false;
+	loopct = 0;
+	cyccur = 0;
 
 	return true;
 }
 
 void Sawtooth::drawFrame()
 {
-	glClear( GL_COLOR_BUFFER_BIT ); // sanely clear
+	// Done in calling code.. glClear( GL_COLOR_BUFFER_BIT ); // sanely clear
 		
 	if (Nloops > -1 && loopct >= Nloops) {
 		// end plugin
@@ -105,4 +110,9 @@ void Sawtooth::drawFrame()
 
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
+}
+
+/* virtual */ bool Sawtooth::applyNewParamsAtRuntime() 
+{
+	return initFromParams();
 }

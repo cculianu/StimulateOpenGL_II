@@ -10,15 +10,14 @@ MovingGrating::MovingGrating()
 {
 }
 
-bool MovingGrating::init()
+
+bool MovingGrating::initFromParams()
 {
-	bool returnvalue = true;
-
-	if( !getParam("period", period) ) period = 400; //returnvalue = false;
-	if( !getParam("speed",  speed) ) speed = 1; //returnvalue = false;
-	if( !getParam("angle", angle) ) angle = 0; //returnvalue = false;
+	if( !getParam("period", period) ) period = 400;
+	if( !getParam("speed",  speed) ) speed = 1;
+	if( !getParam("angle", angle) ) angle = 0; 
 	if( !getParam("dangle", dangle) ) dangle = angle;	
-
+	
 	if( !getParam("tframes", tframes) )	tframes = -1;
 	
 	if ( !getParam("min_color", min_color)) min_color = 0.;
@@ -26,7 +25,7 @@ bool MovingGrating::init()
 	if ( !getParam("max_color2", max_color2)) max_color2 = max_color;
 	if ( !getParam("reversal", reversal) ) reversal = 0;
 	if (reversal < 0) reversal = 0;
-
+	
 	if (min_color < 0. || max_color < 0.) {
 		Error() << "min_color and max_color need to be > 0!";
 		return false;
@@ -36,7 +35,7 @@ bool MovingGrating::init()
 		min_color /= 255.;
 		max_color /= 255.;
 	}
-
+	
 	QString wave;
 	if (!getParam("wave", wave)) wave = "sin";
 	if (wave.toLower().startsWith("sq")) waveFunc = &squarewave;
@@ -45,17 +44,20 @@ bool MovingGrating::init()
     xscale = width()/800.0;
     yscale = height()/600.0;
 
+	return true;	
+}
+
+bool MovingGrating::init()
+{
+	if (!initFromParams()) return false;
 	totalTranslation = 0;
 
-	if (returnvalue)
-            setupGrid( -800, -800, 1, 1600, 1600, 1 );
-	else 
-            Error() <<  "Some parameter values could not be read";
-        
+    setupGrid( -800, -800, 1, 1600, 1600, 1 );
+	
 	frameVars->setVariableNames(QString("frameNum phase period angle").split(" "));
 	frameVars->setVariableDefaults(QVector<double>() << 0. << 0. << period << angle);
 
-	return returnvalue;    
+	return true;    
 }
 
 inline float MovingGrating::scaleIntensity(float c) const 
@@ -73,7 +75,7 @@ inline float MovingGrating::scaleIntensity(float c) const
 
 void MovingGrating::drawFrame()
 {   
-	glClear( GL_COLOR_BUFFER_BIT );
+	// Done in calling code.. glClear( GL_COLOR_BUFFER_BIT );
 
 	glPushMatrix();
         
@@ -175,4 +177,11 @@ void MovingGrating::drawFrame()
         
 	glPopMatrix();
 }
+
+/* virtual */
+bool MovingGrating::applyNewParamsAtRuntime() 
+{
+	return initFromParams();
+}
+
 

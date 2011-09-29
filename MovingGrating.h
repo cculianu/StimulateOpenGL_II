@@ -43,7 +43,9 @@ protected:
 
     void drawFrame();
     bool init();
-
+	/* virtual */ bool applyNewParamsAtRuntime();
+private:
+	bool initFromParams();
 };
 
 

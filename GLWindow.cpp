@@ -339,6 +339,9 @@ void GLWindow::paintGL()
 				doBufSwap = true;
 			} else if (running) { // note: code above may have stopped plugin, check if it's still running
 			
+				if (!running->pluginDoesOwnClearing)
+					glClear( GL_COLOR_BUFFER_BIT );
+				
 				glEnable(GL_SCISSOR_TEST); /// < the frame happens within our scissor rect, (lmargin, etc support)
 				running->drawFrame();
 				glDisable(GL_SCISSOR_TEST);
@@ -410,9 +413,21 @@ void GLWindow::paintGL()
 	    timer->start(0);
 #endif
 
-    if (running && running->initted && !paused) {
-        running->cycleTimeLeft -= getTime()-tThisFrame;
-        running->afterVSync();
+    if (running && running->initted) {
+		if (!paused) {
+			running->cycleTimeLeft -= getTime()-tThisFrame;
+			running->afterVSync();
+		}
+#pragma mark Realtime param support here					
+		// realtime param update support HERE
+		if (running->gotNewParams) {
+			if ( !running->applyNewParamsAtRuntime_Base() || !running->applyNewParamsAtRuntime() ) {
+				// restore previous params...
+				running->params = running->previous_params;
+				running->applyNewParamsAtRuntime_Base() && running->applyNewParamsAtRuntime();
+			}
+			running->gotNewParams = false;
+		}
     }
     
 }
@@ -507,7 +522,7 @@ void GLWindow::initPlugins()
 	new Flicker_RGBW();   // experiment plugin.. the old legacy flicker for the original BRGW-style projectors 
 	new Sawtooth();       // experiment plugin.. the sawtooth generator!
     new MovingObjects_Old();  // experiment plugin.. bouncey square!
-	new MovingObjects();
+	new MovingObjects();   // experiment plugin.. bouncey square, ellipses, and spheres on steroids!
 
     // TODO: more plugins here
 

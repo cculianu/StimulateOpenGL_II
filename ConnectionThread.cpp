@@ -374,8 +374,7 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
     } else if (cmd == "SETPARAMS" && toks.size()) {
         QString pluginName = toks.join(" ");
         StimPlugin *p;
-        if ( (p = stimApp()->glWin()->pluginFind(pluginName))
-             && (stimApp()->glWin()->runningPlugin() != p) ) {
+        if ( (p = stimApp()->glWin()->pluginFind(pluginName)) ) {
             Debug() << "Sending: READY";
             sock.write("READY\n");
             QString paramstr ("");

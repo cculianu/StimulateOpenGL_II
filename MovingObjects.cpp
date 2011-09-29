@@ -32,6 +32,7 @@
 MovingObjects::MovingObjects()
     : StimPlugin("MovingObjects"), savedrng(false)
 {
+	pluginDoesOwnClearing = true;
 }
 
 MovingObjects::~MovingObjects()
@@ -75,6 +76,21 @@ void ChkAndClampParam(const char *paramName, T & paramVal, const U & minVal, con
 	if (bad) Warning() << paramName << (objNum > -1 ? QString::number(objNum) : QString("")) << " bad parameter: Specified " << pvalin << ", needs to be in the range " << minVal << "-" << maxVal << ".  Parameter clamped to " << paramVal << "."; 
 }
 
+/* static */
+MovingObjects::ObjType MovingObjects::parseObjectType(const QString & otype_in)
+{
+	const QString otype (otype_in.trimmed().toLower());
+	
+	if (otype == "ellipse" || otype == "ellipsoid" || otype == "circle" || otype == "disk" || otype == "sphere"
+		|| otype == "1") {
+		if (otype == "sphere") //Warning() << "`sphere' objType not supported, defaulting to ellipsoid.";
+			return SphereType;
+		else
+			return EllipseType;
+	} 
+	return BoxType;	
+}
+
 bool MovingObjects::init()
 {
 	
@@ -112,23 +128,12 @@ bool MovingObjects::init()
 		o.objNum = i;
 			
 		// if any of the params below are missing, the defaults in initDefaults() above are taken
-		
 		QString otype; 
-		if (getParam( "objType"     , otype)) {
+		if (getParam( "objType"     , otype)) { 	
+			o.type = parseObjectType(otype);
 			csfv[FV_objType] = true;
-			
-			otype = otype.trimmed().toLower();
-			
-			if (otype == "ellipse" || otype == "ellipsoid" || otype == "circle" || otype == "disk" || otype == "sphere"
-				|| otype == "1") {
-				if (otype == "sphere") //Warning() << "`sphere' objType not supported, defaulting to ellipsoid.";
-					o.type = SphereType;
-				else
-					o.type = EllipseType;
-			} else
-				o.type = BoxType;
 		}
-		
+				
 		QVector<double> r1, r2;
 		// be really tolerant with object maj/minor length variable names 
 		csfv[FV_r1] = 
@@ -1226,4 +1231,12 @@ double MovingObjects::zToDistance(double z) const
 {
 	if (eqf(cameraDistance,0.)) return 0.;
 	return z/cameraDistance + 1.0;
+}
+
+#pragma mark Realtime param update support functions here
+
+bool MovingObjects::applyNewParamsAtRuntime()
+{
+	// TODO implement...
+	return true;
 }

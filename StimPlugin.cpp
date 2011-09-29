@@ -13,7 +13,7 @@
 
 StimPlugin::StimPlugin(const QString &name)
     : QObject(StimApp::instance()->glWin()), parent(StimApp::instance()->glWin()), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), 
-	  softCleanup(false), dontCloseFVarFileAcrossLoops(false), lmargin(0), rmargin(0), bmargin(0), tmargin(0), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0)
+	  softCleanup(false), dontCloseFVarFileAcrossLoops(false), gotNewParams(false), pluginDoesOwnClearing(false), lmargin(0), rmargin(0), bmargin(0), tmargin(0), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0)
 {
 	frameVars = 0;
     needNotifyStart = true;
@@ -84,41 +84,8 @@ void StimPlugin::stop(bool doSave, bool useGui, bool softStop)
     initted = false;
 }
 
-bool StimPlugin::start(bool startUnpaused)
+bool StimPlugin::initFromParams()
 {
-    initted = false;
-	
-    parent->pluginStarted(this);
-
-    emit started();
-	if (frameVars && (!softCleanup || !dontCloseFVarFileAcrossLoops)) 
-		delete frameVars, frameVars = 0;
-	if (!softCleanup || !dontCloseFVarFileAcrossLoops)
-		frameVars = new FrameVariables(FrameVariables::makeFileName(stimApp()->outputDirectory() + "/" + name()));
-	
-    parent->makeCurrent();
-
-    // start out with identity matrix
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    frameNum = 0;
-	nLoops = 0;
-	nFrames = 0;
-	//loopCt = 0; // NB: don't set this here!  we need to keep this variable around for plugin restart stuff
-    fps = fpsAvg = 0;
-    fpsMin = 9e9;
-    fpsMax = 0;
-	delay = 0;
-	lmargin = rmargin = bmargin = tmargin = 0;
-    begintime = QDateTime::currentDateTime();
-    endtime = QDateTime(); // set to null datetime
-    missedFrames.clear();
-    missedFrameTimes.clear();
-    if (!missedFrames.capacity()) missedFrames.reserve(4096);
-    if (!missedFrameTimes.capacity()) missedFrameTimes.reserve(4096);	
-    customStatusBarString = "";
-	softCleanup = false;
-	
 	getParam("lmargin", lmargin);
 	getParam("rmargin", rmargin);
 	getParam("bmargin", bmargin);
@@ -143,9 +110,9 @@ bool StimPlugin::start(bool startUnpaused)
 		QString c;
 		QString n = ftColorParamNames[i];
 		c = getParam(n, c) 
-			? c  // yes, we had a param in the config file for this color, use it
-			: (i == FT_Off ? "0,0,0" : "1,1,1"); // no, we didn't.. do default which is Off is 0, everything else is 1.
-
+		? c  // yes, we had a param in the config file for this color, use it
+		: (i == FT_Off ? "0,0,0" : "1,1,1"); // no, we didn't.. do default which is Off is 0, everything else is 1.
+		
 		QVector<double> cv = parseCSV(c);
 		if (cv.size() != 3) {
 			if (cv.size() == 1) {
@@ -190,25 +157,12 @@ bool StimPlugin::start(bool startUnpaused)
 		Error() << "color_order parameter that was specified is invalid!";
 		return false;
 	}
-
+	
 	QString fpsParm;
 	if (!getParam("fps_mode", fpsParm)) {
 		Log() << "fps_mode param not specified, defaulting to `single'";
 		fpsParm = "single";
 		fps_mode = FPS_Single;
-	}
-	QString fvfile;
-	if (getParam("frame_vars", fvfile)) {
-		if (!frameVars->readInput(fvfile)) {
-			Error() << "Could not parse frameVar input file: " << fvfile;
-			return false;
-		}
-		have_fv_input_file = true;
-	} else
-		have_fv_input_file = false;
-		
-	if (!stimApp()->isSaveFrameVars()) {
-		frameVars->closeAndRemoveOutput(); // suppress frame var output if disabled in GUI
 	}
 	
 	if (fpsParm.startsWith("s" ,Qt::CaseInsensitive)) fps_mode = FPS_Single;
@@ -228,8 +182,8 @@ bool StimPlugin::start(bool startUnpaused)
 			}
 		} 
 		if (!ok) {
-				Error() << "Invalid fps_mode param specified: " << fpsParm << ", please specify one of single, dual, or triple!";
-				return false;
+			Error() << "Invalid fps_mode param specified: " << fpsParm << ", please specify one of single, dual, or triple!";
+			return false;
 		}
 	}
 	if(!getParam( "bgcolor" , bgcolor))	bgcolor = 0.5;
@@ -246,14 +200,73 @@ bool StimPlugin::start(bool startUnpaused)
 		Error() << "Param `" << tmp << "' is deprecated.  Use fps_mode = single|dual|triple instead!";
 		return false;
 	}
-
+	
 	getParam( "nFrames", nFrames );
 	getParam( "nLoops", nLoops );
 	getParam( "delay", delay);
 	
 	if ( !getParam( "Nblinks", Nblinks) || !getParam("nblinks", Nblinks) ) Nblinks = 1;
+	if ( Nblinks < 1 ) Nblinks = 1;	
+	
+	return true;
+}
+
+bool StimPlugin::start(bool startUnpaused)
+{
+    initted = false;
+	
+    parent->pluginStarted(this);
+
+    emit started();
+	if (frameVars && (!softCleanup || !dontCloseFVarFileAcrossLoops)) 
+		delete frameVars, frameVars = 0;
+	if (!softCleanup || !dontCloseFVarFileAcrossLoops)
+		frameVars = new FrameVariables(FrameVariables::makeFileName(stimApp()->outputDirectory() + "/" + name()));
+	
+    parent->makeCurrent();
+
+    // start out with identity matrix
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    frameNum = 0;
+	nLoops = 0;
+	nFrames = 0;
+	//loopCt = 0; // NB: don't set this here!  we need to keep this variable around for plugin restart stuff
+    fps = fpsAvg = 0;
+    fpsMin = 9e9;
+    fpsMax = 0;
+	delay = 0;
+	lmargin = rmargin = bmargin = tmargin = 0;
+    begintime = QDateTime::currentDateTime();
+    endtime = QDateTime(); // set to null datetime
+    missedFrames.clear();
+    missedFrameTimes.clear();
+    if (!missedFrames.capacity()) missedFrames.reserve(4096);
+    if (!missedFrameTimes.capacity()) missedFrameTimes.reserve(4096);	
+    customStatusBarString = "";
+	softCleanup = false;
+	gotNewParams = false;
+	
+	/* Reads all params, does setup from them.  Note this is factored-out 
+	   because we call it also from realtime param update code */
+	if ( !initFromParams() )
+		return false;
+	
     blinkCt = 0;
-	if ( Nblinks < 1 ) Nblinks = 1;
+	
+	QString fvfile;
+	if (getParam("frame_vars", fvfile)) {
+		if (!frameVars->readInput(fvfile)) {
+			Error() << "Could not parse frameVar input file: " << fvfile;
+			return false;
+		}
+		have_fv_input_file = true;
+	} else
+		have_fv_input_file = false;
+	
+	if (!stimApp()->isSaveFrameVars()) {
+		frameVars->closeAndRemoveOutput(); // suppress frame var output if disabled in GUI
+	}
 	
     if ( !startUnpaused ) parent->pauseUnpause();
     if (!(init())) { 
@@ -708,3 +721,12 @@ void StimPlugin::waitForInitialization() const {
 		stimApp()->processEvents(QEventLoop::WaitForMoreEvents|QEventLoop::ExcludeUserInputEvents|QEventLoop::ExcludeSocketNotifiers);
 	}
 }
+
+/* virtual */
+bool StimPlugin::applyNewParamsAtRuntime() { return true; }
+
+bool StimPlugin::applyNewParamsAtRuntime_Base() 
+{
+	return initFromParams();
+}
+

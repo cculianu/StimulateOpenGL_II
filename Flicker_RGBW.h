@@ -24,6 +24,10 @@ protected:
 	bool init();
 	void drawFrame();
 
+	/* virtual */ bool applyNewParamsAtRuntime();
+	
+private:
+	bool initFromParams();
 
 };
 #endif

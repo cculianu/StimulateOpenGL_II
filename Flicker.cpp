@@ -14,12 +14,8 @@ Flicker::Flicker()
 {
 }
 
-bool Flicker::init()
+bool Flicker::initFromParams()
 {
-	//if (getHWRefreshRate() != 120) {
-	//	Error() << "Flicker plugin requires running on a monitor that is locked at 120Hz refresh rate!  Move the window to a monitor running at 120Hz and try again!";
-	//	return false;
-	//}
 	if (!getParam("hz", hz)) hz = 120;
 	if (!validateHz()) {
 		Error() << "hz parameter " << hz << " specified is invalid.  Must be one of 180, 120, 90, 60, 50, etc.";
@@ -47,7 +43,7 @@ bool Flicker::init()
 	if (getParam("max_active_frames_per_cycle", dummy)) 
 		Warning() << "max_active_frames_per_cycle no longer supported for the 'Flicker' plugin (but it is still supported for legacy 'Flicker_RGBW' plugin)";
 	
-
+	
 	// verify params
 	GLint v[4][2] = {
 		{ 0         ,  0          },
@@ -56,16 +52,28 @@ bool Flicker::init()
 		{ width()   ,  0          },
 	};
 	memcpy(vertices, v, sizeof(v));
+	
+	cyctot = round(1000./hz/(1000./120./3.));	
+	
+	return true;
+}
 
+bool Flicker::init()
+{
+	if (!initFromParams()) return false;
 	cyccur = 0;
-	cyctot = round(1000./hz/(1000./120./3.));
 
 	return true;
 }
 
+bool Flicker::applyNewParamsAtRuntime()
+{
+	return initFromParams();
+}
+
 void Flicker::drawFrame()
 {
-	glClear( GL_COLOR_BUFFER_BIT ); // sanely clear
+	// Done in calling code.. glClear( GL_COLOR_BUFFER_BIT ); // sanely clear
 		
 	memset(colors[0], 0, sizeof(colors[0]));
 

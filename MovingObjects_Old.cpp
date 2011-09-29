@@ -127,7 +127,7 @@ bool MovingObjects_Old::processKey(int key)
 
 void MovingObjects_Old::drawFrame()
 {
-	glClear( GL_COLOR_BUFFER_BIT ); 
+	// Done in calling code.. glClear( GL_COLOR_BUFFER_BIT ); 
 
 	// local target jitter
 	if (jitterlocal) {

@@ -90,7 +90,7 @@ public:
     virtual QString description() const { return "A Stim Plugin."; }
 
     /// Set the plugin's configuration parameters.  ConnectonThread calls this method for example when the client wants to define experiment parameters for a plugin.
-    void setParams(const StimParams & p) { QMutexLocker l(&mut); params = p; }
+    void setParams(const StimParams & p) { QMutexLocker l(&mut); previous_params = params; params = p; gotNewParams = true; }
     /// We return an implicitly shared copy of the parameters.  Due to multithreading concerns, implicit sharing is a good thing!
     StimParams getParams() const { QMutexLocker l(&mut); return params; }
 
@@ -281,7 +281,9 @@ protected:
 	int ftChangeEvery; ///< if > 0, auto-assert FT_Change when (frameNum % ftChangeEvery) == 0.  0 means auto-computer (only movingobjects support auto-compute) and <0 means off
 	bool softCleanup; ///< flag used by some plugins internally when they are being restarted. normally always false
 	bool dontCloseFVarFileAcrossLoops; ///< defaults to false -- if true, keep the same frame var file open across loop iterations. MovingObjects sets this to true iff rndtrial=1
-
+	bool gotNewParams; ///< flag set when new params arrive from ConnectionThread.  This mechanism is used to signal to plugin in realtime that new params have arrived, as its running.  Plugin's drawFrame code is expected to clear this after it accepts/uses the new params.
+	bool pluginDoesOwnClearing; ///< set this to true if you don't want calling GLWindow.cpp code to call glClear() for you before a framedraw.  Usually false, except MovingObejcts sets this to true
+	
 	///< margins, used for scissor testing
 	int lmargin,rmargin,bmargin,tmargin;
 		
@@ -343,8 +345,15 @@ protected:
     /// called by GLWindow when a frameskip is detected..
     void putMissedFrame(unsigned cycleTimeMsecs);
 
+	/// Reimplement this in child classes to apply new parameters to the plugin at runtime.  This is called right
+	/// after a frame is drawn so that the plugin has time to do its initialization.  Default implementation
+	/// does nothing.
+	virtual bool applyNewParamsAtRuntime();
+
+	/// The stim params, as they came in from either config file or matlab.  getParam() references these.
+	StimParams params, previous_params;
+
 private:
-    StimParams params;
     void computeFPS();
 
     /// called by framework right before save() method
@@ -360,6 +369,12 @@ private:
 	/// an origin and a cropregion.
 	static bool readBackBuffer(QByteArray & dest, const Vec2i & cropOrigin, const Vec2i & cropRegionSize, GLenum datatype);
 	
+	/// Called from GLWindow.cpp to apply new parameters at runtime to the StimPlugin base (lmargin, tmargin, etc)
+	bool applyNewParamsAtRuntime_Base();
+	
+	/// Reads params, does some setup from them.  Called from start() and applyNewParamsAtRuntime_Base()
+	bool initFromParams();
+
 private slots:
 	/// Sets initted = true, calls SpikeGL notify
 	void initDone();

@@ -7,14 +7,10 @@ Flicker_RGBW::Flicker_RGBW()
 {
 }
 
-bool Flicker_RGBW::init()
+bool Flicker_RGBW::initFromParams()
 {
-	int max_active_frames_per_cycle;
-
-	//if (getHWRefreshRate() != 120) {
-	//	Error() << "Flicker plugin requires running on a monitor that is locked at 120Hz refresh rate!  Move the window to a monitor running at 120Hz and try again!";
-	//	return false;
-	//}
+	int max_active_frames_per_cycle = -1;
+	
 	if (!getParam("hz", hz)) hz = 120;
 	// default duty_cycle for 240 Hz is 1, 120Hz 2, and everything else
 	if (!getParam("duty_cycle", duty_cycle)) duty_cycle = (hz > 120 ? 1 : (hz > 60 ? 2 : 3) );  
@@ -27,7 +23,7 @@ bool Flicker_RGBW::init()
 	if (!getParam("max_active_frames_per_cycle", max_active_frames_per_cycle)) max_active_frames_per_cycle = -1;
 	if (max_active_frames_per_cycle <= 0) max_active_frames_per_cycle = -1;
 	
-
+	
 	// verify params
 	activef = 1;
 	switch (hz) {
@@ -52,14 +48,12 @@ bool Flicker_RGBW::init()
 		if (activef > max_active_frames_per_cycle) activef = max_active_frames_per_cycle;
 	}
 	if (!activef) activef = 1;
-
-	cycct = activect = 0;
 	
 	if (duty_cycle < 1 || duty_cycle > 3 || (hz > 120 && duty_cycle > 1)) {
 		Error() << "duty_cycle param " << duty_cycle << " is invalid (or invalid for the specified hz param of " << hz << ").";
 		return false;
 	}
-
+	
 	GLubyte color[3] = {0,0,0};
 	if (hz == 240) {
 		// 240 Hz is special case of green + blue channels always
@@ -72,7 +66,7 @@ bool Flicker_RGBW::init()
 			case 1: color[2] = intensity;
 		}
 	}
-
+	
 	for (int i = 0; i < 4; ++i) memcpy(colors[i], color, sizeof(color));
 	GLint v[4][2] = {
 		{ 0         ,  0          },
@@ -85,9 +79,22 @@ bool Flicker_RGBW::init()
 	return true;
 }
 
+bool Flicker_RGBW::init()
+{
+	if ( !initFromParams() ) return false;
+	cycct = activect = 0;
+
+	return true;
+}
+
+bool Flicker_RGBW::applyNewParamsAtRuntime()
+{
+	return initFromParams();
+}
+
 void Flicker_RGBW::drawFrame()
 {
-	glClear( GL_COLOR_BUFFER_BIT ); // sanely clear
+	//Done in calling code.. glClear( GL_COLOR_BUFFER_BIT ); // sanely clear
 
 	if (activect-- > 0) { // if we aren't skipping a frame.. draw the flicker box
 		glEnableClientState(GL_VERTEX_ARRAY);

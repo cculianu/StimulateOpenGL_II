@@ -235,7 +235,7 @@ private:
 
 
 CheckerFlicker::CheckerFlicker()
-    : StimPlugin("CheckerFlicker"), w(width()), h(height()), fbo(0), fbos(0), texs(0), origThreadAffinityMask(0)
+    : StimPlugin("CheckerFlicker"), fbo(0), fbos(0), texs(0), origThreadAffinityMask(0)
 {
 }
 
@@ -268,10 +268,68 @@ bool checkFBStatus()
     return true;
 }
 
-bool CheckerFlicker::init()
+bool CheckerFlicker::ParamChanged(const QString & n)
+{
+	QString vnew, vold;
+	getParam(n, vnew);
+	StimParams saved = params;
+	params = previous_params;
+	getParam(n, vold);
+	params = saved;
+	return vnew != vold;
+}
+
+bool CheckerFlicker::checkForCriticalParamChanges() 
+{
+	return
+			w != int(width()) || h != int(height())
+		    || ParamChanged("stixelwidth")
+			|| ParamChanged("stixelheight")
+			|| ParamChanged("contrast")
+			|| ParamChanged("fbo")
+			|| ParamChanged("prerender")
+			|| ParamChanged("cores")
+			|| ParamChanged("colortable")
+			|| ParamChanged("lmargin")
+			|| ParamChanged("rmargin")
+			|| ParamChanged("bmargin")
+			|| ParamChanged("tmargin")
+			|| ParamChanged("rand_gen")
+	;
+}
+
+Rand_Gen CheckerFlicker::parseRandGen(const QString & rgen) const
+{
+	Rand_Gen ret = Uniform;
+	
+	if (rgen.startsWith("u" ,Qt::CaseInsensitive)) ret = Uniform;
+	else if (rgen.startsWith("g", Qt::CaseInsensitive)) ret = Gauss;
+	else if (rgen.startsWith("b", Qt::CaseInsensitive)) ret = Binary;
+	else {
+		bool ok;
+		int m = rgen.toInt(&ok);
+		if (ok) {
+			switch(m) {
+				case Uniform:
+				case Gauss: 
+				case Binary: ret = (Rand_Gen)m; break;
+				default:
+					ok = false;
+			}
+		} 
+		if (!ok) {
+			Warning() << "Invalid `rand_gen' param specified: " << rgen << ", please specify one of uniform, gauss, or binary (defaulting to uniform).";
+		}
+	}	
+	return ret;
+}
+
+bool CheckerFlicker::initFromParams()
 {
     glGetError(); // clear error flag
 
+	w = width(), h = height();
+	
 	if (!getParam("verboseDebug", verboseDebug)) verboseDebug = false;
 	QString tmp;
 	if ((getParam("blackwhite", tmp) && (tmp="blackwhite").length()) || (getParam("meanintensity", tmp) && (tmp="meanintensity").length())) {
@@ -289,79 +347,46 @@ bool CheckerFlicker::init()
 		rgen = "uniform";
 		Log() << "rand_gen parameter not specified, defaulting to `" << rgen << "'";
 	}
-	if (rgen.startsWith("u" ,Qt::CaseInsensitive)) rand_gen = Uniform;
-	else if (rgen.startsWith("g", Qt::CaseInsensitive)) rand_gen = Gauss;
-	else if (rgen.startsWith("b", Qt::CaseInsensitive)) rand_gen = Binary;
-	else {
-		bool ok;
-		int m = rgen.toInt(&ok);
-		if (ok) {
-			switch(m) {
-				case Uniform:
-				case Gauss: 
-				case Binary: rand_gen = (Rand_Gen)m; break;
-				default:
-					ok = false;
-			}
-		} 
-		if (!ok) {
-				Error() << "Invalid `rand_gen' param specified: " << rgen << ", please specify one of uniform, gauss, or binary!";
-				return false;
-		}
-	}
-
-
+	rand_gen = parseRandGen(rgen);
+	
+	
 	if( !getParam("contrast", contrast) ){
 		if ( rand_gen == Binary ) contrast = 1;
 		else contrast = 0.3f;
 	}
-
-        if( !getParam("fbo", fbo) ) fbo = 0;
-        if( !fbo && !getParam("prerender", fbo) ) fbo = 0;        
-        fbos = 0;
-        if( !getParam("cores", nCoresMax) ) nCoresMax = 2; ///< NB: more than 2 cores not really supported yet since random number generators aren't reentrant
-        unsigned colortable=1<<17;
-        if (!getParam("colortable", colortable)) {
-            // force default of 2^17 colortable size or about 130KB
-            colortable = 1U<<17;
-            Warning() << "`colortable' not specified in configuration file, defaulting to colortable=" << colortable;
-        }
-        if (colortable <= 24 && colortable > 11) colortable = (1<<colortable);
-        if (colortable <= 2048 || (colortable&(colortable-1))) {
-            Error() << "`colortable' parameter of " << colortable << " is invalid.  Try a power of two >2048 (or a number <=24 to auto-compute a power of 2).";
-            return false;
-        }
-        gaussColorMask = colortable-1; // all 1's before the colorTable..
-        
+	
+	if( !getParam("fbo", fbo) ) fbo = 0;
+	if( !fbo && !getParam("prerender", fbo) ) fbo = 0;        
+	fbos = 0;
+	if( !getParam("cores", nCoresMax) ) nCoresMax = 2; ///< NB: more than 2 cores not really supported yet since random number generators aren't reentrant
+	unsigned colortable=1<<17;
+	if (!getParam("colortable", colortable)) {
+		// force default of 2^17 colortable size or about 130KB
+		colortable = 1U<<17;
+		Warning() << "`colortable' not specified in configuration file, defaulting to colortable=" << colortable;
+	}
+	if (colortable <= 24 && colortable > 11) colortable = (1<<colortable);
+	if (colortable <= 2048 || (colortable&(colortable-1))) {
+		Error() << "`colortable' parameter of " << colortable << " is invalid.  Try a power of two >2048 (or a number <=24 to auto-compute a power of 2).";
+		return false;
+	}
+	gaussColorMask = colortable-1; // all 1's before the colorTable..
+	
 	// make sure that positive values are used
 	if( stixelWidth < 0 ) stixelWidth *= -1;
 	if( stixelHeight < 0 ) stixelHeight *= -1;
 	if( stixelWidth < 1 ) stixelWidth = 1;
 	if( stixelHeight < 1 ) stixelHeight = 1;
-	if( !getParam( "seed", originalSeed) ) originalSeed = 10000;
 
-	ran1Gen.reseed(originalSeed); // NB: it doesn't matter anymore if seed is negative or positive -- all negative seeds end up being positie anyway and the generator no longer needs a negative seed to indicate "reseed".  That was ugly.  See RanGen.h for how to use the class.. 
-    gasGen.reseed(originalSeed); // Need to reseed this too.. 
-    // our SFMT random number generator gets seeded too
-    init_gen_rand(originalSeed);
-    gen_rand_all();
-
-    nConsecSkips = 0;
-
-	lastAvgTexSubImgProcTime = 0.0045;
-	minTexSubImageProcTime = 1e9;
-	maxTexSubImageProcTime = -1e9;
-
-	if (!getParam("rand_displacement_x", rand_displacement_x)) rand_displacement_x = 0;
-	if (!getParam("rand_displacement_y", rand_displacement_y)) rand_displacement_y = 0;
-
+	initFromParamsNonCritical();
+	
 	if (rand_displacement_x && (!lmargin && !rmargin)) {
 		Warning() << "rand_displacement_x set to: " << rand_displacement_x << " -- Recommend setting lmargin and rmargin to " << -int(rand_displacement_x);
 	}
 	if (rand_displacement_y && (!tmargin && !bmargin)) {
 		Warning() << "rand_displacement_y set to: " << rand_displacement_y << " -- Recommend setting tmargin and bmargin to " << -int(rand_displacement_y);
 	}
-		
+	
 	// determine the right number of tiles in x and y direction to fill screen        
 	do {
 		xpixels = xdim-(lmargin+rmargin);
@@ -379,7 +404,7 @@ bool CheckerFlicker::init()
 			tmargin += ypixels-(Ny*stixelHeight);            
 		}
 	} while ( xpixels%stixelWidth || ypixels%stixelHeight );
-
+	
 	{ // populate our tex coord buffer and vertex buffer basedo n Nx, Ny, lmargin, rmargin, etc
 		GLint texCoordsTmp[] = {
 			0,0,
@@ -407,29 +432,23 @@ bool CheckerFlicker::init()
 		Warning() << "Specified <3 prerender frames!  Probably need more than this to be robust.. forcing 3.";
 		fbo = 3;
 	}
-
-	ifmt = GL_RGB;
-	fmt = GL_BGRA;
-	type = GL_UNSIGNED_INT_8_8_8_8_REV;
-	initted = false;
-	frameGenAvg_usec;
-
+	
 	if (bgcolor < 0. || bgcolor > 1. || contrast < 0. || contrast > 1.) {
 		Error() << "Either one of: `bgcolor' or `contrast' is out of range.  They must be in the range [0,1]";
 		return false;
 	}
-
+	
 	unsigned nProcs;
 	if ((nProcs=getNProcessors()) > 2) {
 		const unsigned mask = 0x1<<(nProcs-3);
 		origThreadAffinityMask = setCurrentThreadAffinityMask(mask); // make it run on second cpu
 		Log() << "Set affinity mask of main thread to: " << mask;
 	}
-
+	
 	const double t0 = getTime();
 	Log() << "Pregenerating gaussian color table of size " << colortable << ".. (please be patient)";
 	Status() << "Generating gaussian color table ...";
-//        stimApp()->console()->update(); // ensure message is printed
+	//        stimApp()->console()->update(); // ensure message is printed
 	//stimApp()->processEvents(QEventLoop::ExcludeUserInputEvents); // ensure message is printed
 	genGaussColors();
 	Log() << "Generated " << gaussColors.size() << " colors in " << (getTime()-t0) << " secs";
@@ -439,19 +458,78 @@ bool CheckerFlicker::init()
 		Error() << "FBO initialization failed -- possibly due to lack of support on this hardware or a misconfiguration.";
 		Error() << "*FBO MODE IS REQUIRED FOR THIS PLUGIN TO WORK*";
 		return false;
-	}        
-	frameNum = 0; // reset frame num!
-
+	}
+	
 	if (nFrames > 0 && nLoops > 0 && delay <= 0) {
 		Warning() << "nLoops=" << nLoops << ", however delay=0.   It is strongly recommended that delay be nonzero (and at least enough to cover .6 seconds) if using plugin looping with checkerflicker.  See the plugin parameter documentation for a brief exposition on this topic.";
 	}
+	
+	return true;
+}
+
+void CheckerFlicker::initFromParamsNonCritical()
+{
+	if (!getParam("rand_displacement_x", rand_displacement_x)) rand_displacement_x = 0;
+	if (!getParam("rand_displacement_y", rand_displacement_y)) rand_displacement_y = 0;	
+	if (!getParam("verboseDebug", verboseDebug)) verboseDebug = false;
+}
+
+void CheckerFlicker::doPostInit(bool resetFrameNum) 
+{
+	if (resetFrameNum)	frameNum = 0; // reset frame num!
 	
 #ifdef Q_OS_WIN
 	Sleep(500); // sleep for 500ms to ensure init is ok
 #else
 	usleep(500000);
-#endif
+#endif	
+}
 
+bool CheckerFlicker::init()
+{
+	
+	if( !getParam( "seed", originalSeed) ) originalSeed = 10000;
+	
+	ran1Gen.reseed(originalSeed); // NB: it doesn't matter anymore if seed is negative or positive -- all negative seeds end up being positie anyway and the generator no longer needs a negative seed to indicate "reseed".  That was ugly.  See RanGen.h for how to use the class.. 
+    gasGen.reseed(originalSeed); // Need to reseed this too.. 
+    // our SFMT random number generator gets seeded too
+    init_gen_rand(originalSeed);
+    gen_rand_all();
+	
+    nConsecSkips = 0;
+	
+	lastAvgTexSubImgProcTime = 0.0045;
+	minTexSubImageProcTime = 1e9;
+	maxTexSubImageProcTime = -1e9;
+	
+	ifmt = GL_RGB;
+	fmt = GL_BGRA;
+	type = GL_UNSIGNED_INT_8_8_8_8_REV;
+	initted = false;
+	frameGenAvg_usec = 0;
+	
+
+	if ( !initFromParams() ) 
+		return false;
+	
+	doPostInit();
+
+	return true;	
+}
+
+bool CheckerFlicker::applyNewParamsAtRuntime()
+{
+	if (!initted || checkForCriticalParamChanges()) {
+		initted = false;
+		cleanup();	
+		if (!initFromParams())
+			return false;
+		doPostInit(false);
+		initted = true;
+	} else {
+		initFromParamsNonCritical();
+	}
+	
 	return true;
 }
 
@@ -755,7 +833,7 @@ void CheckerFlicker::drawFrame()
         glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[num]);
         glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glClear(GL_COLOR_BUFFER_BIT);
+        // Done in calling code... glClear(GL_COLOR_BUFFER_BIT);
         glTranslatef(disps[num].x, disps[num].y, 0); // displace frame
 
 		// render our vertex and coord buffers which don't change.. just the texture changes

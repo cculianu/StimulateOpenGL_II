@@ -36,7 +36,7 @@ class CheckerFlicker : public StimPlugin
     float meanintensity; ///< mean light intensity between 0 and 1
     float contrast;	 ///< defined as Michelsen contrast for black/white mode
     // and as std/mean for gaussian mode
-    const int w, h;           ///< window width/height cached here
+    int w, h;           ///< window width/height cached here
     int originalSeed;	///< seed for random number generator at initialization
     int Nx;		///< number of stixels in x direction
     int Ny;		///< number of stixels in y direction
@@ -59,7 +59,7 @@ class CheckerFlicker : public StimPlugin
     unsigned gaussColorMask; ///< this will always be a power of 2 minus 1
     std::vector<GLubyte> gaussColors;
     void genGaussColors();
-    inline GLubyte getColor(unsigned entropy) {  return gaussColors[entropy&gaussColorMask]; }
+    inline GLubyte getColor(unsigned entropy) { return gaussColors[entropy&gaussColorMask]; }
 
     std::deque<unsigned> nums, oldnums; ///< queue of texture indices into the texs[] array above.  oldest onest are in back, newest onest in front
     unsigned num;
@@ -100,8 +100,12 @@ class CheckerFlicker : public StimPlugin
     bool initPrerender();  ///< init for 'prerender to sysram'
     bool initFBO(); ///< init for 'prerender to FBO'
     void cleanupPrerender(); ///< cleanup for prerender frames mode
-    void cleanupFBO(); ///< cleanip for FBO mode
-
+    void cleanupFBO(); ///< cleanup for FBO mode
+	Rand_Gen parseRandGen(const QString &) const;
+	bool initFromParams(); ///< reusable init code for both real init and realtime apply params init
+	void initFromParamsNonCritical(); ///< reusable init code for both real init and realtime apply params init -- the init done here is 'non-critical' and can REALLY be done in realtime (no destruction of expensive stuff required)
+	bool checkForCriticalParamChanges(); ///< called by applyNewParamsAtRuntime() to see if we need to do a full-reinit
+	void doPostInit(bool resetFrameNume = true); ///< called by init() and applyNewParamsAtRuntime() after full re-init
 protected:
     CheckerFlicker(); ///< can only be constructed by our friend class
     ~CheckerFlicker();
@@ -114,6 +118,8 @@ protected:
 	unsigned initDelay(void); ///< reimplemented from superclass -- returns an init delay of 500ms
     void cleanup(); 
     void save();
+	/* virtual */ bool applyNewParamsAtRuntime(); ///< reimplemented from superclass -- reapplies new params at runtime and reinits state/frame creators if need be
+	bool ParamChanged(const QString & n); ///< returns true if params and previous_params disagree for n
 };
 
 

@@ -25,6 +25,7 @@ protected:
     void cleanup(); ///< reimplemented from super
     void drawFrame(); ///< reimplemented
     bool processKey(int key); ///< remiplemented
+	/* virtual */ bool applyNewParamsAtRuntime(); ///< reimplemented from super
 
 private:
     void initObjs();
@@ -77,6 +78,7 @@ private:
 	void initObj(ObjData & o);
 	void reinitObj(ObjData & o, ObjType newType);
 	static Shapes::Shape * newShape(ObjType t);
+	static ObjType parseObjectType(const QString & stringFromParamFile);
 
 	void wrapObject(ObjData & o, Rect & aabb) const;
 	void doWallBounce(ObjData & o) const;

@@ -7,21 +7,30 @@
 %                existing struct (if any) that the plugin was using for its
 %                configuration parameters.  Note that each plugin maintains
 %                its own set of configuration parameters, hence the need to
-%                call SetParams specifying the plugin name.  This call
-%                cannot be made while the plugin in question is running,
-%                because at that point the plugin may be actively using its
-%                parameters and replacing them while it is running is not
-%                defined.  Therefore, plugin parameters (if any) should be
-%                set before the desired plugin is to be started.
+%                call SetParams specifying the plugin name.  As of version
+%                2011.09.25, this call can now be made while the plugin in 
+%                question is running; the parameters are applied immediately 
+%                after the current (or next) frame is drawn, during the
+%                'after VSync' period.  Note that if the parameters are 
+%                rejected/invalid, this function will still return success,
+%                however the plugin will print a message on the GUI console 
+%                and revert to its previous (working) parameters if it was 
+%                running, or if it was not running, it will just fail on 
+%                start with the new parameters.
 function [s] = SetParams(s, plugin, params)
     if (~ischar(plugin) | ~isstruct(params)),
         error('Arguments to stop are Stop(StimOpemGLOBJ, plugin_string, params_struct)');
     end;
     ChkConn(s);
-    running = Running(s);
-    if (strcmpi(running, plugin)),
-        error('Cannot set params for a plugin while it''s running!  Stop() it first!');
-    end;
+%
+%   Note as of version 2011.9.25 we support setting the params at runtime
+%   so we removed this guard.
+%
+%    running = Running(s);
+%    if (strcmpi(running, plugin)),
+%        error('Cannot set params for a plugin while it''s running!  Stop() it first!');
+%    end;
+%
     CalinsNetMex('sendString', s.handle, sprintf('SETPARAMS %s\n', plugin));
     ReceiveREADY(s, sprintf('SETPARAMS %s', plugin));
     names = fieldnames(params);
