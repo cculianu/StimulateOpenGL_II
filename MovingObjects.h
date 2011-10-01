@@ -140,6 +140,13 @@ private:
 	};
 	QVector<ConfigSuppressesFrameVar> configSuppressesFrameVar;
 	
+	int numSizes, numSpeeds;
+	
+	/// Internal helper called from init() and afrom applyNewParamsAtRuntime()
+	/// Note: this function assumes paramSuffixPush has already been called for this object!
+	bool initObjectFromParams(ObjData & o, ConfigSuppressesFrameVar & csfv);
+	void initRealtimeChangeableParams();
+
 public:
 	double distanceToZ(double distance) const;
 	double zToDistance(double z) const;

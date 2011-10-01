@@ -119,7 +119,6 @@ protected:
     void cleanup(); 
     void save();
 	/* virtual */ bool applyNewParamsAtRuntime(); ///< reimplemented from superclass -- reapplies new params at runtime and reinits state/frame creators if need be
-	bool ParamChanged(const QString & n); ///< returns true if params and previous_params disagree for n
 };
 
 

@@ -82,13 +82,137 @@ MovingObjects::ObjType MovingObjects::parseObjectType(const QString & otype_in)
 	const QString otype (otype_in.trimmed().toLower());
 	
 	if (otype == "ellipse" || otype == "ellipsoid" || otype == "circle" || otype == "disk" || otype == "sphere"
-		|| otype == "1") {
-		if (otype == "sphere") //Warning() << "`sphere' objType not supported, defaulting to ellipsoid.";
+		|| otype == "1" || otype == "2") {
+		if (otype == "sphere" || otype == "2") 
 			return SphereType;
 		else
 			return EllipseType;
 	} 
 	return BoxType;	
+}
+
+bool MovingObjects::initObjectFromParams(ObjData & o, ConfigSuppressesFrameVar & csfv) 
+{
+	// if any of the params below are missing, the defaults in initDefaults() above are taken
+	QString otype; 
+	if (getParam( "objType"     , otype)) { 	
+		o.type = parseObjectType(otype);
+		csfv[FV_objType] = true;
+	}
+	
+	QVector<double> r1, r2;
+	// be really tolerant with object maj/minor length variable names 
+	csfv[FV_r1] = 
+	getParam( "objLenX" , r1)
+	|| getParam( "rx"          , r1) 
+	|| getParam( "r1"          , r1) 
+	|| getParam( "objLen"   , r1)
+	|| getParam( "objLenMaj", r1)
+	|| getParam( "objLenMajor" , r1)
+	|| getParam( "objMajorLen" , r1)
+	|| getParam( "objMajLen" , r1)
+	|| getParam( "xradius"   , r1);
+	csfv[FV_r2] =
+	getParam( "objLenY" , r2)
+	|| getParam( "ry"          , r2)
+	|| getParam( "r2"          , r2)
+	|| getParam( "objLenMinor" , r2) 
+	|| getParam( "objLenMin"   , r2)
+	|| getParam( "objMinorLen" , r2)
+	|| getParam( "objMinLen"   , r2)
+	|| getParam( "yradius"   , r2);
+	
+	if (!r2.size()) r2 = r1;
+	if (r1.size() != r2.size()) {
+		Error() << "Target size vectors mismatch for object " << (o.objNum+1) << ": Specify two comma-separated lists (of the same length):  objLenX and objLenY, to create the targetSize vector!";
+		return false;
+	}
+	o.len_vec.resize(r1.size());
+	for (int j = 0; j < r1.size(); ++j) {
+		if (o.type == SphereType && !eqf(r1[j],r2[j])) {
+			Warning() << "Obj " << (o.objNum+1) << ": sphere specified with objLenX != objLenY!  Ignoring objLenY (this means pure spheres only, spheroids not supported!)";
+			r2[j] = r1[j];
+		}
+		o.len_vec[j] = Vec2(r1[j], r2[j]);
+	}
+	
+	if (!o.len_vec.size()) {
+		if (o.objNum) o.len_vec = objs.front().len_vec; // grab the lengths from predecessor if not specified
+		else { o.len_vec.resize(1); o.len_vec[0] = Vec2Zero; }
+	}
+	if (numSizes < 0) numSizes = o.len_vec.size();
+	else if (numSizes != o.len_vec.size()) {
+		Error() << "Object " << (o.objNum+1) << " has a lengths vector of size " << o.len_vec.size() << " but size " << numSizes << " was expected. All objects should have the same-sized lengths vector!";
+		return false;
+	}
+	
+	csfv[FV_phi] = getParam( "objPhi" , o.phi_o) || getParam( "phi", o.phi_o );  
+	QVector<double> vx, vy, vz;
+	getParam( "objVelx"     , vx); 
+	getParam( "objVely"     , vy); 
+	getParam( "objVelz"     , vz); 
+	if (!vy.size()) vy = vx;
+	if (vx.size() != vy.size()) {
+		Error() << "Target velocity vectors mismatch for object " << o.objNum+1 << ": Specify two comma-separated lists (of the same length):  objVelX and objVelY, to create the targetVelocities vector!";
+		return false;			
+	}
+	if (vz.size() != vx.size()) {
+		vz.clear();
+		vz.fill(0., vx.size());
+	}
+	o.vel_vec.resize(vx.size());
+	for (int j = 0; j < vx.size(); ++j) {
+		o.vel_vec[j] = Vec3(vx[j], vy[j], vz[j]);
+		if (!is3D && !eqf(vz[j], 0.))
+			is3D = true;
+	}
+	if (!o.vel_vec.size()) {
+		if (o.objNum) o.vel_vec = objs.front().vel_vec;
+		else { o.vel_vec.resize(1); o.vel_vec[0] = Vec3Zero; }
+	}
+	if (numSpeeds < 0) numSpeeds = o.vel_vec.size();
+	else if (numSpeeds != o.vel_vec.size()) {
+		Error() << "Object " << (o.objNum+1) << " has a velocities vector of size " << o.vel_vec.size() << " but size " << numSpeeds << " was expected. All objects should have the same-sized velocities vector!";
+		return false;
+	}
+	o.vel = o.vel_vec[0];
+	o.v = Vec3Zero;
+	getParam( "objXinit"    , o.pos_o.x); 
+	getParam( "objYinit"    , o.pos_o.y); 
+	bool hadZInit = getParam( "objZinit"    , o.pos_o.z);
+	double zScaled;
+	if (getParam( "objZScaledinit"    , zScaled)) {
+		const double newZ = distanceToZ(zScaled);
+		if (hadZInit) Warning() << "Object " << (o.objNum+1) << " had objZInit and objZScaledinit params specified, using the zScaled param and ignoring zinit.";
+		if (hadZInit && !eqf(o.pos_o.z, newZ)) 
+			Warning() << "objZInit and objzScaledInit disagree!";
+		o.pos_o.z = newZ;
+	}
+	if (!is3D && !eqf(o.pos_o.z, 0.)) is3D = true;
+	
+	int i = o.objNum;
+	csfv[FV_color] = getParam( "objcolor"    , o.color);		ChkAndClampParam("objcolor", o.color, 0., 1., i);
+	getParam( "objShininess", o.shininess); ChkAndClampParam("objShininess", o.shininess, 0., 1., i);
+	getParam( "objAmbient", o.ambient);     ChkAndClampParam("objAmbient", o.ambient, 0., 1., i);
+	getParam( "objDiffuse", o.diffuse);     ChkAndClampParam("objDiffuse", o.diffuse, 0., 1., i);
+	getParam( "objEmission", o.emission);   ChkAndClampParam("objEmission", o.emission, 0., 1., i);
+	getParam( "objSpecular", o.specular);   ChkAndClampParam("objSpecular", o.specular, -1., 1., i);
+	
+	if (!getParam( "objDebug", o.debugLvl)) o.debugLvl = 0;
+	getParam( "objSpin", o.spin );	
+	
+	return true;
+}
+
+void MovingObjects::initRealtimeChangeableParams()
+{
+	if(!getParam( "jitterlocal" , jitterlocal))  jitterlocal = false;
+	if(!getParam( "jittermag" , jittermag))	     jittermag = DEFAULT_JITTERMAG;
+	if (!(getParam("wrapEdge", wrapEdge) || getParam("wrap", wrapEdge))) 
+		wrapEdge = false;
+	
+	if (!getParam("debugAABB", debugAABB))
+		debugAABB = false;
 }
 
 bool MovingObjects::init()
@@ -109,7 +233,7 @@ bool MovingObjects::init()
 	if (!getParam("numObj", numObj)
 		&& !getParam("numObjs", numObj) ) numObj = 1;
 	
-	int numSizes = -1, numSpeeds = -1;
+	numSizes = -1, numSpeeds = -1;
 
 	fvHasPhiCol = fvHasZCol = fvHasZScaledCol = false;
 	didScaledZWarning = 0;
@@ -127,114 +251,14 @@ bool MovingObjects::init()
 		ObjData & o = objs.back();
 		o.objNum = i;
 			
-		// if any of the params below are missing, the defaults in initDefaults() above are taken
-		QString otype; 
-		if (getParam( "objType"     , otype)) { 	
-			o.type = parseObjectType(otype);
-			csfv[FV_objType] = true;
-		}
-				
-		QVector<double> r1, r2;
-		// be really tolerant with object maj/minor length variable names 
-		csfv[FV_r1] = 
-		  getParam( "objLenX" , r1)
-			|| getParam( "rx"          , r1) 
-			|| getParam( "r1"          , r1) 
-			|| getParam( "objLen"   , r1)
-			|| getParam( "objLenMaj", r1)
-			|| getParam( "objLenMajor" , r1)
-			|| getParam( "objMajorLen" , r1)
-			|| getParam( "objMajLen" , r1)
-			|| getParam( "xradius"   , r1);
-		csfv[FV_r2] =
-			getParam( "objLenY" , r2)
-			|| getParam( "ry"          , r2)
-			|| getParam( "r2"          , r2)
-			|| getParam( "objLenMinor" , r2) 
-			|| getParam( "objLenMin"   , r2)
-			|| getParam( "objMinorLen" , r2)
-			|| getParam( "objMinLen"   , r2)
-			|| getParam( "yradius"   , r2);
-		
-		if (!r2.size()) r2 = r1;
-		if (r1.size() != r2.size()) {
-			Error() << "Target size vectors mismatch for object " << i+1 << ": Specify two comma-separated lists (of the same length):  objLenX and objLenY, to create the targetSize vector!";
-			return false;
-		}
-		o.len_vec.resize(r1.size());
-		for (int j = 0; j < r1.size(); ++j) {
-			if (o.type == SphereType && !eqf(r1[j],r2[j])) {
-				Warning() << "Obj " << i << ": sphere specified with objLenX != objLenY!  Ignoring objLenY (this means pure spheres only, spheroids not supported!)";
-				r2[j] = r1[j];
-			}
-			o.len_vec[j] = Vec2(r1[j], r2[j]);
-		}
-		
-		if (!o.len_vec.size()) {
-			if (i) o.len_vec = objs.front().len_vec; // grab the lengths from predecessor if not specified
-			else { o.len_vec.resize(1); o.len_vec[0] = Vec2Zero; }
-		}
-		if (numSizes < 0) numSizes = o.len_vec.size();
-		else if (numSizes != o.len_vec.size()) {
-			Error() << "Object " << i+1 << " has a lengths vector of size " << o.len_vec.size() << " but size " << numSizes << " was expected. All objects should have the same-sized lengths vector!";
+		if (!initObjectFromParams(o, csfv)) {
+			if (i > 0)
+				paramSuffixPop();
 			return false;
 		}
 		
-		csfv[FV_phi] = getParam( "objPhi" , o.phi_o) || getParam( "phi", o.phi_o );  
-		QVector<double> vx, vy, vz;
-		getParam( "objVelx"     , vx); 
-		getParam( "objVely"     , vy); 
-		getParam( "objVelz"     , vz); 
-		if (!vy.size()) vy = vx;
-		if (vx.size() != vy.size()) {
-			Error() << "Target velocity vectors mismatch for object " << i+1 << ": Specify two comma-separated lists (of the same length):  objVelX and objVelY, to create the targetVelocities vector!";
-			return false;			
-		}
-		if (vz.size() != vx.size()) {
-			vz.clear();
-			vz.fill(0., vx.size());
-		}
-		o.vel_vec.resize(vx.size());
-		for (int j = 0; j < vx.size(); ++j) {
-			o.vel_vec[j] = Vec3(vx[j], vy[j], vz[j]);
-			if (!is3D && !eqf(vz[j], 0.))
-				is3D = true;
-		}
-		if (!o.vel_vec.size()) {
-			if (i) o.vel_vec = objs.front().vel_vec;
-			else { o.vel_vec.resize(1); o.vel_vec[0] = Vec3Zero; }
-		}
-		if (numSpeeds < 0) numSpeeds = o.vel_vec.size();
-		else if (numSpeeds != o.vel_vec.size()) {
-			Error() << "Object " << i+1 << " has a velocities vector of size " << o.vel_vec.size() << " but size " << numSpeeds << " was expected. All objects should have the same-sized velocities vector!";
-			return false;
-		}
-		o.vel = o.vel_vec[0];
-		o.v = Vec3Zero;
-		getParam( "objXinit"    , o.pos_o.x); 
-		getParam( "objYinit"    , o.pos_o.y); 
-		bool hadZInit = getParam( "objZinit"    , o.pos_o.z);
-		double zScaled;
-		if (getParam( "objZScaledinit"    , zScaled)) {
-			const double newZ = distanceToZ(zScaled);
-			if (hadZInit) Warning() << "Object " << i << " had objZInit and objZScaledinit params specified, using the zScaled param and ignoring zinit.";
-			if (hadZInit && !eqf(o.pos_o.z, newZ)) 
-				Warning() << "objZInit and objzScaledInit disagree!";
-			o.pos_o.z = newZ;
-		}
-		if (!is3D && !eqf(o.pos_o.z, 0.)) is3D = true;
-		
-		csfv[FV_color] = getParam( "objcolor"    , o.color);		ChkAndClampParam("objcolor", o.color, 0., 1., i);
-		getParam( "objShininess", o.shininess); ChkAndClampParam("objShininess", o.shininess, 0., 1., i);
-		getParam( "objAmbient", o.ambient);     ChkAndClampParam("objAmbient", o.ambient, 0., 1., i);
-		getParam( "objDiffuse", o.diffuse);     ChkAndClampParam("objDiffuse", o.diffuse, 0., 1., i);
-		getParam( "objEmission", o.emission);   ChkAndClampParam("objEmission", o.emission, 0., 1., i);
-		getParam( "objSpecular", o.specular);   ChkAndClampParam("objSpecular", o.specular, -1., 1., i);
-			
-		if (!getParam( "objDebug", o.debugLvl)) o.debugLvl = 0;
-		getParam( "objSpin", o.spin );
-		paramSuffixPop();
-		
+		if (i > 0)
+			paramSuffixPop();
 	}
 
 	// note bgcolor already set in StimPlugin, re-default it to 1.0 if not set in data file
@@ -264,21 +288,14 @@ bool MovingObjects::init()
 		Error() << "tframes needs to be specified because either the lengths vector or the speeds vector has length > 1!";
 		return false;	
 	}
-	
-	if(!getParam( "jitterlocal" , jitterlocal))  jitterlocal = false;
-	if(!getParam( "jittermag" , jittermag))	     jittermag = DEFAULT_JITTERMAG;
 
 	if (!getParam("ft_change_frame_cycle", ftChangeEvery) && !getParam("ftrack_change_frame_cycle",ftChangeEvery) 
 		&& !getParam("ftrack_change_cycle",ftChangeEvery) && !getParam("ftrack_change",ftChangeEvery)) 
 		ftChangeEvery = 0; // override default for movingobjects it is 0 which means autocompute
 	
-
-	if (!(getParam("wrapEdge", wrapEdge) || getParam("wrap", wrapEdge))) 
-			wrapEdge = false;
-
-	if (!getParam("debugAABB", debugAABB))
-			debugAABB = false;
-
+	
+	initRealtimeChangeableParams();
+	
 	// Light position stuff...
 	if (!(getParam("sharedLight", lightIsFixedInSpace) || getParam("fixedLight", lightIsFixedInSpace) || getParam("lightIsFixed", lightIsFixedInSpace) || getParam("lightIsFixedInSpace", lightIsFixedInSpace)))
 		lightIsFixedInSpace = true;	
@@ -308,14 +325,15 @@ bool MovingObjects::init()
 	
 	initObjs();
 	
-	QString dummy;
+	int dummy;
 	if (getParam("targetcycle", dummy) || getParam("speedcycle", dummy)) {
 		Error() << "targetcycle and speedcycle params are no longer supported!  Instead, pass a comma-separated-list for the velocities and object sizes!";
 		return false;
 	}
 
-	if ( getParam( "max_x_pix" , dummy) || getParam( "min_x_pix" , dummy) 
-		|| getParam( "max_y_pix" , dummy) || getParam( "min_y_pix" , dummy) ) {
+	int dummy2;
+	if ( getParam( "max_x_pix" , dummy2) || getParam( "min_x_pix" , dummy2) 
+		|| getParam( "max_y_pix" , dummy2) || getParam( "min_y_pix" , dummy2) ) {
 		Error() << "min_x_pix/max_x_pix/min_y_pix/max_y_pix no longer supported in MovingObjects.  Use the lmargin,rmargin,bmargin,tmargin params instead!";
 		return false;
 	}
@@ -650,8 +668,10 @@ void MovingObjects::doFrameDraw()
 		
 	for (int k=0; k < nSubFrames; k++) {
 		
-		for (QList<ObjData>::iterator it = objs.begin(); it != objs.end(); ++it) {		
+		for (QList<ObjData>::iterator it = objs.begin(); it != objs.end(); ++it) {
 			ObjData & o = *it;
+			int objName = o.objNum + 1;
+			QString suf = objName > 1 ? QString::number(objName) : "";
 			if (!o.shape) continue; // should never happen..
 			Rect aabb = o.shape->AABB();
 			double objLen, objLen_min;
@@ -714,6 +734,9 @@ void MovingObjects::doFrameDraw()
 						objLen = o.len_vec[o.len_vec_i].x;
 						objLen_min = o.len_vec[o.len_vec_i].y;
 						
+						// save current r1immediate, r2immediate
+						//params[QString("r1_immediate")+suf] = QString::number(objLen);
+						//params[QString("r2_immediate")+suf] = QString::number(objLen_min);
 						
 						// apply new length by adjusting object scale
 						o.shape->scale.x = objLen / objLen_o;
@@ -802,6 +825,13 @@ void MovingObjects::doFrameDraw()
 
 						}
 					}
+					
+					// save current velocities, phi
+					//params[QString("objVelx_immediate")+suf] = QString::number(vx);
+					//params[QString("objVely_immediate")+suf] = QString::number(vy);
+					//params[QString("objVelz_immediate")+suf] = QString::number(vz);
+					//params[QString("objPhi_immediate")+suf] = QString::number(objPhi);
+										
 					
 				} // END if moveFlag
 
@@ -1237,6 +1267,100 @@ double MovingObjects::zToDistance(double z) const
 
 bool MovingObjects::applyNewParamsAtRuntime()
 {
-	// TODO implement...
+	ChangedParamMap m = paramsThatChanged();
+	/*Debug() << "PARAM TYPES:";
+	for (ParamTypeMap::const_iterator it = paramTypes.begin(); it != paramTypes.end(); ++it) {
+		QString pt;
+		switch(it.value()) {
+			case PT_String: pt = "string"; break;
+			case PT_Double: pt = "double"; break;
+			case PT_DoubleVector: pt = "double-vector"; break;
+			default: pt = "other"; break;
+		}
+		Debug() << it.key() << " = " << pt;
+	}*/
+	if (m.contains("numobj") || m.contains("numobjs")) {
+		Warning() << "Got new 'numObj' parameter, but changing numObj at runtime for movingObjects is not supported!";
+	}
+	for (int i = 0; i < numObj; ++i) {
+		ObjData & o = objs[i];
+		ObjType savedType = o.type;
+		QString suf = "";
+		if (i) {
+			suf = QString::number(i+1);
+			paramSuffixPush(suf);
+		}
+		QString key;
+
+		ConfigSuppressesFrameVar csfv_dummy;
+		Vec3 savedV = o.v, savedVel = o.vel;
+		if (!initObjectFromParams(o, csfv_dummy)) {
+			if (i) paramSuffixPop();
+			return false;
+		}
+		o.v = savedV;
+		o.vel = savedVel;
+		
+		// objtype
+		if (savedType != o.type) {
+			// do some switching around to be compatible with original init code..
+			ObjType newType = o.type;
+			o.type = savedType;
+			Vec3 pos = o.shape->position;
+			reinitObj(o, newType);
+			o.shape->position = pos;
+		}
+		
+		// r1_immediate,r2_immediate
+		double r1 = o.len_vec[o.len_vec_i].x, r2 = o.len_vec[o.len_vec_i].y;
+		bool lenchange = false;		
+		
+		if (getParam("r1_immediate",r1) ) {
+			lenchange = true;
+			Debug() << "r1_immediate" << suf << "=" << r1 << " will be immediately applied";
+		}
+		if (getParam("r2_immediate",r2) ) {
+			lenchange = true;
+			Debug() << "r2_immediate" << suf << "=" << r2 << " will be immediately applied";
+		}
+		
+		if (lenchange)	o.shape->setLengths(r1, r2);
+		
+		
+		///objvel[xyz]_immediate
+		double vx,vy,vz;
+		if (getParam("objVelx_immediate",vx)) {
+			Debug() << "objVelx_immediate" << suf << "=" << vx << " will be immediately applied";
+			o.vel.x = o.v.x = vx;
+		}
+		if (getParam("objVely_immediate",vy)) {
+			Debug() << "objVely_immediate" << suf << "=" << vy << " will be immediately applied";
+			o.vel.y = o.v.y = vy;
+		}
+		if (getParam("objVelz_immediate",vz)) {
+			Debug() << "objVelz_immediate" << suf << "=" << vz << " will be immediately applied";
+			o.vel.z = o.v.z = vz;
+		}
+		
+		double  objPhi (o.shape->angle); 
+		if (getParam("objPhi_immedaite",objPhi)) {
+			Debug() << "objPhi_immediate" << suf << "=" << vx << " will be immediately applied";
+			o.shape->angle = objPhi;
+		}
+		
+		if (i) paramSuffixPop();
+	}
+	
+	initRealtimeChangeableParams();
+	// note bgcolor already set in StimPlugin, re-default it to 1.0 if not set in data file
+	if(!getParam( "bgcolor" , bgcolor))	     bgcolor = 1.;
+	
+	// trajectory stuff
+	if(!getParam( "rndtrial" , rndtrial))	     rndtrial = 0;
+	
+	Debug() << "CHANGED PARAMS:";
+	for (ChangedParamMap::iterator it = m.begin(); it != m.end(); ++it) {
+		Debug() << it.key() << " old=" << it.value().first << " new=" << it.value().second; 
+	}
 	return true;
 }

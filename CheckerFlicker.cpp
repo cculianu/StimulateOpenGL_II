@@ -268,19 +268,10 @@ bool checkFBStatus()
     return true;
 }
 
-bool CheckerFlicker::ParamChanged(const QString & n)
-{
-	QString vnew, vold;
-	getParam(n, vnew);
-	StimParams saved = params;
-	params = previous_params;
-	getParam(n, vold);
-	params = saved;
-	return vnew != vold;
-}
-
 bool CheckerFlicker::checkForCriticalParamChanges() 
 {
+	ChangedParamMap m = paramsThatChanged();
+#define ParamChanged(x) m.contains(x)
 	return
 			w != int(width()) || h != int(height())
 		    || ParamChanged("stixelwidth")
@@ -296,6 +287,7 @@ bool CheckerFlicker::checkForCriticalParamChanges()
 			|| ParamChanged("tmargin")
 			|| ParamChanged("rand_gen")
 	;
+#undef ParamChanged
 }
 
 Rand_Gen CheckerFlicker::parseRandGen(const QString & rgen) const

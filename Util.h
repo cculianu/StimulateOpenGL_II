@@ -115,6 +115,9 @@ extern unsigned setCurrentThreadAffinityMask(unsigned cpu_mask);
 /// doubles that were parsed by separating out the CSV values.  
 extern QVector<double> parseCSV(const QString & text, const QRegExp & sepre = QRegExp("(\\s+)|,"));
 	
+/// Inverse of above
+extern QString joinCSV(const QVector<double> & vals, const QString & comma = ", ");
+	
 /// Super class of Debug, Warning, Error classes.  
 class Log 
 {

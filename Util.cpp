@@ -179,5 +179,15 @@ QVector<double> parseCSV(const QString & text, const QRegExp & sepre)
 	}
 	return ret;
 }
-
+	
+QString joinCSV(const QVector<double> & v, const QString & c)
+{
+	QString ret = "";
+	for (int i = 0; i < v.size(); ++i) {
+		if (i) ret += c;
+		ret += QString::number(v[i]);
+	}
+	return ret;
+}
+	
 }

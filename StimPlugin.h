@@ -32,6 +32,8 @@
 #include <QMutex>
 #include <QMutexLocker>
 #include <QList>
+#include <QPair>
+#include <QMap>
 #include "FrameVariables.h"
 
 enum FPS_Mode {
@@ -352,6 +354,16 @@ protected:
 
 	/// The stim params, as they came in from either config file or matlab.  getParam() references these.
 	StimParams params, previous_params;
+	
+	typedef QPair<QString, QString> OldNewPair; ///< Used in ChangedParamMap.
+	typedef QMap<QString, OldNewPair > ChangedParamMap; ///< note that the QPair's .first is the old param and .second is the new param
+	/// Do a diff of params and previous_params and return a map of all the params that changed (note a newly-missing param or a param in new but not in old also is considered to have 'changed')
+	ChangedParamMap paramsThatChanged() const;	
+	
+	/// Type info about the plugin's params
+	enum ParamType { PT_Other = 0, PT_String, PT_Double, PT_DoubleVector, PT_Int };
+	typedef QMap<QString, ParamType> ParamTypeMap;
+	mutable ParamTypeMap paramTypes;
 
 private:
     void computeFPS();
@@ -374,6 +386,11 @@ private:
 	
 	/// Reads params, does some setup from them.  Called from start() and applyNewParamsAtRuntime_Base()
 	bool initFromParams();
+
+	/// templatized function for reading parameters, internal use
+    template <typename T> bool getParam_Generic(const QString & name, T & out) const;
+	/// Internal helper called from paramsThatChanged
+	void normalizeParamVals(const QString & n, QString & v1, QString & v2) const;
 
 private slots:
 	/// Sets initted = true, calls SpikeGL notify
@@ -408,16 +425,23 @@ namespace {
 
 // specialization for strings
 template <> bool StimPlugin::getParam<QString>(const QString & name, QString & out) const;
-
 // specialization for QVector of doubles -- a comma-separated list
 template <> bool StimPlugin::getParam<QVector<double> >(const QString & name, QVector<double> & out) const;
-
+// specialization for QVector of doubles -- a comma-separated list
+template <> bool StimPlugin::getParam<double>(const QString & name, double & out) const;
+// specializations for QVector of various ints
+template <> bool StimPlugin::getParam<float>(const QString & name, float & out) const;
+template <> bool StimPlugin::getParam<int>(const QString & name, int & out) const;
+template <> bool StimPlugin::getParam<unsigned>(const QString & name, unsigned & out) const;
+template <> bool StimPlugin::getParam<long>(const QString & name, long & out) const;
 // templatized functions for reading parameters
 template <typename T> 
-bool StimPlugin::getParam(const QString & name, T & out) const
+bool StimPlugin::getParam_Generic(const QString & name, T & out) const
 {        
         QString suffix = paramSuffix();
         QMutexLocker l(&mut);
+		paramTypes[name] = PT_Other;
+		paramTypes[name+suffix] = PT_Other;
         StimParams::const_iterator it;
         for (it = params.begin(); it != params.end(); ++it)
             if (QString::compare(it.key(), name + suffix, Qt::CaseInsensitive) == 0)
@@ -437,6 +461,8 @@ bool StimPlugin::getParam(const QString & name, T & out) const
         }
         return false;        
 }
+template <typename T> 
+bool StimPlugin::getParam(const QString & name, T & out) const { return getParam_Generic(name, out); }
 
 #endif
 #include "GridPlugin.h"

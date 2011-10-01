@@ -107,24 +107,26 @@ bool StimPlugin::initFromParams()
 		"ftrack_end_color",    // FT_End		
 	};
 	for (int i = 0; i < N_FTStates; ++i) {
-		QString c;
 		QString n = ftColorParamNames[i];
-		c = getParam(n, c) 
-		? c  // yes, we had a param in the config file for this color, use it
-		: (i == FT_Off ? "0,0,0" : "1,1,1"); // no, we didn't.. do default which is Off is 0, everything else is 1.
-		
-		QVector<double> cv = parseCSV(c);
+		QVector<double> cv;
+		QString c;
+		if ( ! getParam(n, cv) ) {
+			// no, we didn't have a param in config file.. do default which iff Off is 0, everything else is 1.
+			cv = (i == FT_Off) 
+				 ? parseCSV("0,0,0")
+		         : parseCSV("1,1,1");
+		}
 		if (cv.size() != 3) {
 			if (cv.size() == 1) {
 				cv.resize(3);
 				cv[2] = cv[1] = cv[0];
 			} else {
-				QString errc = c;
-				c = (i == FT_Off ? "0,0,0" : "1,1,1");
-				Warning() << "Error parsing `" << n << "' of " << errc << ", defaulting to " << c;
+				QString c = (i == FT_Off ? "0,0,0" : "1,1,1");
+				Warning() << "Error parsing `" << n << "', defaulting to " << c;
 				cv = parseCSV(c);
 			}
 		}
+		c = joinCSV(cv, ",");
 		Debug() << "Got " << n << " of " << c;
 		for (int j = 0; j < 3; ++j) {
 			float thisc = cv[j];
@@ -686,6 +688,11 @@ template <> bool StimPlugin::getParam<QString>(const QString & name, QString & o
 {        
 	QString suffix = paramSuffix();
 	QMutexLocker l(&mut);
+	
+	/// we can assume caller knows what he/she is doing, so save param type we inferred now..
+	paramTypes[name+suffix] = PT_String;
+	paramTypes[name] = PT_String;
+	
 	StimParams::const_iterator it;
 	for (it = params.begin(); it != params.end(); ++it)
 		if (QString::compare(it.key(), name + suffix, Qt::CaseInsensitive) == 0)
@@ -695,7 +702,7 @@ template <> bool StimPlugin::getParam<QString>(const QString & name, QString & o
 		out = (*it).toString().trimmed();
 		return true;
 	}
-	return false;        
+	return false;
 }
 
 // specialization for QVector of doubles -- a comma-separated list
@@ -703,17 +710,47 @@ template <> bool StimPlugin::getParam<QVector<double> >(const QString & name, QV
 {
 	QString s;
 	bool b = getParam(name, s);
-	if (b) {
-		QStringList comps = s.split(QRegExp("\\s*(,|\\s)\\s*"), QString::SkipEmptyParts);
-		out.resize(comps.count());
-		int i = 0;
-		for (QStringList::const_iterator it = comps.begin(); it != comps.end(); ++it, ++i) {
-			bool ok;
-			out[i] = (*it).toDouble(&ok);
-			if (!ok) out[i] = 0.;
-		}
-	}
+	if (b) out=parseCSV(s);
+	// save param type
+	paramTypes[(name+paramSuffix()).toLower()] = PT_DoubleVector;
+	paramTypes[name.toLower()] = PT_DoubleVector;
 	return b;
+}
+
+template <> bool StimPlugin::getParam<double>(const QString & name, double & out) const
+{	
+	bool ret = getParam_Generic(name, out);
+	paramTypes[name.toLower()] = PT_Double;
+	paramTypes[(name+paramSuffix()).toLower()] = PT_Double;
+	return ret;
+}
+template <> bool StimPlugin::getParam<float>(const QString & name, float & out) const
+{
+	double o = out;
+	bool ret = getParam(name, o);
+	out = o;
+	return ret;
+}
+template <> bool StimPlugin::getParam<int>(const QString & name, int & out) const
+{
+	bool ret = getParam_Generic(name, out);
+	paramTypes[name.toLower()] = PT_Int;
+	paramTypes[(name+paramSuffix()).toLower()] = PT_Int;
+	return ret;	
+}
+template <> bool StimPlugin::getParam<unsigned>(const QString & name, unsigned & out) const
+{
+	bool ret = getParam_Generic(name, out);
+	paramTypes[name.toLower()] = PT_Int;
+	paramTypes[(name+paramSuffix()).toLower()] = PT_Int;
+	return ret;	
+}
+template <> bool StimPlugin::getParam<long>(const QString & name, long & out) const
+{
+	bool ret = getParam_Generic(name, out);
+	paramTypes[name.toLower()] = PT_Int;
+	paramTypes[(name+paramSuffix()).toLower()] = PT_Int;
+	return ret;	
 }
 
 void StimPlugin::waitForInitialization() const {
@@ -728,5 +765,88 @@ bool StimPlugin::applyNewParamsAtRuntime() { return true; }
 bool StimPlugin::applyNewParamsAtRuntime_Base() 
 {
 	return initFromParams();
+}
+
+void StimPlugin::normalizeParamVals(const QString & n, QString & v1, QString & v2) const
+{
+	bool wasNum = false;
+	switch(paramTypes[n.toLower()]) {
+		case PT_Int: {
+			// this is to regularize the doubles so they are sorta equal as strings..
+			long l = v1.toLong(), l2 = v2.toLong();
+			v1 = QString::number(l), v2 = QString::number(l2);
+			wasNum = true;
+		}
+			break;
+		case PT_Double: {
+			// this is to regularize the doubles so they are sorta equal as strings..
+			double d = v1.toDouble(), d2 = v2.toDouble();
+			v1 = QString::number(d), v2 = QString::number(d2);
+			wasNum = true;
+		}
+			break;
+		case PT_DoubleVector: { 
+			// this is to regularize the doubles so they are sorta equal as strings..
+			QVector<double> dv1 = parseCSV(v1), dv2 = parseCSV(v2);
+			v1 = joinCSV(dv1);
+			v2 = joinCSV(dv2);
+		}
+			break;
+		default:
+			(void) 0;
+			break;
+	}
+	v1 = v1.trimmed();
+	v2 = v2.trimmed();
+	if (wasNum) {
+		while (v1.endsWith(".")) v1 = v1.left(v1.length()-1);
+		while (v2.endsWith(".")) v2 = v2.left(v2.length()-1);
+	}
+}
+
+/// Do a diff of params and previous_params and return a map of all the params that changed (note a newly-missing param or a param in new but not in old also is considered to have 'changed')
+StimPlugin::ChangedParamMap StimPlugin::paramsThatChanged() const
+{
+	// TODO: params are case insensitive!! fix this!! :)
+	
+	ChangedParamMap ret;
+	StimParams::const_iterator it, it2;
+	// check for params in old but not in new, or params in old and in new but that aren't equal
+	for (it = previous_params.begin(); it != previous_params.end(); ++it) {
+		const QString k = it.key().toLower();
+		QString v (it.value().toString());
+		bool found = false;
+		for (it2 = params.begin(); it2 != params.end(); ++it2) {
+			const QString k2 = it2.key().toLower();
+			if (k == k2) {
+				found = true;
+				QString  vnew(it2.value().toString());
+				normalizeParamVals(k, v, vnew);
+				if (vnew != v) ret[k] = OldNewPair(v, vnew);
+			}
+		}
+		if (!found) {
+			ret[it.key()] = OldNewPair(v, QString::null);
+		}
+	}
+	// check for params in new but not in old, or params in old and in new but that aren't equal
+	for (it = params.begin(); it != params.end(); ++it) {
+		const QString k = it.key().toLower();
+		QString vnew (it.value().toString());
+		bool found = false;
+		for (it2 = previous_params.begin(); it2 != previous_params.end(); ++it2) {
+			const QString k2 = it2.key().toLower();
+			if (k == k2) {
+				found = true;
+				QString  v(it2.value().toString());
+				normalizeParamVals(k, v, vnew);
+				if (vnew != v) ret[k] = OldNewPair(v, vnew);
+			}
+		}
+		if (!found) {
+			ret[it.key()] = OldNewPair(QString::null, vnew);
+		}
+	}
+	return ret;
 }
 
