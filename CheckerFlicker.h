@@ -13,11 +13,6 @@ enum Rand_Gen {
 };
 
 // SFMT based random number generator	
-#ifdef __SSE2__
-#define HAVE_SSE2
-#else
-#error Please compile with SSE2 enabled!
-#endif
 #include "sfmt.hpp"
 typedef sfmt_19937_generator SFMT_Generator;
 
