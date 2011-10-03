@@ -12,6 +12,15 @@ enum Rand_Gen {
 	Uniform = 0, Gauss, Binary, N_Rand_Gen
 };
 
+// SFMT based random number generator	
+#ifdef __SSE2__
+#define HAVE_SSE2
+#else
+#error Please compile with SSE2 enabled!
+#endif
+#include "sfmt.hpp"
+typedef sfmt_19937_generator SFMT_Generator;
+
 /**
    \brief A class for drawing randomly-generated 'checkers' of arbitrary width 
           and height to the GLWindow.  
@@ -27,6 +36,8 @@ class CheckerFlicker : public StimPlugin
 
     friend class FrameCreator;
 
+	SFMT_Generator sfmt;
+	
     std::vector<FrameCreator *> fcs;
     void cleanupFCs();
 
