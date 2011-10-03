@@ -161,11 +161,12 @@ GLAPI void APIENTRY glGetBufferParameterivARB(GLenum a, GLenum b, GLint *i)
  side the mainthread in CheckerFlicker::afterVSync().*/
 struct Frame
 {
-    Frame(unsigned w, unsigned h, unsigned elem_size);
+    Frame(unsigned w, unsigned h, unsigned elem_size, int w_total, int h_total, int lmargin, int rmargin, int bmargin, int tmargin);
     ~Frame() { delete [] mem; mem = 0; texels = 0; }
     GLubyte *mem; ///< this is the memory block that is an unaligned superset of texels and should the the one we delete []
     GLvoid *texels; ///< 16-bytes aligned texel area (useful for SFMT-sse2 rng)
     unsigned w, h; ///< in texels
+	int w_total, h_total, lmargin, rmargin, bmargin, tmargin;
     unsigned tx_size; ///< size of each texel in bytes
     unsigned long nqqw; ///< num of quad-quad words.. (128-bit words)
 
@@ -175,7 +176,7 @@ struct Frame
 	Vec2i displacement; ///< frame displacement in pixels in the x and y direction
 };
 
-Frame::Frame(unsigned w, unsigned h, unsigned es): mem(0), texels(0), w(w), h(h), tx_size(es), ifmt(0), fmt(0), type(0), seed(0)
+Frame::Frame(unsigned w, unsigned h, unsigned es, int wt, int ht, int l, int r, int b, int t): mem(0), texels(0), w(w), h(h), w_total(wt), h_total(ht), lmargin(l), rmargin(r), bmargin(b), tmargin(t), tx_size(es), ifmt(0), fmt(0), type(0), seed(0)
 {
     unsigned long sz;
     sz = MAX(w*h*es + 48, (SFMT_Generator::N+3)*16); // gen_rand_array seems to require at least this much memory.. annoying.
@@ -214,6 +215,7 @@ protected:
     void run();
 private:
     CheckerFlicker  & cf;
+	SFMT_Generator sfmt;
     volatile bool stop;
 };
 
@@ -252,27 +254,6 @@ bool checkFBStatus()
     return true;
 }
 
-bool CheckerFlicker::checkForCriticalParamChanges() 
-{
-	ChangedParamMap m = paramsThatChanged();
-#define ParamChanged(x) m.contains(x)
-	return
-			w != int(width()) || h != int(height())
-		    || ParamChanged("stixelwidth")
-			|| ParamChanged("stixelheight")
-			|| ParamChanged("contrast")
-			|| ParamChanged("fbo")
-			|| ParamChanged("prerender")
-			|| ParamChanged("cores")
-			|| ParamChanged("colortable")
-			|| ParamChanged("lmargin")
-			|| ParamChanged("rmargin")
-			|| ParamChanged("bmargin")
-			|| ParamChanged("tmargin")
-			|| ParamChanged("rand_gen")
-	;
-#undef ParamChanged
-}
 
 Rand_Gen CheckerFlicker::parseRandGen(const QString & rgen) const
 {
@@ -300,12 +281,12 @@ Rand_Gen CheckerFlicker::parseRandGen(const QString & rgen) const
 	return ret;
 }
 
-bool CheckerFlicker::initFromParams()
+bool CheckerFlicker::initFromParams(bool runtimeReapply)
 {
     glGetError(); // clear error flag
-
+		
 	w = width(), h = height();
-	
+
 	if (!getParam("verboseDebug", verboseDebug)) verboseDebug = false;
 	QString tmp;
 	if ((getParam("blackwhite", tmp) && (tmp="blackwhite").length()) || (getParam("meanintensity", tmp) && (tmp="meanintensity").length())) {
@@ -362,7 +343,7 @@ bool CheckerFlicker::initFromParams()
 	if (rand_displacement_y && (!tmargin && !bmargin)) {
 		Warning() << "rand_displacement_y set to: " << rand_displacement_y << " -- Recommend setting tmargin and bmargin to " << -int(rand_displacement_y);
 	}
-	
+			
 	// determine the right number of tiles in x and y direction to fill screen        
 	do {
 		xpixels = xdim-(lmargin+rmargin);
@@ -380,24 +361,6 @@ bool CheckerFlicker::initFromParams()
 			tmargin += ypixels-(Ny*stixelHeight);            
 		}
 	} while ( xpixels%stixelWidth || ypixels%stixelHeight );
-	
-	{ // populate our tex coord buffer and vertex buffer basedo n Nx, Ny, lmargin, rmargin, etc
-		GLint texCoordsTmp[] = {
-			0,0,
-			Nx,0,
-			Nx,Ny,
-			0,Ny
-		};
-		
-		GLint verticesTmp[] = {
-			lmargin, bmargin,
-			w-rmargin, bmargin,
-			w-rmargin, h-tmargin,
-			lmargin, h-tmargin
-		};
-		memcpy(texCoords, texCoordsTmp, sizeof(texCoords));
-		memcpy(vertices, verticesTmp, sizeof(vertices));
-	}
 	
 	if (!fbo) {
 		Warning() << "Prerender/fbo not specified -- defaulting to fbo setting of 30 -- Please look into using either `fbo' or `prerender' as a configuration parameter.";
@@ -421,19 +384,21 @@ bool CheckerFlicker::initFromParams()
 		Log() << "Set affinity mask of main thread to: " << mask;
 	}
 	
-	const double t0 = getTime();
-	Log() << "Pregenerating gaussian color table of size " << colortable << ".. (please be patient)";
-	Status() << "Generating gaussian color table ...";
-	//        stimApp()->console()->update(); // ensure message is printed
-	//stimApp()->processEvents(QEventLoop::ExcludeUserInputEvents); // ensure message is printed
-	genGaussColors();
-	Log() << "Generated " << gaussColors.size() << " colors in " << (getTime()-t0) << " secs";
-	
-	// fastest, not as compatible on some boards
-	if (!initFBO()) {
-		Error() << "FBO initialization failed -- possibly due to lack of support on this hardware or a misconfiguration.";
-		Error() << "*FBO MODE IS REQUIRED FOR THIS PLUGIN TO WORK*";
-		return false;
+	if (!runtimeReapply)  {
+		const double t0 = getTime();
+		Log() << "Pregenerating gaussian color table of size " << colortable << ".. (please be patient)";
+		Status() << "Generating gaussian color table ...";
+		//        stimApp()->console()->update(); // ensure message is printed
+		//stimApp()->processEvents(QEventLoop::ExcludeUserInputEvents); // ensure message is printed
+		genGaussColors();
+		Log() << "Generated " << gaussColors.size() << " colors in " << (getTime()-t0) << " secs";
+		
+		// fastest, not as compatible on some boards
+		if (!initFBO()) {
+			Error() << "FBO initialization failed -- possibly due to lack of support on this hardware or a misconfiguration.";
+			Error() << "*FBO MODE IS REQUIRED FOR THIS PLUGIN TO WORK*";
+			return false;
+		}
 	}
 	
 	if (nFrames > 0 && nLoops > 0 && delay <= 0) {
@@ -446,13 +411,13 @@ bool CheckerFlicker::initFromParams()
 void CheckerFlicker::initFromParamsNonCritical()
 {
 	if (!getParam("rand_displacement_x", rand_displacement_x)) rand_displacement_x = 0;
-	if (!getParam("rand_displacement_y", rand_displacement_y)) rand_displacement_y = 0;	
+	if (!getParam("rand_displacement_y", rand_displacement_y)) rand_displacement_y = 0;
 	if (!getParam("verboseDebug", verboseDebug)) verboseDebug = false;
 }
 
-void CheckerFlicker::doPostInit(bool resetFrameNum) 
+void CheckerFlicker::doPostInit() 
 {
-	if (resetFrameNum)	frameNum = 0; // reset frame num!
+	frameNum = 0; // reset frame num!
 	
 #ifdef Q_OS_WIN
 	Sleep(500); // sleep for 500ms to ensure init is ok
@@ -469,7 +434,7 @@ bool CheckerFlicker::init()
 	ran1Gen.reseed(originalSeed); // NB: it doesn't matter anymore if seed is negative or positive -- all negative seeds end up being positie anyway and the generator no longer needs a negative seed to indicate "reseed".  That was ugly.  See RanGen.h for how to use the class.. 
     gasGen.reseed(originalSeed); // Need to reseed this too.. 
     // our SFMT random number generator gets seeded too
-    sfmt.seed(originalSeed);
+    sfmt.seed(currentSFMTSeed=originalSeed);
     sfmt.gen_rand_all();
 	
     nConsecSkips = 0;
@@ -493,20 +458,49 @@ bool CheckerFlicker::init()
 	return true;	
 }
 
+bool CheckerFlicker::checkForCriticalParamChanges() 
+{
+	ChangedParamMap m = paramsThatChanged();
+#define ParamChanged(x) m.contains(x)
+	return
+	w != int(width()) || h != int(height())
+	//		    || ParamChanged("stixelwidth")
+	//			|| ParamChanged("stixelheight")
+	|| ParamChanged("contrast")
+	|| ParamChanged("fbo")
+	|| ParamChanged("prerender")
+	|| ParamChanged("cores")
+	|| ParamChanged("colortable")
+	|| ParamChanged("lmargin")
+	|| ParamChanged("rmargin")
+	|| ParamChanged("bmargin")
+	|| ParamChanged("tmargin")
+	|| ParamChanged("rand_gen")
+	;
+#undef ParamChanged
+}
+
+bool CheckerFlicker::applyNewParamsAtRuntime_Base()
+{
+	t0reapply = getTime();
+	sharedParamsRWLock.lockForWrite();
+	bool b = StimPlugin::applyNewParamsAtRuntime_Base();
+	if (!b) sharedParamsRWLock.unlock();
+	return b;
+}
+
 bool CheckerFlicker::applyNewParamsAtRuntime()
 {
-	if (!initted || checkForCriticalParamChanges()) {
-		initted = false;
-		cleanup();	
-		if (!initFromParams())
-			return false;
-		doPostInit(false);
-		initted = true;
-	} else {
-		initFromParamsNonCritical();
+	if (checkForCriticalParamChanges()) {
+		Error() << "Cannot change param width, height, contrast, fbo, prerender, cores, colortable, [lrbt]margin, or rand_gen at runtime for CheckerFlicker!";
+		sharedParamsRWLock.unlock();
+		return false;
 	}
 	
-	return true;
+	bool ret = initFromParams(true);
+	sharedParamsRWLock.unlock();
+	Debug() << "Reapply params took " << (1000.*(getTime()-t0reapply)) << " msec";
+	return ret;
 }
 
 bool CheckerFlicker::initFBO()
@@ -535,7 +529,11 @@ bool CheckerFlicker::initFBO()
             memset(texs, 0, sizeof(GLuint) * fbo);
 			disps = new Vec2i[fbo];
 			memset(disps, 0, sizeof(Vec2i) * fbo);
-
+			texCoords = new IntArray8[fbo];
+			memset(texCoords, 0, sizeof(IntArray8) * fbo);
+			vertices = new IntArray8[fbo];
+			memset(vertices, 0, sizeof(IntArray8) * fbo);
+	
             glGenFramebuffersEXT(fbo, fbos);
             if ( !checkFBStatus() ) {
                 Error() << "Error after glGenFramebuffersEXT call.";
@@ -613,8 +611,9 @@ bool CheckerFlicker::initFBO()
                 // draw to off-screen texture i
                 fc->haveMore.acquire();
                 Frame * f = fc->popOne();
-                glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, Nx, Ny, fmt, type, f->texels);
+                glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, f->w, f->h, fmt, type, f->texels);
 				disps[i] = f->displacement;
+				setTexCoordsForFrame(i, f);
                 delete f;
                 glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
                 glPopAttrib();
@@ -685,34 +684,46 @@ void CheckerFlicker::genGaussColors()
 }
 
 
-Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
+/// NB: reason texels_x and texels_y params are passed in (rather than read from Nx and Ny) is that this genFrame function is reentrant and Nx and Ny are shared among threads
+Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec, SFMT_Generator & sfmt_local)
 {
     static QMutex rngmut;
     const double t0 = getTime();
 
-    Frame *f = new Frame(Nx, Ny, 4);
+	sharedParamsRWLock.lockForRead();
+	const int texels_x = Nx, texels_y = Ny, lmargin_local = lmargin, rmargin_local = rmargin, tmargin_local = tmargin, bmargin_local = bmargin, w_local = w, h_local = h;
+	
+	const unsigned rand_displacement_x_local = rand_displacement_x, 
+	rand_displacement_y_local = rand_displacement_y;
+	const int fps_mode_local = (int)fps_mode;
+	sharedParamsRWLock.unlock();
+
+	const size_t entropy_size = texels_x*texels_y*(fps_mode_local+1)+16;
+	if (entvec.capacity() < entropy_size)
+		entvec.reserve(entropy_size);
+	
+    Frame *f = new Frame(texels_x, texels_y, 4, w_local, h_local, lmargin_local, rmargin_local, bmargin_local, tmargin_local);
     __m128i *quads = (__m128i *)f->texels; (void)quads;
     unsigned *dwords = (unsigned *)f->texels;
     bool dolocking = fcs.size() > 1;
 
+	
 	// Random Frame displacement -- NEW!  Added by Calin 8/04/2009
-	if (rand_displacement_x || rand_displacement_y) {
+	if (rand_displacement_x_local || rand_displacement_y_local) {
 		if (dolocking) rngmut.lock();
-		if (rand_displacement_x) f->displacement.x = ((ran1Gen.next()*2.0)-1.0)*int(rand_displacement_x);
-		if (rand_displacement_y) f->displacement.y = ((ran1Gen.next()*2.0)-1.0)*int(rand_displacement_y);
+		if (rand_displacement_x_local) f->displacement.x = ((ran1Gen.next()*2.0)-1.0)*int(rand_displacement_x_local);
+		if (rand_displacement_y_local) f->displacement.y = ((ran1Gen.next()*2.0)-1.0)*int(rand_displacement_y_local);
 		if (dolocking) rngmut.unlock();
 	}
 
     if (rand_gen == Binary || rand_gen == Uniform) {
-        if (dolocking) rngmut.lock();
-        sfmt.gen_rand_array((__m128i *)f->texels, MAX(f->nqqw, unsigned(SFMT_Generator::N)));
-        if (dolocking) rngmut.unlock();
-        if (fps_mode == FPS_Dual) { // for this mode we need to eliminate the RED channels (and alpha can be set to whatever), so we use an SSE2 instruction
+        sfmt_local.gen_rand_array((__m128i *)f->texels, MAX(f->nqqw, unsigned(SFMT_Generator::N)));
+        if (fps_mode_local == FPS_Dual) { // for this mode we need to eliminate the RED channels (and alpha can be set to whatever), so we use an SSE2 instruction
 			// need to 0 out every other byte
             const __m128i mask = _mm_set_epi32(0, 0, 0, 0);
 			for (unsigned long i = 0; i < f->nqqw; ++i) 
                 quads[i] = _mm_unpacklo_epi8(quads[i], mask); // this makes quads[i] be b0,0,b1,0,b2,0..b7,0  
-		} else if (fps_mode == FPS_Single) { 
+		} else if (fps_mode_local == FPS_Single) { 
 			// make all 3 channels have the same level by making each 8-bit value in every dword of the qqwords be the same <-- confusing wording
 			int ex[4];
 			for (unsigned long i = 0; i < f->nqqw; ++i) {
@@ -738,22 +749,19 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
         }
 		*/
     } else { // Gaussian
-#if 1
-		const unsigned entr_arr_sz = f->nqqw*4*(((int)fps_mode)+1);
+		const unsigned entr_arr_sz = f->nqqw*4*(((int)fps_mode_local)+1);
         entvec.resize(MAX(entr_arr_sz+8, (SFMT_Generator::N+3)*4));
         const unsigned ndwords = f->nqqw*4;
         unsigned * entr = reinterpret_cast<unsigned *>((reinterpret_cast<unsigned long>(&entvec[0])+0x10UL)&~0xfUL); // align to 16-byte boundary
-        if (dolocking) rngmut.lock();
-        sfmt.gen_rand_array((__m128i *)entr, MAX(entr_arr_sz/4, unsigned(SFMT_Generator::N)));
-        if (dolocking) rngmut.unlock();
+        sfmt_local.gen_rand_array((__m128i *)entr, MAX(entr_arr_sz/4, unsigned(SFMT_Generator::N)));
         
         // f->seed = whatever here..
-        if (fps_mode == FPS_Triple) {
+        if (fps_mode_local == FPS_Triple) {
             for (unsigned i = 0; i < ndwords; ++i) {
                 dwords[i] = getColor(entr[0])|getColor(entr[1])<<8|getColor(entr[2])<<16;
                 entr+=3;
             }
-		} else if (fps_mode == FPS_Dual) {
+		} else if (fps_mode_local == FPS_Dual) {
             for (unsigned i = 0; i < ndwords; ++i) {
                 dwords[i] = getColor(entr[0])|/*0|*/getColor(entr[1])<<16;
                 entr+=2;
@@ -764,27 +772,6 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec)
                 dwords[i] = cc|cc<<8|cc<<16|cc<<24;
             }
         }
-#endif
-#if 0 /* Uses Ziggurat Gaussians.. still not as fast as above method */
-#       define CLR static_cast<unsigned char>((ZigguratGauss::generate(gen_rand32, contrast) + bgcolor)*(unsigned char)0xff)
-        unsigned ndwords = f->nqqw*4;
-        const double factor = contrast*bgcolor;
-        if (dolocking) rngmut.lock();
-        // f->seed = whatever here..
-        if (quad_fps) {
-            for (unsigned i = 0; i < ndwords; ++i) {
-                dwords[i] = CLR|CLR<<8|CLR<<16;
-            }
-
-        } else {
-            for (unsigned i = 0; i < ndwords; ++i) {
-                unsigned char cc = CLR;
-                dwords[i] = cc|cc<<8|cc<<16|cc<<24;
-            }
-        }
-        if (dolocking) rngmut.unlock();
-#       undef CLR
-#endif
     }
 	const double fgen_secs = getTime()-t0; 
     lastFramegen = static_cast<int>(fgen_secs*1000.);
@@ -815,18 +802,11 @@ void CheckerFlicker::drawFrame()
 		// render our vertex and coord buffers which don't change.. just the texture changes
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-		glVertexPointer(2, GL_INT, 0, vertices);
-		glTexCoordPointer(2, GL_INT, 0, texCoords);
+		glVertexPointer(2, GL_INT, 0, vertices[num].i);
+		glTexCoordPointer(2, GL_INT, 0, texCoords[num].i);
 		glDrawArrays(GL_QUADS, 0, 4);
 		glDisableClientState(GL_VERTEX_ARRAY);
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-/*        glBegin(GL_QUADS);
-          glTexCoord2i(0, 0);   glVertex2i(lmargin, bmargin);
-          glTexCoord2i(Nx, 0);   glVertex2i(w-rmargin, bmargin);
-          glTexCoord2i(Nx, Ny);   glVertex2i(w-rmargin, h-tmargin);
-          glTexCoord2i(0, Ny);   glVertex2i(lmargin, h-tmargin);
-        glEnd();
- */
         glTranslatef(-disps[num].x, -disps[num].y, 0); // translate back
 
 		glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);	
@@ -840,6 +820,27 @@ void CheckerFlicker::setNums()
     for (unsigned i = 0; i < fbo; ++i) nums.push_back(i);
 }
 
+void CheckerFlicker::setTexCoordsForFrame(unsigned idx, Frame *f)
+{
+	// populate our tex coord buffer and vertex buffer basedo n Nx, Ny, lmargin, rmargin, etc
+	GLint texCoordsTmp[] = {
+		0,0,
+		f->w,0,
+		f->w,f->h,
+		0,f->h
+	};
+	
+	GLint verticesTmp[] = {
+			f->lmargin, f->bmargin,
+			f->w_total-f->rmargin, f->bmargin,
+			f->w_total-f->rmargin, f->h_total-f->tmargin,
+			f->lmargin, f->h_total-f->tmargin
+	};
+	
+	memcpy(&texCoords[idx], texCoordsTmp, sizeof(texCoordsTmp));
+	memcpy(&vertices[idx], verticesTmp, sizeof(verticesTmp));
+}
+
 void CheckerFlicker::afterVSync(bool isSimulated)
 {
     if (!initted) return;
@@ -848,13 +849,14 @@ void CheckerFlicker::afterVSync(bool isSimulated)
     if (!fcs.size()) { 
         // single processor mode..
         static std::vector<unsigned> hack_entr_vec;
-        Frame *f = genFrame(hack_entr_vec);
+        Frame *f = genFrame(hack_entr_vec, sfmt);
         ++n;
 		unsigned idx = newFrameNum();
         glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[idx]);
         // XXX THIS WAS SLOW WTF glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, Nx, Ny, fmt, type, f->texels);
-		glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, ifmt, Nx, Ny, 0, fmt, type, f->texels);
+		glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, ifmt, f->w, f->h, 0, fmt, type, f->texels);
 		disps[idx] = f->displacement; // save displacement as well
+		setTexCoordsForFrame(idx, f);
         glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
         delete f;        
         return;
@@ -890,9 +892,10 @@ void CheckerFlicker::afterVSync(bool isSimulated)
 			//Debug() << "Texidx: " << idx << " framenum " << frameNum;
 			//const double t0si = getTime();
             //  XXX THIS WAS SLOW WTF! XXX glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, Nx, Ny, fmt, type, f->texels);
-			glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, ifmt, Nx, Ny, 0, fmt, type, f->texels);
+			glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, ifmt, f->w, f->h, 0, fmt, type, f->texels);
 			//qDebug("glTexSubImage2D took: %g secs", getTime()-t0si); /// XXX
 			disps[idx] = f->displacement;
+			setTexCoordsForFrame(idx, f);
             //  XXX THIS WAS SLOW WTF! XXX glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
             delete f;
             ++n;
@@ -950,6 +953,8 @@ void CheckerFlicker::afterVSync(bool isSimulated)
 FrameCreator::FrameCreator(CheckerFlicker & cf)
     : QThread(&cf), cf(cf), stop(false)
 {
+	sfmt.seed(++cf.currentSFMTSeed);
+	sfmt.gen_rand_all();
 }
 
 FrameCreator::~FrameCreator()
@@ -967,8 +972,7 @@ FrameCreator::~FrameCreator()
 void FrameCreator::run()
 {
     std::vector<unsigned> entropyMem; 
-	entropyMem.reserve(cf.Nx*cf.Ny*(((int)cf.fps_mode)+1)+16);
-
+	
 	unsigned nProcs;
 	if ((nProcs=getNProcessors()) > 2) {
 		const unsigned mask = (0x1<<(nProcs-3))<<(cf.fcs.size()%nProcs);
@@ -979,7 +983,8 @@ void FrameCreator::run()
     while (!stop) {
         createMore.acquire();
         if (stop) return;
-        Frame *f = cf.genFrame(entropyMem);
+		
+        Frame *f = cf.genFrame(entropyMem, sfmt);
         mut.lock();
         frames.push_back(f);
         mut.unlock();

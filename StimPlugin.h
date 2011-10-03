@@ -352,6 +352,10 @@ protected:
 	/// does nothing.
 	virtual bool applyNewParamsAtRuntime();
 
+	/// Called from GLWindow.cpp to apply new parameters at runtime to the StimPlugin base (lmargin, tmargin, etc)
+	/// So far only CheckerFlicker reimplements this to add locking here..
+	virtual bool applyNewParamsAtRuntime_Base();
+
 	/// The stim params, as they came in from either config file or matlab.  getParam() references these.
 	StimParams params, previous_params;
 	
@@ -380,10 +384,7 @@ private:
 	/// static helper function for getFrameDump(). Low-level function to just dump the backbuffer to a bytearray given
 	/// an origin and a cropregion.
 	static bool readBackBuffer(QByteArray & dest, const Vec2i & cropOrigin, const Vec2i & cropRegionSize, GLenum datatype);
-	
-	/// Called from GLWindow.cpp to apply new parameters at runtime to the StimPlugin base (lmargin, tmargin, etc)
-	bool applyNewParamsAtRuntime_Base();
-	
+		
 	/// Reads params, does some setup from them.  Called from start() and applyNewParamsAtRuntime_Base()
 	bool initFromParams();
 

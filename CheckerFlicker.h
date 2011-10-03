@@ -3,6 +3,7 @@
 #include "StimPlugin.h"
 #include <deque>
 #include <vector>
+#include <QReadWriteLock>
 
 class GLWindow;
 struct Frame;
@@ -11,6 +12,11 @@ class FrameCreator;
 enum Rand_Gen {
 	Uniform = 0, Gauss, Binary, N_Rand_Gen
 };
+
+struct IntArray8 {
+	GLint i[8];
+};
+
 
 // SFMT based random number generator	
 #include "sfmt.hpp"
@@ -43,7 +49,8 @@ class CheckerFlicker : public StimPlugin
     float contrast;	 ///< defined as Michelsen contrast for black/white mode
     // and as std/mean for gaussian mode
     int w, h;           ///< window width/height cached here
-    int originalSeed;	///< seed for random number generator at initialization
+    int originalSeed, currentSFMTSeed;	///< seed for random number generator at initialization
+	QReadWriteLock sharedParamsRWLock; ///< used to protect Nx, Ny, and other that framecreator thread *reads* and main thread may write to on realtime param update
     int Nx;		///< number of stixels in x direction
     int Ny;		///< number of stixels in y direction
     int xpixels, ypixels;
@@ -59,7 +66,7 @@ class CheckerFlicker : public StimPlugin
 	Vec2i *disps; ///< frame displacements per fbo object
 
 	/// for rendering -- the vertex and texture coord buffers which are just the corners of a quad covering the checker area
-	GLint texCoords[8], vertices[8];
+	IntArray8 *texCoords, *vertices;
 	
     friend class GLWindow;
     unsigned gaussColorMask; ///< this will always be a power of 2 minus 1
@@ -73,6 +80,7 @@ class CheckerFlicker : public StimPlugin
     volatile int lastFramegen;
 	volatile unsigned frameGenAvg_usec;
 	unsigned origThreadAffinityMask;
+	double t0reapply;
 
     inline void putNum() { oldnums.push_back(num);  }
     inline unsigned takeNum() { 
@@ -101,17 +109,18 @@ class CheckerFlicker : public StimPlugin
     }
     void setNums();
 
-    Frame *genFrame(std::vector<unsigned> & entropy_buf);
+    Frame *genFrame(std::vector<unsigned> & entropy_buf, SFMT_Generator & sfmt_generator_to_use);
 
     bool initPrerender();  ///< init for 'prerender to sysram'
     bool initFBO(); ///< init for 'prerender to FBO'
     void cleanupPrerender(); ///< cleanup for prerender frames mode
     void cleanupFBO(); ///< cleanup for FBO mode
 	Rand_Gen parseRandGen(const QString &) const;
-	bool initFromParams(); ///< reusable init code for both real init and realtime apply params init
+	bool initFromParams(bool runtimeReapply = false); ///< reusable init code for both real init and realtime apply params init
 	void initFromParamsNonCritical(); ///< reusable init code for both real init and realtime apply params init -- the init done here is 'non-critical' and can REALLY be done in realtime (no destruction of expensive stuff required)
 	bool checkForCriticalParamChanges(); ///< called by applyNewParamsAtRuntime() to see if we need to do a full-reinit
-	void doPostInit(bool resetFrameNume = true); ///< called by init() and applyNewParamsAtRuntime() after full re-init
+	void doPostInit(); ///< called by init() after full re-init
+	void setTexCoordsForFrame(unsigned idx, Frame *f); ///< saves the texture coordinates neeed for this frame to texCoords[idx] and vertices[idx]
 protected:
     CheckerFlicker(); ///< can only be constructed by our friend class
     ~CheckerFlicker();
@@ -125,6 +134,7 @@ protected:
     void cleanup(); 
     void save();
 	/* virtual */ bool applyNewParamsAtRuntime(); ///< reimplemented from superclass -- reapplies new params at runtime and reinits state/frame creators if need be
+	/* virtual */ bool applyNewParamsAtRuntime_Base(); ///< reimplemented from superclass
 };
 
 
