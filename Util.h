@@ -246,6 +246,20 @@ struct Vec3T {
 		return (*this) - (n * ( 2.0 * dot(n) ));
 	}
 };
+	
+template <typename T=double>
+struct Vec4T 
+{
+	union { 
+		struct { T x, y, z, w; };		
+		struct { T r, g, b, a; };		
+		struct { T v1, v2, v3, v4; };
+	};
+	Vec4T(T v1 = 0, T v2 = 0, T v3 = 0, T v4 = 0) : v1(v1), v2(v2), v3(v3), v4(v4) {}
+	T & operator[](int i) { if (i == 0) return x; else if (i==1) return y; else if (i == 2) return z; return w; }
+	const T & operator[](int i) const { if (i == 0) return x; else if (i==1) return y; else if (i == 2) return z; return w; }
+};
+	
 typedef Vec2T<double> Vec2d;
 typedef Vec2T<float> Vec2f;
 typedef Vec2T<int> Vec2i;
@@ -257,6 +271,8 @@ extern const Vec2i Vec2iZero; // default 0 vec -- useful as a default argument t
 extern const Vec2i Vec2iUnit; // unit vector, that is, (1,1) -- usefule as a default argument to functions
 
 typedef Vec3T<double> Vec3;
+typedef Vec4T<double> Vec4;
+typedef Vec4T<int> Vec4i;
 
 extern const Vec3 Vec3Zero; // default 0 vec -- useful as a default argument to functions
 extern const Vec3 Vec3Unit; // default unit vec -- useful as a default argument to functions

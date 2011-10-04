@@ -514,12 +514,19 @@ bool StimPlugin::readBackBuffer(QByteArray & dest, const Vec2i & o, const Vec2i 
 	return true;
 }
 
-void StimPlugin::renderFrame() { 
-	// unconditionally setup the clear color here
+void StimPlugin::setBGColor() const
+{
 	switch(fps_mode) {
 		case FPS_Dual: glClearColor(0.f, bgcolor, bgcolor, 1.0); break; // dual mode has blank RED channel (RED channel is first frame)
 		default: glClearColor(bgcolor, bgcolor, bgcolor, 1.0); break;
-	}	
+	}		
+}
+
+void StimPlugin::renderFrame() { 
+	// unconditionally setup the clear color here
+	setBGColor();
+	if (!pluginDoesOwnClearing)
+		glClear( GL_COLOR_BUFFER_BIT );
 	glEnable(GL_SCISSOR_TEST);
 	drawFrame(); 
 	glDisable(GL_SCISSOR_TEST);

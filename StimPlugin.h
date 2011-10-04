@@ -223,6 +223,9 @@ protected:
 	/// Convenience method that just calls drawFrame() and drawFTBox() for you, in that order
 	void renderFrame();
 
+	/// Just sets up the clearcolor based on bgcolor and fps_mode
+	void setBGColor() const;
+
     /// \brief Called immediately after a vsync (if not paused).  
     ///
     /// Reimplement this in your plugin to do some work  after the vsync, 
