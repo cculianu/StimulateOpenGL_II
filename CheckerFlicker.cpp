@@ -303,13 +303,17 @@ Rand_Gen CheckerFlicker::parseRandGen(const QString & rgen) const
 	return ret;
 }
 
+
 bool CheckerFlicker::initFromParams(bool runtimeReapply)
 {
     glGetError(); // clear error flag
 		
 	w = width(), h = height();
 
+	if (!getParam("rand_displacement_x", rand_displacement_x)) rand_displacement_x = 0;
+	if (!getParam("rand_displacement_y", rand_displacement_y)) rand_displacement_y = 0;
 	if (!getParam("verboseDebug", verboseDebug)) verboseDebug = false;
+	
 	QString tmp;
 	if ((getParam("blackwhite", tmp) && (tmp="blackwhite").length()) || (getParam("meanintensity", tmp) && (tmp="meanintensity").length())) {
 		// reject deprecated params!
@@ -325,7 +329,6 @@ bool CheckerFlicker::initFromParams(bool runtimeReapply)
 	if( !getParam("rand_gen", rgen) ) {
 		rgen = "uniform";
 		Log() << "rand_gen parameter not specified, defaulting to `" << rgen << "'";
-		params["rand_gen"] = rgen;
 	}
 	rand_gen = parseRandGen(rgen);
 	
@@ -357,8 +360,6 @@ bool CheckerFlicker::initFromParams(bool runtimeReapply)
 	if( stixelHeight < 0 ) stixelHeight *= -1;
 	if( stixelWidth < 1 ) stixelWidth = 1;
 	if( stixelHeight < 1 ) stixelHeight = 1;
-
-	initFromParamsNonCritical();
 	
 	if (rand_displacement_x && (!lmargin && !rmargin)) {
 		Warning() << "rand_displacement_x set to: " << rand_displacement_x << " -- Recommend setting lmargin and rmargin to " << -int(rand_displacement_x);
@@ -427,16 +428,22 @@ bool CheckerFlicker::initFromParams(bool runtimeReapply)
 	if (nFrames > 0 && nLoops > 0 && delay <= 0) {
 		Warning() << "nLoops=" << nLoops << ", however delay=0.   It is strongly recommended that delay be nonzero (and at least enough to cover .6 seconds) if using plugin looping with checkerflicker.  See the plugin parameter documentation for a brief exposition on this topic.";
 	}
-	
+			
+	// write back to params, so that realtime param updates sorta works better? NB: if I do this it acts weird since params that didn't change at all .. or maybe not. dunno. TODO: fix
+	/*params["rand_gen"] = rgen;
+	params["contrast"] = QString::number(contrast);
+	params["bgcolor"] = QString::number(bgcolor);
+	params["stixelwidth"] = QString::number(stixelWidth);
+	params["stixelheight"] = QString::number(stixelHeight);
+	params["fbo"] = QString::number(fbo);
+	params["colortable"] = QString::number(colortable);
+	params["cores"] = QString::number(nCoresMax);
+	params["rand_displacement_x"] = QString::number(rand_displacement_x);
+	params["rand_displacement_y"] = QString::number(rand_displacement_y);
+	*/
 	return true;
 }
 
-void CheckerFlicker::initFromParamsNonCritical()
-{
-	if (!getParam("rand_displacement_x", rand_displacement_x)) rand_displacement_x = 0;
-	if (!getParam("rand_displacement_y", rand_displacement_y)) rand_displacement_y = 0;
-	if (!getParam("verboseDebug", verboseDebug)) verboseDebug = false;
-}
 
 void CheckerFlicker::doPostInit() 
 {
@@ -491,19 +498,11 @@ bool CheckerFlicker::checkForCriticalParamChanges()
 #define ParamChanged(x) m.contains(x)
 	return
 	w != int(width()) || h != int(height())
-	//		    || ParamChanged("stixelwidth")
-	//			|| ParamChanged("stixelheight")
-	//|| ParamChanged("contrast")
 	|| ParamChanged("fbo")
 	|| ParamChanged("prerender")
 	|| ParamChanged("cores")
 	|| ParamChanged("colortable")
-	//|| ParamChanged("lmargin")
-	//|| ParamChanged("rmargin")
-	//|| ParamChanged("bmargin")
-	//|| ParamChanged("tmargin")
 	|| ParamChanged("fps_mode")
-	|| ParamChanged("rand_gen")
 	;
 #undef ParamChanged
 }
@@ -520,7 +519,7 @@ bool CheckerFlicker::applyNewParamsAtRuntime_Base()
 bool CheckerFlicker::applyNewParamsAtRuntime()
 {
 	if (checkForCriticalParamChanges()) {
-		Error() << "Cannot change param width, height, fbo, prerender, cores, colortable, or rand_gen at runtime for CheckerFlicker!";
+		Error() << "Cannot change param width, height, fbo, prerender, cores, or colortable at runtime for CheckerFlicker!";
 		sharedParamsRWLock.unlock();
 		return false;
 	}
@@ -721,6 +720,7 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec, SFMT_Generator &
 	sharedParamsRWLock.lockForRead();
 	const float bgcolor_local = bgcolor;
 	const float contrast_local = contrast;
+	const Rand_Gen rand_gen_local = rand_gen; 
 	const int texels_x = Nx, texels_y = Ny, lmargin_local = lmargin, rmargin_local = rmargin, tmargin_local = tmargin, bmargin_local = bmargin, w_local = w, h_local = h;
 	
 	const unsigned rand_displacement_x_local = rand_displacement_x, 
@@ -756,7 +756,7 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec, SFMT_Generator &
 	
 	f->setupTexCoords();
 
-    if (rand_gen == Binary || rand_gen == Uniform) {
+    if (rand_gen_local == Binary || rand_gen_local == Uniform) {
         sfmt_local.gen_rand_array((__m128i *)f->texels, MAX(f->nqqw, unsigned(SFMT_Generator::N)));
         if (fps_mode_local == FPS_Dual) { // for this mode we need to eliminate the RED channels (and alpha can be set to whatever), so we use an SSE2 instruction
 			// need to 0 out every other byte
@@ -778,7 +778,7 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec, SFMT_Generator &
                 quads[i] = _mm_set_epi32(ex[0], ex[1], ex[2], ex[3]);
 			}
 		}
-        if (rand_gen == Binary) { // map all 8-bit values to either 0x00 or 0xff using an SSE2 instruction
+        if (rand_gen_local == Binary) { // map all 8-bit values to either 0x00 or 0xff using an SSE2 instruction
             const __m128i mask = _mm_set_epi32(0, 0, 0, 0);
             for (unsigned long i = 0; i < f->nqqw; ++i)
                 quads[i] = _mm_cmpgt_epi8(mask, quads[i]);

@@ -155,7 +155,6 @@ class CheckerFlicker : public StimPlugin
     void cleanupFBO(); ///< cleanup for FBO mode
 	Rand_Gen parseRandGen(const QString &) const;
 	bool initFromParams(bool runtimeReapply = false); ///< reusable init code for both real init and realtime apply params init
-	void initFromParamsNonCritical(); ///< reusable init code for both real init and realtime apply params init -- the init done here is 'non-critical' and can REALLY be done in realtime (no destruction of expensive stuff required)
 	bool checkForCriticalParamChanges(); ///< called by applyNewParamsAtRuntime() to see if we need to do a full-reinit
 	void doPostInit(); ///< called by init() after full re-init
 protected:
