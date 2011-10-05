@@ -371,6 +371,35 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
         if ( (p = stimApp()->glWin()->pluginFind(pluginName)) ) {
             return p->getParams().toString();
         }
+    } else if (cmd == "GETPARAMHISTORY" && toks.size()) {
+        QString pluginName = toks.join(" ");
+        StimPlugin *p;
+        if ( (p = stimApp()->glWin()->pluginFind(pluginName)) ) {
+            return p->paramHistoryToString() + "\n";
+        }
+    } else if (cmd == "SETPARAMHISTORY" && toks.size()) {
+        QString pluginName = toks.join(" ");
+        StimPlugin *p = stimApp()->glWin()->pluginFind(pluginName);
+		if (!p) {
+			Error() << "SETPARAMHISTORY issued on a non-existant plugin";
+		} else if (stimApp()->glWin()->runningPlugin() == p) {
+			Error() << "SETPARAMHISTORY cannot be issued on a plugin that is running";
+		} else {
+            Debug() << "Sending: READY";
+            sock.write("READY\n");
+            QString paramstr ("");
+            QTextStream paramts(&paramstr, QIODevice::WriteOnly/*|QIODevice::Text*/);
+            QString line;
+            while ( sock.canReadLine() || sock.waitForReadyRead() ) {
+                line = sock.readLine().trimmed();
+                if (!line.length()) break;
+                Debug() << "Got Line: " << line;
+                paramts << line << "\n";
+            }
+            paramts.flush();
+			p->setParamHistoryFromString(paramstr);
+            return "";
+		}
     } else if (cmd == "SETPARAMS" && toks.size()) {
         QString pluginName = toks.join(" ");
         StimPlugin *p;
@@ -389,10 +418,8 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
             paramts.flush();
             p->setParams(paramstr);
             return "";
-        } else if (p && stimApp()->glWin()->runningPlugin() == p) {
-            Error() << "SETPARAMS cannot be called on a plugin that is running";
         } else if (!p) {
-            Error() << "SETPARAMS called on a non-existant plugin";
+            Error() << "SETPARAMS issued on a non-existant plugin";
         }
     } else if (cmd == "RUNNING") {
         StimPlugin *p = stimApp()->glWin()->runningPlugin();

@@ -423,9 +423,13 @@ void GLWindow::paintGL()
 		if (running->gotNewParams) {
 			if ( !running->applyNewParamsAtRuntime_Base() || !running->applyNewParamsAtRuntime() ) {
 				// restore previous params...
+				running->mut.lock();
 				running->params = running->previous_params;
+				running->previous_params = running->previous_previous_params;
 				running->applyNewParamsAtRuntime_Base() && running->applyNewParamsAtRuntime();
-			}
+				running->mut.unlock();
+			} else
+				running->newParamsAccepted();
 			running->gotNewParams = false;
 		}
     }

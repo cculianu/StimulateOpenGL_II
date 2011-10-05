@@ -34,6 +34,8 @@
 #include <QList>
 #include <QPair>
 #include <QMap>
+#include <QStack>
+#include <QQueue>
 #include "FrameVariables.h"
 
 enum FPS_Mode {
@@ -92,7 +94,7 @@ public:
     virtual QString description() const { return "A Stim Plugin."; }
 
     /// Set the plugin's configuration parameters.  ConnectonThread calls this method for example when the client wants to define experiment parameters for a plugin.
-    void setParams(const StimParams & p) { QMutexLocker l(&mut); previous_params = params; params = p; gotNewParams = true; }
+    void setParams(const StimParams & p) { QMutexLocker l(&mut); previous_previous_params = previous_params; previous_params = params; params = p; gotNewParams = true; }
     /// We return an implicitly shared copy of the parameters.  Due to multithreading concerns, implicit sharing is a good thing!
     StimParams getParams() const { QMutexLocker l(&mut); return params; }
 
@@ -177,6 +179,29 @@ public:
 
 	virtual int currentRSeed() const { return ran1Gen.currentSeed(); }
 
+	typedef QPair<QString, QString> OldNewPair; ///< Used in ChangedParamMap.
+	typedef QMap<QString, OldNewPair > ChangedParamMap; ///< note that the QPair's .first is the old param and .second is the new param
+
+	/// Encapsulates 1 realtime param update in the history
+	struct ParamHistoryEntry
+	{
+		unsigned frameNum; ///< the frameNum that is the first frame that is rendered using these params
+		StimParams params;
+		ChangedParamMap changedParams;
+		QString toString() const;
+		bool fromString(const QString &);
+	};
+	
+	/// Returns the parameter history for the plugin, represented as a string.  Calls the static method by the same name, after acquiring the mutex.
+	QString paramHistoryToString() const; 
+	/// Returns the parameter history, represented as a string
+	static QString paramHistoryToString(const QVector<ParamHistoryEntry> & history);
+	/// Inverse of paramHistoryToString
+	static bool parseParamHistoryString(QVector<ParamHistoryEntry> & history_out, const QString & str);
+
+	/// TODO: fix/implement
+	void setParamHistoryFromString(const QString &s);
+
 signals:
     void started(); ///< emitted when plugin starts
     void finished(); ///< emitted when plugin finishes naturally
@@ -224,7 +249,7 @@ protected:
 	void renderFrame();
 
 	/// Just sets up the clearcolor based on bgcolor and fps_mode
-	void setBGColor() const;
+	void useBGColor() const;
 
     /// \brief Called immediately after a vsync (if not paused).  
     ///
@@ -268,6 +293,7 @@ protected:
 	
 	int b_index, r_index, g_index; ///< index of brg values in above color_order param.  
 
+public:
 	enum FTState {
 		// NB: if changing order of these or number of these please update the 
 		//     'ftColorParamNames' local variable in the StimPlugin::start() 
@@ -279,14 +305,15 @@ protected:
 		FT_End,
 		N_FTStates
 	};	
-
+protected:
+	
 	Vec3 ftStateColors[N_FTStates];
 	FTState currentFTState;
 	bool ftAssertions[N_FTStates]; ///< child plugins assert these flags for a particular frame to override default off/on behavior. These flags only last for 1 frame.
 	int ftChangeEvery; ///< if > 0, auto-assert FT_Change when (frameNum % ftChangeEvery) == 0.  0 means auto-computer (only movingobjects support auto-compute) and <0 means off
 	bool softCleanup; ///< flag used by some plugins internally when they are being restarted. normally always false
 	bool dontCloseFVarFileAcrossLoops; ///< defaults to false -- if true, keep the same frame var file open across loop iterations. MovingObjects sets this to true iff rndtrial=1
-	bool gotNewParams; ///< flag set when new params arrive from ConnectionThread.  This mechanism is used to signal to plugin in realtime that new params have arrived, as its running.  Plugin's drawFrame code is expected to clear this after it accepts/uses the new params.
+	volatile bool gotNewParams; ///< flag set when new params arrive from ConnectionThread.  This mechanism is used to signal to plugin in realtime that new params have arrived, as its running.  Plugin's drawFrame code is expected to clear this after it accepts/uses the new params.
 	bool pluginDoesOwnClearing; ///< set this to true if you don't want calling GLWindow.cpp code to call glClear() for you before a framedraw.  Usually false, except MovingObejcts sets this to true
 	
 	///< margins, used for scissor testing
@@ -360,10 +387,8 @@ protected:
 	virtual bool applyNewParamsAtRuntime_Base();
 
 	/// The stim params, as they came in from either config file or matlab.  getParam() references these.
-	StimParams params, previous_params;
+	StimParams params, previous_params, previous_previous_params;
 	
-	typedef QPair<QString, QString> OldNewPair; ///< Used in ChangedParamMap.
-	typedef QMap<QString, OldNewPair > ChangedParamMap; ///< note that the QPair's .first is the old param and .second is the new param
 	/// Do a diff of params and previous_params and return a map of all the params that changed (note a newly-missing param or a param in new but not in old also is considered to have 'changed')
 	ChangedParamMap paramsThatChanged() const;	
 	
@@ -371,7 +396,19 @@ protected:
 	enum ParamType { PT_Other = 0, PT_String, PT_Double, PT_DoubleVector, PT_Int };
 	typedef QMap<QString, ParamType> ParamTypeMap;
 	mutable ParamTypeMap paramTypes;
+		
+	/// The parameter history.   Top of stack is most recent params.  Always is at least of size 1 (initial params in first position)
+	QStack<ParamHistoryEntry> paramHistory;
+	/// When playing back a param history -- this is the queue of params to use.
+	QQueue<ParamHistoryEntry> pendingParamHistory;
 
+	/// Pushes the current params and the computed changedParams to the history top
+	void paramHistoryPush(bool doLocking = true);
+	/// Pops the top of the param history (undoes a previous push)
+	void paramHistoryPop();	
+	/// Called by GLWindow.cpp when new parameters are accepted.  Default implementation pushes a new history entry to the parameter history.
+	virtual void newParamsAccepted();
+	
 private:
     void computeFPS();
 

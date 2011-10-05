@@ -160,6 +160,7 @@ void Frame::init()
 {
     mem = 0, texels=0, tx_size=0, nqqw=0, ifmt=0, fmt=0, type=0, w=0, h=0, 
 	width_pix=0, height_pix=0, lmargin=0, rmargin=0, bmargin=0, tmargin=0, bgcolor=0.;
+	param_serial = -1;
 }
 Frame::Frame()
 {
@@ -307,7 +308,12 @@ Rand_Gen CheckerFlicker::parseRandGen(const QString & rgen) const
 bool CheckerFlicker::initFromParams(bool runtimeReapply)
 {
     glGetError(); // clear error flag
-		
+	
+	if (!runtimeReapply) {
+		paramHistoryPushPendingFlag = false;
+		param_serial = 0;
+	}
+	
 	w = width(), h = height();
 
 	if (!getParam("rand_displacement_x", rand_displacement_x)) rand_displacement_x = 0;
@@ -429,6 +435,12 @@ bool CheckerFlicker::initFromParams(bool runtimeReapply)
 		Warning() << "nLoops=" << nLoops << ", however delay=0.   It is strongly recommended that delay be nonzero (and at least enough to cover .6 seconds) if using plugin looping with checkerflicker.  See the plugin parameter documentation for a brief exposition on this topic.";
 	}
 			
+	// save the frame track params to our alternate variables since we swap them out in drawFrame() with the variables that were in effect when a Frame was created.. so we need to store the real params here.
+	ftrack_params.xyw.v1 = ftrackbox_x;
+	ftrack_params.xyw.v2 = ftrackbox_y;
+	ftrack_params.xyw.v3 = ftrackbox_w;
+	memcpy(ftrack_params.colors, ftStateColors, sizeof(Vec3)*N_FTStates);	
+	
 	// write back to params, so that realtime param updates sorta works better? NB: if I do this it acts weird since params that didn't change at all .. or maybe not. dunno. TODO: fix
 	/*params["rand_gen"] = rgen;
 	params["contrast"] = QString::number(contrast);
@@ -444,6 +456,13 @@ bool CheckerFlicker::initFromParams(bool runtimeReapply)
 	return true;
 }
 
+void CheckerFlicker::useFTrackParams(const FTrack_Params & p)
+{
+	ftrackbox_x = p.xyw.v1;
+	ftrackbox_y = p.xyw.v2;
+	ftrackbox_w = p.xyw.v3;
+	memcpy(ftStateColors, p.colors, sizeof(Vec3)*N_FTStates);	
+}
 
 void CheckerFlicker::doPostInit() 
 {
@@ -518,12 +537,16 @@ bool CheckerFlicker::applyNewParamsAtRuntime_Base()
 
 bool CheckerFlicker::applyNewParamsAtRuntime()
 {
+	if (nCoresMax > 2) {
+		Error() << "UNSUPPORTED: Setting parameters at runtime when using more than 2 cores is not supported for CheckerFlicker! Sorry!";
+		return false;
+	}
 	if (checkForCriticalParamChanges()) {
-		Error() << "Cannot change param width, height, fbo, prerender, cores, or colortable at runtime for CheckerFlicker!";
+		Error() << "UNSUPPORTED: Cannot change param width, height, fbo, prerender, cores, or colortable at runtime for CheckerFlicker!";
 		sharedParamsRWLock.unlock();
 		return false;
 	}
-	
+
 	bool ret = initFromParams(true);
 	sharedParamsRWLock.unlock();
 	Debug() << "Reapply params took " << (1000.*(getTime()-t0reapply)) << " msec";
@@ -722,11 +745,13 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec, SFMT_Generator &
 	const float contrast_local = contrast;
 	const Rand_Gen rand_gen_local = rand_gen; 
 	const int texels_x = Nx, texels_y = Ny, lmargin_local = lmargin, rmargin_local = rmargin, tmargin_local = tmargin, bmargin_local = bmargin, w_local = w, h_local = h;
+	const int param_serial_local = param_serial;
 	
 	const unsigned rand_displacement_x_local = rand_displacement_x, 
 	rand_displacement_y_local = rand_displacement_y;
 	const int fps_mode_local = (int)fps_mode;
 	const bool useUnscaledColorTable = !eqf(contrast_local, origGaussContrast) || !eqf(bgcolor_local, origGaussBGColor);
+	const FTrack_Params ftrack_params_local = ftrack_params;
 	sharedParamsRWLock.unlock();
 
 	const size_t entropy_size = texels_x*texels_y*(fps_mode_local+1)+16;
@@ -741,6 +766,8 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec, SFMT_Generator &
 	f->bmargin = bmargin_local;
 	f->tmargin = tmargin_local;
 	f->bgcolor = bgcolor_local;
+	f->param_serial = param_serial_local;
+	f->ftrack_params = ftrack_params_local;
     __m128i *quads = (__m128i *)f->texels; (void)quads;
     unsigned *dwords = (unsigned *)f->texels;
     bool dolocking = fcs.size() > 1;
@@ -850,12 +877,25 @@ void CheckerFlicker::drawFrame()
         takeNum();
         putNum();
 	
+	
+		// push history if we are waiting a pending history push and the new serial arrived
+	    if (paramHistoryPushPendingFlag && frames[num].param_serial == param_serial) {
+			QMutexLocker l(&mut);
+			paramHistoryPush(false);
+			paramHistory.top().frameNum = frameNum;
+			paramHistoryPushPendingFlag = false;
+	    }
+	
+		// enable the ftrack box params that were in effect when this frame was generated
+		useFTrackParams(frames[num].ftrack_params);
+		// save the bgcolor
 		const float bgcolor_saved = bgcolor;
+		// swap it with the bgcolor that was in effect when the frame was generated
 		bgcolor = frames[num].bgcolor;
 		glDisable(GL_SCISSOR_TEST);
-		setBGColor();
-		bgcolor = bgcolor_saved;
+		useBGColor();
 		glClear( GL_COLOR_BUFFER_BIT );
+		bgcolor = bgcolor_saved;
 		glEnable(GL_SCISSOR_TEST);
 	
 		const int lm = frames[num].lmargin, rm = frames[num].rmargin, bm = frames[num].bmargin, tm = frames[num].tmargin;
@@ -1073,4 +1113,10 @@ void CheckerFlicker::save()
 unsigned CheckerFlicker::initDelay(void)
 {
 	return 500;
+}
+
+/// Called by GLWindow.cpp when new parameters are accepted.  Overrides StimPlugin parent and sets a flag.  The actual param history is pushed once the new frame hits the screen!
+void CheckerFlicker::newParamsAccepted() { 
+	paramHistoryPushPendingFlag = true; 
+	++param_serial; 
 }

@@ -47,4 +47,5 @@ public:
     bool fromFile(const QString & file);
 };
 
+
 #endif

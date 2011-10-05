@@ -13,7 +13,7 @@
 
 StimPlugin::StimPlugin(const QString &name)
     : QObject(StimApp::instance()->glWin()), parent(StimApp::instance()->glWin()), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), 
-	  softCleanup(false), dontCloseFVarFileAcrossLoops(false), gotNewParams(false), pluginDoesOwnClearing(false), lmargin(0), rmargin(0), bmargin(0), tmargin(0), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0)
+softCleanup(false), dontCloseFVarFileAcrossLoops(false), gotNewParams(false), pluginDoesOwnClearing(false), lmargin(0), rmargin(0), bmargin(0), tmargin(0), mut(QMutex::Recursive), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0)
 {
 	frameVars = 0;
     needNotifyStart = true;
@@ -50,6 +50,12 @@ void StimPlugin::stop(bool doSave, bool useGui, bool softStop)
 	QString devChan;
 	if (!softStop && getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {
 		DAQ::WriteDO(devChan, false);
+	}
+	
+	// clear the pending param history as we are *done*
+	if (!softStop) { 
+		QMutexLocker l(&mut);
+		pendingParamHistory.clear();
 	}
 	
 	softCleanup = softStop;
@@ -243,6 +249,12 @@ bool StimPlugin::start(bool startUnpaused)
     endtime = QDateTime(); // set to null datetime
     missedFrames.clear();
     missedFrameTimes.clear();
+	if (!softCleanup) {
+		QMutexLocker l(&mut);
+		paramHistory.clear();
+		previous_params.clear();
+		previous_previous_params.clear();
+	}
     if (!missedFrames.capacity()) missedFrames.reserve(4096);
     if (!missedFrameTimes.capacity()) missedFrameTimes.reserve(4096);	
     customStatusBarString = "";
@@ -302,6 +314,8 @@ void StimPlugin::initDone()
 			notifySpikeGLAboutParams();
     } else
 		needNotifyStart = true;
+	
+	paramHistoryPush(); // first entry in history is frameNum 0's initial params
 }
 
 unsigned StimPlugin::width() const
@@ -514,7 +528,7 @@ bool StimPlugin::readBackBuffer(QByteArray & dest, const Vec2i & o, const Vec2i 
 	return true;
 }
 
-void StimPlugin::setBGColor() const
+void StimPlugin::useBGColor() const
 {
 	switch(fps_mode) {
 		case FPS_Dual: glClearColor(0.f, bgcolor, bgcolor, 1.0); break; // dual mode has blank RED channel (RED channel is first frame)
@@ -524,7 +538,7 @@ void StimPlugin::setBGColor() const
 
 void StimPlugin::renderFrame() { 
 	// unconditionally setup the clear color here
-	setBGColor();
+	useBGColor();
 	if (!pluginDoesOwnClearing)
 		glClear( GL_COLOR_BUFFER_BIT );
 	glEnable(GL_SCISSOR_TEST);
@@ -814,8 +828,7 @@ void StimPlugin::normalizeParamVals(const QString & n, QString & v1, QString & v
 /// Do a diff of params and previous_params and return a map of all the params that changed (note a newly-missing param or a param in new but not in old also is considered to have 'changed')
 StimPlugin::ChangedParamMap StimPlugin::paramsThatChanged() const
 {
-	// TODO: params are case insensitive!! fix this!! :)
-	
+	QMutexLocker l(&mut);
 	ChangedParamMap ret;
 	StimParams::const_iterator it, it2;
 	// check for params in old but not in new, or params in old and in new but that aren't equal
@@ -857,3 +870,202 @@ StimPlugin::ChangedParamMap StimPlugin::paramsThatChanged() const
 	return ret;
 }
 
+void StimPlugin::paramHistoryPush(bool lock) 
+{ 
+	if (lock) mut.lock();
+	ParamHistoryEntry h; 
+	h.frameNum = getNextFrameNum();
+	h.params = params; 
+	h.changedParams = paramsThatChanged();
+	paramHistory.push(h);
+	if (lock) mut.unlock();
+}
+
+void StimPlugin::paramHistoryPop()
+{
+	QMutexLocker l(&mut);
+	paramHistory.pop();
+}
+
+/* virtual */
+void StimPlugin::newParamsAccepted()
+{
+	paramHistoryPush();
+}
+
+QString StimPlugin::ParamHistoryEntry::toString() const
+{
+	QString ret("");
+    QTextStream ts(&ret, QIODevice::WriteOnly|QIODevice::Append|QIODevice::Text);
+	ts << "frameNum " << frameNum << " {\n";
+	ts << "PARAMS {\n";
+	ts << params.toString();
+	ts << "}\n";
+	ts << "CHANGED {\n";
+	for (ChangedParamMap::const_iterator it = changedParams.begin(); it != changedParams.end(); ++it) {
+			ts << it.key() << " = " << it.value().first << " -> " << it.value().second << "\n";
+	}
+	ts << "}\n";
+	ts << "}\n";
+	ts.flush();
+    return ret;
+}
+
+
+bool StimPlugin::ParamHistoryEntry::fromString(const QString &s) 
+{
+	QString scpy(s);
+	QTextStream ts(&scpy,QIODevice::ReadOnly|QIODevice::Text);
+	QString dummy;
+	ts >> dummy;
+	if (dummy.toLower() == "framenum") {
+		int fnum = -1;
+		ts >> fnum;
+		if (fnum < 0) return false;
+		frameNum = fnum;
+	}
+	ts >> dummy;
+	if (dummy != "{") return false;
+	ts >> dummy;
+	if (dummy != "PARAMS") return false;
+	ts >> dummy;
+	if (dummy != "{") return false;
+	qint64 anchor1 = ts.pos();
+	while (!ts.atEnd()) {
+		ts >> dummy;
+		if (dummy == "}")  break;
+	}
+	if (dummy == "}") {
+		qint64 anchor2 = ts.pos()-1;
+		ts.seek(anchor1);
+		QString s = ts.read(anchor2-anchor1);
+		params.fromString(s);
+		ts.seek(anchor2+1);
+	} else
+		return false;
+	ts >> dummy;
+	if (dummy != "CHANGED") return false;
+	ts >> dummy;
+	if (dummy != "{") return false;
+	changedParams.clear();
+	while (!ts.atEnd()) {
+		QString s = ts.readLine();
+		QStringList nvp = s.split("=");
+		if (nvp.count() == 2) {
+			QString k = nvp.front().trimmed(), v = nvp.back().trimmed();
+			QStringList oldnew = v.split("->");
+			if (oldnew.count() == 2) {
+				QString o = oldnew.front().trimmed(), n = oldnew.back().trimmed();
+				Debug() << "Parsed changed: " << k << " = " << o << " -> " << n;
+				changedParams[k] = OldNewPair(o,n);
+			}
+		}
+		if (s.trimmed() == "}") break;
+	}
+	return true;
+}
+
+QString StimPlugin::paramHistoryToString(const QVector<ParamHistoryEntry> & h)
+{
+	QString ret("");
+    QTextStream ts(&ret, QIODevice::WriteOnly|QIODevice::Append|QIODevice::Text);	
+	for (int i = 0; i < h.size(); ++i) 
+		ts << h[i].toString();
+	ts.flush();
+	return ret;
+}
+
+QString StimPlugin::paramHistoryToString() const
+{
+	QMutexLocker l(&mut);
+	paramHistoryToString(paramHistory);
+	QString ret("");
+    QTextStream ts(&ret, QIODevice::WriteOnly|QIODevice::Append|QIODevice::Text);	
+	for (int i = 0; i < paramHistory.size(); ++i) 
+		ts << paramHistory[i].toString();
+	ts.flush();
+	
+/* TESTING/DEVELOPMENT DEBUG CODE
+	Debug() << "PARAM HISTORY STRING PARSED BACK TO SELF IS:";
+	QVector<ParamHistoryEntry> h;
+	if (parseParamHistoryString(h, ret)) {
+		for (int i = 0; i < h.size(); ++i) 
+			Debug() << h[i].toString();		
+	} else {
+		Debug() << "FAILED TO PARSE MY OWN STRING!";
+	}
+	//
+ */
+	
+	return ret;
+}
+
+// TODO: fix & implement fully
+void StimPlugin::setParamHistoryFromString(const QString &s)
+{
+    if (parent->runningPlugin() == this)  {
+		Error() << "Cannot set param history on a running plugin!";
+		return;
+	}
+	QStack<ParamHistoryEntry> h;
+	if (!parseParamHistoryString(h, s)) {
+		Error() << "Parse error: param history not applied.";
+	}
+	//Debug() << "Parsed param history, re-stringified it is:\n" << paramHistoryToString(h);
+	QMutexLocker l(&mut);
+	paramHistory = h;
+	pendingParamHistory.fromVector(h);
+}
+
+bool StimPlugin::parseParamHistoryString(QVector<ParamHistoryEntry> & h, const QString & s)
+{
+	h.clear();
+	QString scpy(s);
+	QTextStream ts(&scpy,QIODevice::ReadOnly|QIODevice::Text);
+	while (!ts.atEnd()) {
+		QString dummy;
+		qint64 anchor1 = ts.pos();
+		ts >> dummy;
+		if (ts.atEnd()) break;
+		if (dummy.toLower() == "framenum") {
+			int fnum = -1;
+			ts >> fnum;
+			if (fnum < 0) {
+				Error() << "PARSE ERROR: Cannot parse param history string, expected a number after frameNum!";
+				return false;
+			}
+			if (h.isEmpty() && fnum) {
+				Error() << "ERROR: In param history string, expected frameNum 0 for first entry!";				
+			}
+			ts >> dummy;
+			if (dummy != "{") {
+				Error() << "PARSE ERROR: Expected '{' after frameNum #!\n";
+			}
+			int bracect = 1;
+			while (!ts.atEnd() && bracect > 0) {
+				ts >> dummy;
+				if (dummy == "{") ++bracect;
+				else if (dummy == "}") --bracect;
+			}
+			qint64 anchor2 = ts.pos();
+			ts.seek(anchor1);
+			QString entryStr = ts.read(anchor2-anchor1);
+			ParamHistoryEntry e;			
+			if (!e.fromString(entryStr)) {
+				Error() << "PARSE ERROR: Could not parse param history entry labeled 'frameNum " << fnum << "'";
+				return false;
+			}
+			h.push_back(e);
+			/*anchor1 = ts.pos();
+			dummy = "";
+			ts >> dummy;
+			if (dummy == "}") 
+				break; // end of entry
+			ts.seek(anchor1);*/
+		} else {
+			Error() << "PARSE ERROR: Cannot parse param history string, expected frameNum, got: " << dummy;
+			return false;
+		}
+	}
+	return true;
+}
