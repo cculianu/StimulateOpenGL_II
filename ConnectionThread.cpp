@@ -397,9 +397,17 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
                 paramts << line << "\n";
             }
             paramts.flush();
-			p->setParamHistoryFromString(paramstr);
+			p->setPendingParamHistoryFromString(paramstr);
             return "";
 		}
+	} else if (cmd == "NUMPARAMSQUEUED" && toks.size()) {
+        QString pluginName = toks.join(" ");
+        StimPlugin *p = stimApp()->glWin()->pluginFind(pluginName);
+		if (!p) {
+			Error() << "NUMPARAMSQUEUED issued on a non-existant plugin";
+		} else {
+			return QString::number(p->pendingParamsHistorySize());
+		}		
     } else if (cmd == "SETPARAMS" && toks.size()) {
         QString pluginName = toks.join(" ");
         StimPlugin *p;

@@ -416,9 +416,13 @@ void GLWindow::paintGL()
     if (running && running->initted) {
 		if (!paused) {
 			running->cycleTimeLeft -= getTime()-tThisFrame;
-			running->afterVSync();
+			running->afterVSync();			
 		}
-#pragma mark Realtime param support here					
+
+		// pending param history support here -- dequeues queued params at appropriate times
+		running->checkPendingParamHistory();
+		
+#pragma mark Realtime param support here
 		// realtime param update support HERE
 		if (running->gotNewParams) {
 			if ( !running->applyNewParamsAtRuntime_Base() || !running->applyNewParamsAtRuntime() ) {

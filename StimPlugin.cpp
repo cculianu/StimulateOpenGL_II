@@ -254,6 +254,11 @@ bool StimPlugin::start(bool startUnpaused)
 		paramHistory.clear();
 		previous_params.clear();
 		previous_previous_params.clear();
+		if (pendingParamHistory.size() && pendingParamHistory.head().frameNum == 0) {
+			// force use pending param history first params ...
+			QMutexLocker l (&mut);
+			params = pendingParamHistory.dequeue().params;
+		}
 	}
     if (!missedFrames.capacity()) missedFrames.reserve(4096);
     if (!missedFrameTimes.capacity()) missedFrameTimes.reserve(4096);	
@@ -1000,8 +1005,7 @@ QString StimPlugin::paramHistoryToString() const
 	return ret;
 }
 
-// TODO: fix & implement fully
-void StimPlugin::setParamHistoryFromString(const QString &s)
+void StimPlugin::setPendingParamHistoryFromString(const QString &s)
 {
     if (parent->runningPlugin() == this)  {
 		Error() << "Cannot set param history on a running plugin!";
@@ -1014,7 +1018,10 @@ void StimPlugin::setParamHistoryFromString(const QString &s)
 	//Debug() << "Parsed param history, re-stringified it is:\n" << paramHistoryToString(h);
 	QMutexLocker l(&mut);
 	paramHistory = h;
-	pendingParamHistory.fromVector(h);
+    *static_cast<QList<ParamHistoryEntry> *>(&pendingParamHistory) = QList<ParamHistoryEntry>::fromVector(h);
+	previous_params = previous_previous_params = StimParams();
+	if (pendingParamHistory.size() && pendingParamHistory.head().frameNum == 0)
+		params = pendingParamHistory.head().params;
 }
 
 bool StimPlugin::parseParamHistoryString(QVector<ParamHistoryEntry> & h, const QString & s)
@@ -1068,4 +1075,13 @@ bool StimPlugin::parseParamHistoryString(QVector<ParamHistoryEntry> & h, const Q
 		}
 	}
 	return true;
+}
+
+// virtual
+void StimPlugin::checkPendingParamHistory()
+{
+	QMutexLocker l (&mut);
+	if (pendingParamHistory.size() && pendingParamHistory.head().frameNum == frameNum) {
+		setParams(pendingParamHistory.dequeue().params);
+	}
 }

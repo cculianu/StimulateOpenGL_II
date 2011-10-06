@@ -93,7 +93,8 @@ void tryConnection(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     ok = nc->connect();
     nc->setSocketOption(Socket::TCPNoDelay, true);
   } catch (const SocketException & e) {
-    mexWarnMsgTxt(e.why().c_str());
+    const std::string why (e.why());
+    if (why.length()) mexWarnMsgTxt(why.c_str());
     RETURN_NULL();
   }
 
@@ -129,7 +130,8 @@ void sendString(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   try {
     nc->sendString(theString);
   } catch (const SocketException & e) {
-    mexWarnMsgTxt(e.why().c_str());
+    const std::string why (e.why());
+    if (why.length()) mexWarnMsgTxt(why.c_str());
     RETURN_NULL();
   }
   RETURN(1);
@@ -161,7 +163,8 @@ void sendMatrix(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   try {
       nc->sendData(theMatrix, datalen);
   } catch (const SocketException & e) {
-      mexWarnMsgTxt(e.why().c_str());
+      const std::string why (e.why());
+      if (why.length()) mexWarnMsgTxt(why.c_str());
       RETURN_NULL();
   }
 
@@ -177,7 +180,8 @@ void readString(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     std::string theString ( nc->receiveString() );
     plhs[0] = mxCreateString(theString.c_str());
   } catch (const SocketException & e) {
-    mexWarnMsgTxt(e.why().c_str());
+    const std::string why (e.why());
+    if (why.length()) mexWarnMsgTxt(why.c_str());
     RETURN_NULL(); // note empty return..
   }
 }
@@ -191,7 +195,8 @@ void readLine(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     std::string theString ( nc->receiveLine() );
     plhs[0] = mxCreateString(theString.c_str());
   } catch (const SocketException & e) {
-    mexWarnMsgTxt(e.why().c_str());
+    const std::string why (e.why());
+    if (why.length()) mexWarnMsgTxt(why.c_str());
     RETURN_NULL(); // note empty return..
   }
 }
@@ -208,7 +213,8 @@ void readLines(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[0] = mxCreateCharMatrixFromStrings(m, const_cast<const char **>(lines));
     NetClient::deleteReceivedLines(lines);
   } catch (const SocketException &e) {
-    mexWarnMsgTxt(e.why().c_str());
+    const std::string why (e.why());
+    if (why.length()) mexWarnMsgTxt(why.c_str());
     RETURN_NULL(); // empty return set
   }
 }
@@ -247,7 +253,8 @@ void readMatrix(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   try {
       nc->receiveData(mxGetData(plhs[0]), datalen, true);
   } catch (const SocketException & e) {
-      mexWarnMsgTxt(e.why().c_str());
+      const std::string why (e.why());
+      if (why.length()) mexWarnMsgTxt(why.c_str());
       mxDestroyArray(plhs[0]);
       plhs[0] = 0;  // nullify (empty) return..
       RETURN_NULL();

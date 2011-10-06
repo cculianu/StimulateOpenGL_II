@@ -199,8 +199,9 @@ public:
 	/// Inverse of paramHistoryToString
 	static bool parseParamHistoryString(QVector<ParamHistoryEntry> & history_out, const QString & str);
 
-	/// TODO: fix/implement
-	void setParamHistoryFromString(const QString &s);
+	void setPendingParamHistoryFromString(const QString &s);
+	
+	unsigned pendingParamsHistorySize() const { QMutexLocker l(&mut); return pendingParamHistory.size(); }
 
 signals:
     void started(); ///< emitted when plugin starts
@@ -408,6 +409,12 @@ protected:
 	void paramHistoryPop();	
 	/// Called by GLWindow.cpp when new parameters are accepted.  Default implementation pushes a new history entry to the parameter history.
 	virtual void newParamsAccepted();
+	
+	/** Manages popping pending params off history queue and using them.  
+	    Default implementation: Pending params are used whenever their frameNum == this->framenum.  
+	    Called after the VSync by GLWindow::paintGL.  
+	    Reimplemented in CheckerFlicker subclass which has its own custom pending params rules.  */
+	virtual void checkPendingParamHistory();
 	
 private:
     void computeFPS();
