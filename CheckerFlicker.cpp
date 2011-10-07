@@ -243,7 +243,7 @@ private:
 
 
 CheckerFlicker::CheckerFlicker()
-    : StimPlugin("CheckerFlicker"), fbo(0), fbos(0), texs(0), origThreadAffinityMask(0)
+    : StimPlugin("CheckerFlicker"), sharedParamsRWLock(QReadWriteLock::Recursive), fbo(0), fbos(0), texs(0), origThreadAffinityMask(0)
 {
 	pluginDoesOwnClearing = true;
 }
@@ -310,7 +310,7 @@ bool CheckerFlicker::initFromParams(bool runtimeReapply)
     glGetError(); // clear error flag
 	
 	if (!runtimeReapply) {
-		paramHistoryPushPendingFlag = false;
+		needToUnlockRWLock = paramHistoryPushPendingFlag = false;
 		param_serial = 0;
 	}
 	
@@ -348,6 +348,13 @@ bool CheckerFlicker::initFromParams(bool runtimeReapply)
 	if( !fbo && !getParam("prerender", fbo) ) fbo = 0;        
 	fbos = 0;
 	if( !getParam("cores", nCoresMax) ) nCoresMax = 2; ///< NB: more than 2 cores not really supported yet since random number generators aren't reentrant
+	if (!nCoresMax) nCoresMax = 1;
+	// Guard against broken behavior with the param history and nCoresMax
+	if (nCoresMax > 2 && pendingParamHistory.size()) {
+		Error() << "Due to non-determinism in having more than 1 frame creation thread, CheckerFlicker cannot have nCoresMax be >2 and also use the param history mechanism to apply queued params at runtime.  Clear the param history queue and try again, or, specify nCoresMax to be 2 or less.";
+		return false;
+	}
+
 	unsigned colortable=1<<17;
 	if (!getParam("colortable", colortable)) {
 		// force default of 2^17 colortable size or about 130KB
@@ -441,7 +448,7 @@ bool CheckerFlicker::initFromParams(bool runtimeReapply)
 	ftrack_params.xyw.v3 = ftrackbox_w;
 	memcpy(ftrack_params.colors, ftStateColors, sizeof(Vec3)*N_FTStates);	
 	
-	// write back to params, so that realtime param updates sorta works better? NB: if I do this it acts weird since params that didn't change at all .. or maybe not. dunno. TODO: fix
+	// write back to params, so that realtime param updates sorta works better? NB: if I do this it acts weird since params that didn't change at all .. or maybe not. dunno. fix? or no?
 	/*params["rand_gen"] = rgen;
 	params["contrast"] = QString::number(contrast);
 	params["bgcolor"] = QString::number(bgcolor);
@@ -477,7 +484,7 @@ void CheckerFlicker::doPostInit()
 
 bool CheckerFlicker::init()
 {
-	
+		
 	if( !getParam( "seed", originalSeed) ) originalSeed = 10000;
 	
 	ran1Gen.reseed(originalSeed); // NB: it doesn't matter anymore if seed is negative or positive -- all negative seeds end up being positie anyway and the generator no longer needs a negative seed to indicate "reseed".  That was ugly.  See RanGen.h for how to use the class.. 
@@ -666,7 +673,7 @@ bool CheckerFlicker::initFBO()
                 //glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[i]);
                 //glGenerateMipmapEXT(GL_TEXTURE_RECTANGLE_ARB);
             }
-			if (getNProcessors() < 2) {
+			if (getNProcessors() < 2 || nCoresMax < 2) {
 				//Debug() << "Not enough extra processors, nixing frame creation threads.";				
 				cleanupFCs(); // no frame creation threads -- do it all in main thread
 			} else {
@@ -955,7 +962,7 @@ void CheckerFlicker::afterVSync(bool isSimulated)
     } // else.. multiprocessor mode -- we have at least 1 FrameCreator thread, so harvest frames here
 
    
-    const unsigned nQMax = MAX(fbo/fcs.size(),1);
+    const unsigned nQMax = MAX((fcs.size() ? (fbo/fcs.size()) : 0),1);
     lastAvgTexSubImgProcTime = 0.0;
     for (std::vector<FrameCreator *>::iterator fcit = fcs.begin(); fcit != fcs.end(); ++fcit) {
         FrameCreator *fc = *fcit;
@@ -1027,7 +1034,7 @@ void CheckerFlicker::afterVSync(bool isSimulated)
         // now, create new threads to keep up, if available
         int ncoresavail = getNProcessors() - fcs.size() - 1; // allow 1 proc to be used for main thread always
         if (ncoresavail < 0) ncoresavail = 0;
-        if (ncoresavail && fcs.size() < nCoresMax) {
+        if (ncoresavail && fcs.size() < nCoresMax-1) {
             Warning() << "You have " << ncoresavail << " cores available, creating  a new FrameCreator thread to compensate.";
             Error() << "CHECKERFLICKER CURRENTLY PRODUCES NON-DETERMINISTIC FRAME ORDERING FOR >1 FRAME CREATOR THREADS!  SET CORES=2 TO AVOID THIS!! FIXME!!";
             fcs.push_back(new FrameCreator(*this));
@@ -1042,7 +1049,7 @@ void CheckerFlicker::afterVSync(bool isSimulated)
 }
 
 FrameCreator::FrameCreator(CheckerFlicker & cf)
-    : QThread(&cf), cf(cf), stop(false)
+    : QThread(&cf),  cf(cf),  stop(false)
 {
 	sfmt.seed(++cf.currentSFMTSeed);
 	sfmt.gen_rand_all();
@@ -1079,7 +1086,7 @@ void FrameCreator::run()
         mut.lock();
         frames.push_back(f);
         mut.unlock();
-        haveMore.release();
+        haveMore.release();				
     }
 }
 
@@ -1118,5 +1125,33 @@ unsigned CheckerFlicker::initDelay(void)
 /// Called by GLWindow.cpp when new parameters are accepted.  Overrides StimPlugin parent and sets a flag.  The actual param history is pushed once the new frame hits the screen!
 void CheckerFlicker::newParamsAccepted() { 
 	paramHistoryPushPendingFlag = true; 
+	sharedParamsRWLock.lockForWrite();
 	++param_serial; 
+	sharedParamsRWLock.unlock();
+	if (needToUnlockRWLock) {
+		needToUnlockRWLock = false;
+		sharedParamsRWLock.unlock();
+	}
 }
+
+
+//virtual 
+void CheckerFlicker::checkPendingParamHistory() 
+{
+	sharedParamsRWLock.lockForWrite();
+	unsigned nExtra = nums.size();
+	FrameCreator *fc = 0;
+	if (fcs.size()) {
+		fc = fcs.front();
+		// we have a frame creator thread, so we consider its own queue size
+		nExtra += fc->haveMore.available() + 1;
+	} 
+	if (pendingParamHistory.size() && frameNum+nExtra == pendingParamHistory.head().frameNum) {
+		setParams(pendingParamHistory.dequeue().params);
+		needToUnlockRWLock = true;
+	} else {
+		sharedParamsRWLock.unlock();
+	}
+}
+
+

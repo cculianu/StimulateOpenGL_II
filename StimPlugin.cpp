@@ -490,7 +490,7 @@ void StimPlugin::putMissedFrame(unsigned cycleTimeMsecs)
         missedFrames.reserve(missedFrames.size()*2); // make it 2x bigger
     if (missedFrameTimes.capacity() == missedFrameTimes.size())
         missedFrameTimes.reserve(missedFrameTimes.size()*2); // make it 2x bigger
-    missedFrames.push_back(frameNum);
+    missedFrames.push_back((unsigned)frameNum);
     missedFrameTimes.push_back(cycleTimeMsecs);
 }
 
@@ -553,6 +553,15 @@ void StimPlugin::renderFrame() {
 	drawFTBox(); 
 }
 
+QStack<StimPlugin::ParamHistoryEntry> StimPlugin::rebuildOriginalParamHistory() const
+{
+	QStack<ParamHistoryEntry> ret(paramHistory);
+	for (QQueue<ParamHistoryEntry>::const_iterator it = pendingParamHistory.begin(); it != pendingParamHistory.end(); ++it) {
+		ret.push(*it);
+	}
+	return ret;
+}
+
 QList<QByteArray> StimPlugin::getFrameDump(unsigned num, unsigned numframes, 
 										   const Vec2i & cropOrigin,
 										   const Vec2i & cropSize,
@@ -567,7 +576,9 @@ QList<QByteArray> StimPlugin::getFrameDump(unsigned num, unsigned numframes,
         start(false);
     } else if (num < frameNum) {
         Warning() << "Got non-increasing read of frame # " << num << ", restarting plugin and fast-forwarding to frame # " << num << " (this is slower than a sequential read).  This may not work 100% for some plugins (in particular CheckerFlicker!!)";
+		QStack<ParamHistoryEntry> originalHistory(rebuildOriginalParamHistory());
         stop();
+		setPendingParamHistoryFromString(paramHistoryToString(originalHistory));
         start(false);
     } else if (!parent->isPaused()) {
         Warning() << "StimPlugin::getFrameNum() called with a non-paused parent!  This is not really supported!  FIXME!";
@@ -634,6 +645,7 @@ QList<QByteArray> StimPlugin::getFrameDump(unsigned num, unsigned numframes,
 		const double elapsed = getTime()-t0;
         cycleTimeLeft -= elapsed;
         afterVSync(true);
+		doRealtimeParamUpdateHousekeeping();
     } while (frameNum < num+numframes && parent->runningPlugin() == this);
     glClear(GL_COLOR_BUFFER_BIT);
     return ret;
@@ -1027,6 +1039,7 @@ void StimPlugin::setPendingParamHistoryFromString(const QString &s)
 bool StimPlugin::parseParamHistoryString(QVector<ParamHistoryEntry> & h, const QString & s)
 {
 	h.clear();
+	if (s.isNull() || !s.length()) return true;
 	QString scpy(s);
 	QTextStream ts(&scpy,QIODevice::ReadOnly|QIODevice::Text);
 	while (!ts.atEnd()) {
@@ -1083,5 +1096,27 @@ void StimPlugin::checkPendingParamHistory()
 	QMutexLocker l (&mut);
 	if (pendingParamHistory.size() && pendingParamHistory.head().frameNum == frameNum) {
 		setParams(pendingParamHistory.dequeue().params);
+	}
+}
+
+void StimPlugin::doRealtimeParamUpdateHousekeeping()
+{
+	
+	// pending param history support here -- dequeues queued params at appropriate times
+	checkPendingParamHistory();
+	
+#pragma mark Realtime param support here
+	// realtime param update support HERE
+	if (gotNewParams) {
+		if ( !applyNewParamsAtRuntime_Base() || !applyNewParamsAtRuntime() ) {
+			// restore previous params...
+			mut.lock();
+			params = previous_params;
+			previous_params = previous_previous_params;
+			applyNewParamsAtRuntime_Base() && applyNewParamsAtRuntime();
+			mut.unlock();
+		} else
+			newParamsAccepted();
+		gotNewParams = false;
 	}
 }

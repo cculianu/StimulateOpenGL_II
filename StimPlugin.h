@@ -202,6 +202,8 @@ public:
 	void setPendingParamHistoryFromString(const QString &s);
 	
 	unsigned pendingParamsHistorySize() const { QMutexLocker l(&mut); return pendingParamHistory.size(); }
+	/// Called by getFrameDump() when it's restarting a plugin to restore the original param history for a plugin before stopping it.
+	QStack<ParamHistoryEntry> rebuildOriginalParamHistory() const;
 
 signals:
     void started(); ///< emitted when plugin starts
@@ -272,7 +274,7 @@ protected:
     GLWindow *parent;
 
     volatile bool initted;
-    unsigned frameNum; ///< starts at -1, 0 is first frame, gets incremented for each frame (each time drawFrame() is called)
+    volatile unsigned frameNum; ///< starts at -1, 0 is first frame, gets incremented for each frame (each time drawFrame() is called)
 	unsigned nFrames, /**< the number of frames per loop cycle.  
 					       If nFrames == 0, infinite number of frames (no loop cycle)
 	                       If nFrames >0, then we display nFrames frames, then we loop that nLoops times.  Each
@@ -377,6 +379,12 @@ protected:
 
     /// called by GLWindow when a frameskip is detected..
     void putMissedFrame(unsigned cycleTimeMsecs);
+
+	
+	/// Called by both GLWindow paintGL after the afterVSync() call, and also 
+	/// by StimPlugin::getFrameDump() after the afterVSync() call.  Handles realtime param updates
+	/// and pending param history.
+	void doRealtimeParamUpdateHousekeeping();
 
 	/// Reimplement this in child classes to apply new parameters to the plugin at runtime.  This is called right
 	/// after a frame is drawn so that the plugin has time to do its initialization.  Default implementation

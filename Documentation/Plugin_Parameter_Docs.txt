@@ -405,8 +405,8 @@ cores
                          using >2 cores sometimes is useful if you want to
                          generate 800x600 stixel checkerboards
                          in quad_fps mode in realtime and you find you are
-                         getting frame underruns, and you don't care about. 
-                         Stimulation experiment repeatability.
+                         getting frame underruns, and you don't care about 
+                         stimulation experiment repeatability.
        Datatype:         integer
        Possible values:  0 - +2147483647
        Default value:    2

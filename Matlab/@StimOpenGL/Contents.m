@@ -170,14 +170,134 @@
 %                its own set of configuration parameters, hence the need to
 %                call SetParams specifying the plugin name.  As of version
 %                2011.09.25, this call can now be made while the plugin in 
-%                question is running; the parameters are applied immediately 
-%                after the current (or next) frame is drawn, during the
-%                'after VSync' period.  Note that if the parameters are 
+%                question is running; the parameters are applied
+%                immediately after the current (or next) frame is drawn,
+%                during the 'after VSync' period.   (An exception to this
+%                'immediate application' rule is the CheckerFlicker plugin,
+%                which will apply the parameters sometime in the next dozen
+%                or so frames).  Note that if the parameters are
 %                rejected/invalid, this function will still return success,
-%                however the plugin will print a message on the GUI console 
-%                and revert to its previous (working) parameters if it was 
-%                running, or if it was not running, it will just fail on 
-%                start with the new parameters.
+%                however the plugin will print a message on the GUI console
+%                and revert to its previous (working) parameters if it was
+%                running, or if it was not running, it will just fail on
+%                start with the new parameters.  
+%
+%                Calling this function while a plugin is running will
+%                append an entry to the plugin's realtime parameter
+%                history, which can be read with GetParamHistory.m.  
+%
+%                See GetParamHistory.m, SetParamHistory.m.
+%
+%    string = GetParamHistory(myobj, 'PluginName')
+%
+%                Retrieve the  realtime parameter history for the plugin.
+%                The retrieved value is a large free-form string that is
+%                intended to be human and machine readable which
+%                encapsulates the history of parameters that a plugin used
+%                as it ran. This realtime parameter history is appended-to
+%                each time SetParams.m is called on a plugin that is
+%                currently running.  That is, this history is a precise log
+%                of which parameters were submitted to the plugin at what
+%                time (frame number).  The realtime parameter history
+%                returned is a long free-form string which can later be
+%                passed to SetParamHistory.m in order to play-back a
+%                previous realtime parameter-updated session (useful in
+%                conjunction with DumpFrame.m to recreate the conditions of
+%                an experiment that had its parameters updated using
+%                realtime param updates).
+%
+%                The typical workflow for the realtime param updates would
+%                be as follows:
+%
+%                1. Set initial parameters for a plugin either by calling
+%                SetParams.m through this Matlab API (or by loading a param
+%                file--hitting 'L' in the StimGL console window).
+%
+%                2. After the initial parameters are set, start the plugin
+%                normally.
+%
+%                3. After the plugin runs for a few (or many) frames, call
+%                SetParams.m again, passing new parameters to the plugin in
+%                realtime.  The next frame rendered by the plugin after the
+%                call will use the new parameters (an exception to this is
+%                the CheckerFlicker plugin which has a large frame queue so
+%                with CheckerFlicker param updates appear after a delay of
+%                a dozen or so frames).
+%
+%                4. Save the realtime param history by calling
+%                GetParamHistory (this function), and saving the returned
+%                string.
+%
+%                5. Later, to recreate the exact set of frames that the
+%                plugin rendered above, one can use the saved param history
+%                string by calling SetParamHistory.m, passing it the param
+%                history string, before starting the plugin.
+%
+%                Optionally, the DumpFrame.m mechanism can also benefit
+%                from the saved parameter history for re-creating the exact
+%                frames that were rendered during a plugin run.
+%
+%                (See also SetParamHistory.m).
+%
+%    params = SetParamHistory(myobj, 'PluginName', string)
+%
+%                Set the realtime parameter history for the next run of the
+%                plugin.  After this call, the next time the plugin is run
+%                it will 'play back' the set of parameters that are
+%                encapsulated in the passed-in history.  That is, this
+%                function sets the next run of the plugin to be in 'param
+%                history playback' mode, and it tells the plugin which
+%                parameter history to play back.
+% 
+%                Typically you pass the string returned from a previous
+%                call to GetParamHistory.m.
+%
+%                The typical workflow for the realtime param updates would
+%                be as follows:
+%
+%                1. Set initial parameters for a plugin either by calling
+%                SetParams.m through this Matlab API (or by loading a param
+%                file--hitting 'L' in the StimGL console window).
+%
+%                2. After the initial parameters are set, start the plugin
+%                normally.
+%
+%                3. After the plugin runs for a few (or many) frames, call
+%                SetParams.m again, passing new parameters to the plugin in
+%                realtime.  The next frame rendered by the plugin after the
+%                call will use the new parameters (an exception to this is
+%                the CheckerFlicker plugin which has a large frame queue so
+%                with CheckerFlicker param updates appear after a delay of
+%                a dozen or so frames).
+%
+%                4. Save the realtime param history by calling
+%                GetParamHistory (this function), and saving the returned
+%                string.
+%
+%                5. Later, to recreate the exact set of frames that the
+%                plugin rendered above, one can use the saved param history
+%                string by calling SetParamHistory.m, passing it the param
+%                history string, before starting the plugin.
+%
+%                Optionally, the DumpFrame.m mechanism can also benefit
+%                from the saved parameter history for re-creating the exact
+%                frames that were rendered during a plugin run.
+%
+%                (See also GetParamHistory.m).
+%
+%    intval = GetNumParamsQueued(myobj, pluginname)
+%
+%                Returns the size of the realtime parameter queue. The
+%                realtime parameter queue is used when you have set a
+%                reatime parameter history to play back using
+%                SetParamHistory.m. The next time the plugins is run, the
+%                parameter history entries in the history are enqueued and
+%                played back in FIFO order.  This function returns the
+%                number of parameter history entries still remaining in the
+%                queue, or 0 if no parameter history is used (and/or all
+%                param histories have already been dequeued/applied).  See
+%                SerParamHistory.m and GetParamHistory.m, as well as
+%                SetParams.m.
 %
 %    cell_array_of_strings = GetFrameVarNames(myobj)
 %                

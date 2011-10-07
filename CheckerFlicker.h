@@ -147,6 +147,7 @@ class CheckerFlicker : public StimPlugin
             nums.pop_front(); 
             return num;
         } else if (oldnums.size()) {
+			// if we got here it means we are skipping frames as fc thread is not fast enough
             num = oldnums.front(); 
             oldnums.pop_front();
             return num; 
@@ -179,7 +180,7 @@ class CheckerFlicker : public StimPlugin
 	void doPostInit(); ///< called by init() after full re-init
 	
 	int param_serial;
-	bool paramHistoryPushPendingFlag;
+	bool paramHistoryPushPendingFlag, needToUnlockRWLock;
 	
 protected:
     CheckerFlicker(); ///< can only be constructed by our friend class
@@ -197,7 +198,8 @@ protected:
 	/* virtual */ bool applyNewParamsAtRuntime_Base(); ///< reimplemented from superclass
 	/// Called by GLWindow.cpp when new parameters are accepted.  Overrides StimPlugin parent and sets a flag.  The actual param history is pushed once the new frame hits the screen!
 	virtual void newParamsAccepted();
-
+	/// Reimplemented from StimPlugin for our custom param history pending checks
+	virtual void checkPendingParamHistory();
 };
 
 

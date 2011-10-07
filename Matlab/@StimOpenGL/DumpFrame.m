@@ -24,9 +24,9 @@
 %                as [ origin_x origin_y width height ] with origin 0,0
 %                being at the bottom-left of the window.
 % 
-%                The downsample_pix parameter allows you to downsample the
-%                returned pixels by every [k l]'th pixel in the X and Y
-%                directions, respectively.
+%                The downsample_pix vector parameter allows you to 
+%                downsample the returned pixels by every [k l]'th pixel in 
+%                the X and Y directions, respectively.
 %
 function [imgdat] = DumpFrame(s, frameNum, varargin)
       if (~length(varargin)),

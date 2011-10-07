@@ -419,23 +419,8 @@ void GLWindow::paintGL()
 			running->afterVSync();			
 		}
 
-		// pending param history support here -- dequeues queued params at appropriate times
-		running->checkPendingParamHistory();
-		
-#pragma mark Realtime param support here
-		// realtime param update support HERE
-		if (running->gotNewParams) {
-			if ( !running->applyNewParamsAtRuntime_Base() || !running->applyNewParamsAtRuntime() ) {
-				// restore previous params...
-				running->mut.lock();
-				running->params = running->previous_params;
-				running->previous_params = running->previous_previous_params;
-				running->applyNewParamsAtRuntime_Base() && running->applyNewParamsAtRuntime();
-				running->mut.unlock();
-			} else
-				running->newParamsAccepted();
-			running->gotNewParams = false;
-		}
+		// pending param history & realtime param update support here
+		running->doRealtimeParamUpdateHousekeeping();
     }
     
 }

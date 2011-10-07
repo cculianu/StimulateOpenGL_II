@@ -69,8 +69,9 @@ function [imgdat] = DumpFrames(s, frameNum, count, varargin)
     end;
     if (frameNum <= pluginFrameNum),
         warning(sprintf('Frame count specified %d is <= the plugin''s current frame number of %d, restarting plugin (this is slow!!)',frameNum, pluginFrameNum));
-        Stop(s);
-        Start(s, plug);
+        % NB: plugin does this automatically now
+        %Stop(s);
+        %Start(s, plug);
     end;
     if (ds(1) <= 0) ds(1) = 1; end;
     if (ds(2) <= 0) ds(2) = 1; end;        
