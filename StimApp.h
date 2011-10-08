@@ -98,6 +98,8 @@ public:
 	bool isNoDropFrameWarn() const;
 	
 	bool isSaveFrameVars() const;
+
+	bool isSaveParamHistory() const;
 	
 	bool isFrameDumpMode() const;
 	
@@ -147,6 +149,8 @@ public slots:
 	void setNoDropFrameWarn(bool);
 	
 	void setSaveFrameVars(bool);
+
+	void setSaveParamHistory(bool);
 	
 	void setFrameDumpMode(bool);	
 	
@@ -199,7 +203,7 @@ private:
     mutable QMutex mut; ///< used to lock outDir param for now
     ConsoleWindow *consoleWindow;
     GLWindow *glWindow;
-    bool glWinHasFrame, debug, noDropFrameWarn, saveFrameVars, vsyncDisabled;
+    bool glWinHasFrame, debug, noDropFrameWarn, saveFrameVars, saveParamHistory, vsyncDisabled;
     QString lastFile;
     volatile bool initializing;
     QColor defaultLogColor;

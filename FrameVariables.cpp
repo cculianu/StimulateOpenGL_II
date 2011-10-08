@@ -207,15 +207,7 @@ bool FrameVariables::readAllFromFile(const QString &fn, QVector<double> & out, i
 
 /* static */ QString FrameVariables::makeFileName(const QString & prefix)
 {
-	const QDate now (QDate::currentDate());
-
-	QString dateStr;
-	dateStr.sprintf("%04d%02d%02d",now.year(),now.month(),now.day());
-
-	QString fn = "";
-	for(int i = 1; QFile::exists(fn = (prefix + "_" + dateStr + "_" + QString::number(i) + ".txt")); ++i)
-		;
-	return fn;
+	return makeUniqueFileName(prefix, "txt");
 }
 
 void FrameVariables::finalize()

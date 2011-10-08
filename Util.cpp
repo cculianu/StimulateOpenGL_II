@@ -8,6 +8,7 @@
 #include <QTextEdit>
 #include <QTime>
 #include <QThread>
+#include <QFile>
 #include <iostream>
 #include "StimApp.h"
 #include "Util.h"
@@ -189,5 +190,23 @@ QString joinCSV(const QVector<double> & v, const QString & c)
 	}
 	return ret;
 }
+	
+/// Creates a unique filename based on prefix.  Appends date to the filename and potentially a unique integer.  Used by FrameVars class and other code.
+QString makeUniqueFileName(const QString & prefix, const QString & ext_in)
+{
+	const QDate now (QDate::currentDate());
+	
+	QString dateStr;
+	dateStr.sprintf("%04d%02d%02d",now.year(),now.month(),now.day());
+	
+	QString ext(ext_in);
+	while (ext.startsWith(".")) ext = ext.mid(1); // trim leading '.'
+	if (ext.length()) ext = QString(".") + ext; // if it HAD an extension, prepend '.' again. :)
+	QString fn = "";
+	for(int i = 1; QFile::exists(fn = (prefix + "_" + dateStr + "_" + QString::number(i) + ext)); ++i)
+		;
+	return fn;	
+}
+
 	
 }

@@ -46,8 +46,8 @@
 function [s] = SetParamHistory(s, plugin, h)
 
     if (~ischar(plugin)), error ('Plugin argument (argument 2) must be a string'); end;    
-    if (~ischar(h)), error ('Plugin argument (argument 3) must be a string'); end;
-    r = strfind(h, 'frameNum 0');      % must begin with frameNum 0...
+    if (~ischar(h)), error ('Plugin argument (argument 3) must be a string'); end;        
+    r = strfind(h, 'PLUGIN ');      % must begin with 'PLUGIN '...
     if (isempty(r) || r(1) ~= 1),
         error('Passed-in parameter history string appears invalid.');
     end;

@@ -118,6 +118,9 @@ extern QVector<double> parseCSV(const QString & text, const QRegExp & sepre = QR
 /// Inverse of above
 extern QString joinCSV(const QVector<double> & vals, const QString & comma = ", ");
 	
+/// Creates a unique filename based on prefix.  Appends date to the filename and potentially a unique integer.  Used by FrameVars class and other code.
+extern QString makeUniqueFileName(const QString & prefix, const QString & ext);	
+
 /// Super class of Debug, Warning, Error classes.  
 class Log 
 {

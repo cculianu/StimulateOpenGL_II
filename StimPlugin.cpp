@@ -56,6 +56,11 @@ void StimPlugin::stop(bool doSave, bool useGui, bool softStop)
 	if (!softStop) { 
 		QMutexLocker l(&mut);
 		pendingParamHistory.clear();
+		
+		// also, save the actual param history if that's turned-on
+		if (stimApp()->isSaveParamHistory() && paramHistory.size() > 1) {
+			saveParamHistoryToFile();
+		}
 	}
 	
 	softCleanup = softStop;
@@ -576,9 +581,10 @@ QList<QByteArray> StimPlugin::getFrameDump(unsigned num, unsigned numframes,
         start(false);
     } else if (num < frameNum) {
         Warning() << "Got non-increasing read of frame # " << num << ", restarting plugin and fast-forwarding to frame # " << num << " (this is slower than a sequential read).  This may not work 100% for some plugins (in particular CheckerFlicker!!)";
+		QMutexLocker l(&mut);
 		QStack<ParamHistoryEntry> originalHistory(rebuildOriginalParamHistory());
         stop();
-		setPendingParamHistoryFromString(paramHistoryToString(originalHistory));
+		setPendingParamHistoryFromString(paramHistoryToString(name(), originalHistory));
         start(false);
     } else if (!parent->isPaused()) {
         Warning() << "StimPlugin::getFrameNum() called with a non-paused parent!  This is not really supported!  FIXME!";
@@ -982,10 +988,11 @@ bool StimPlugin::ParamHistoryEntry::fromString(const QString &s)
 	return true;
 }
 
-QString StimPlugin::paramHistoryToString(const QVector<ParamHistoryEntry> & h)
+QString StimPlugin::paramHistoryToString(const QString & pluginName, const QVector<ParamHistoryEntry> & h)
 {
 	QString ret("");
     QTextStream ts(&ret, QIODevice::WriteOnly|QIODevice::Append|QIODevice::Text);	
+	ts << "PLUGIN " << pluginName << "\n";
 	for (int i = 0; i < h.size(); ++i) 
 		ts << h[i].toString();
 	ts.flush();
@@ -995,26 +1002,7 @@ QString StimPlugin::paramHistoryToString(const QVector<ParamHistoryEntry> & h)
 QString StimPlugin::paramHistoryToString() const
 {
 	QMutexLocker l(&mut);
-	paramHistoryToString(paramHistory);
-	QString ret("");
-    QTextStream ts(&ret, QIODevice::WriteOnly|QIODevice::Append|QIODevice::Text);	
-	for (int i = 0; i < paramHistory.size(); ++i) 
-		ts << paramHistory[i].toString();
-	ts.flush();
-	
-/* TESTING/DEVELOPMENT DEBUG CODE
-	Debug() << "PARAM HISTORY STRING PARSED BACK TO SELF IS:";
-	QVector<ParamHistoryEntry> h;
-	if (parseParamHistoryString(h, ret)) {
-		for (int i = 0; i < h.size(); ++i) 
-			Debug() << h[i].toString();		
-	} else {
-		Debug() << "FAILED TO PARSE MY OWN STRING!";
-	}
-	//
- */
-	
-	return ret;
+	return paramHistoryToString(name(), paramHistory);
 }
 
 void StimPlugin::setPendingParamHistoryFromString(const QString &s)
@@ -1024,26 +1012,49 @@ void StimPlugin::setPendingParamHistoryFromString(const QString &s)
 		return;
 	}
 	QStack<ParamHistoryEntry> h;
-	if (!parseParamHistoryString(h, s)) {
+	QString pluginName;
+	if (!parseParamHistoryString(pluginName, h, s)) {
 		Error() << "Parse error: param history not applied.";
+		h.clear();
+	}
+	if (pluginName.length() && pluginName.toLower() != name().toLower()) {
+		Error() << "Param history parsed ok, but it refers to a different plugin than " << name() << "!  Not applying!";
+		return;
 	}
 	//Debug() << "Parsed param history, re-stringified it is:\n" << paramHistoryToString(h);
+	setPendingParamHistory(h);
+}
+
+void StimPlugin::setPendingParamHistory(const QVector<ParamHistoryEntry> & h) 
+{
 	QMutexLocker l(&mut);
-	paramHistory = h;
+	*static_cast<QVector<ParamHistoryEntry> *>(&paramHistory) = h;
     *static_cast<QList<ParamHistoryEntry> *>(&pendingParamHistory) = QList<ParamHistoryEntry>::fromVector(h);
 	previous_params = previous_previous_params = StimParams();
 	if (pendingParamHistory.size() && pendingParamHistory.head().frameNum == 0)
-		params = pendingParamHistory.head().params;
+		params = pendingParamHistory.head().params;	
 }
 
-bool StimPlugin::parseParamHistoryString(QVector<ParamHistoryEntry> & h, const QString & s)
+bool StimPlugin::parseParamHistoryString(QString & pluginName, QVector<ParamHistoryEntry> & h, const QString & s)
 {
 	h.clear();
+	pluginName = "";
 	if (s.isNull() || !s.length()) return true;
-	QString scpy(s);
+	QString scpy(s), dummy;
 	QTextStream ts(&scpy,QIODevice::ReadOnly|QIODevice::Text);
+	
+	// "header": PLUGIN pluginName 
+	ts >> dummy;
+	if (ts.atEnd()) return true;
+	if (dummy.toUpper() != "PLUGIN") {
+		Error() << "PARSE ERROR: Cannot parse param history string, expected PLUGIN!";
+		return false;
+	}
+	ts >> dummy;
+	if (ts.atEnd()) return false;
+	pluginName = dummy;
+	
 	while (!ts.atEnd()) {
-		QString dummy;
 		qint64 anchor1 = ts.pos();
 		ts >> dummy;
 		if (ts.atEnd()) break;
@@ -1119,4 +1130,35 @@ void StimPlugin::doRealtimeParamUpdateHousekeeping()
 			newParamsAccepted();
 		gotNewParams = false;
 	}
+}
+
+void StimPlugin::saveParamHistoryToFile() const
+{
+	QString fn = Util::makeUniqueFileName(stimApp()->outputDirectory() + "/" + name() + "_ParamHist", "txt");
+	QFile f(fn);
+	if (f.open(QIODevice::WriteOnly|QIODevice::Truncate|QIODevice::Text)) {
+		QString str = paramHistoryToString();
+		if (str.length()) {
+			qint64 n = f.write(str.toUtf8());
+			if (n <= 0) {
+				Error() << "Write error writing param history file " << fn;
+			} else {
+				Log() << "Wrote " << n << " bytes to param history file " << fn;
+			}
+		}
+	} else {
+		Error() << "Could not open param history file for write: " << fn;
+	}	
+}
+
+/// Called by StimApp loadStim() to determine how to parse a stim file. Returns true for nonzero length files with header PLUGIN
+/*static*/ bool StimPlugin::fileAppearsToBeValidParamHistory(const QString & filename) 
+{
+	QFile f(filename);
+	if (f.open(QIODevice::ReadOnly|QIODevice::Text)) {
+		QTextStream ts(&f);
+		if (!ts.atEnd() && ts.readLine().toUpper().startsWith("PLUGIN "))
+			return true;
+	}
+	return false;
 }

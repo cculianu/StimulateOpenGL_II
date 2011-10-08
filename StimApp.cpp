@@ -231,6 +231,12 @@ bool StimApp::isSaveFrameVars() const
     return saveFrameVars;
 }
 
+
+bool StimApp::isSaveParamHistory() const
+{
+    return saveParamHistory;
+}
+
 void StimApp::setSaveFrameVars(bool b)
 {
     saveFrameVars = b;
@@ -240,6 +246,16 @@ void StimApp::setSaveFrameVars(bool b)
 								 "The new Save Frame Vars setting requires a plugin unload/reload to take effect, or will automatically take effect for the next plugin to run."
 								 );
 	}
+}
+
+void StimApp::setSaveParamHistory(bool b)
+{
+    saveParamHistory = b;
+    saveSettings();
+	if (saveParamHistory)
+		Log() << "Param history save enabeld: Saving to directory '" << outputDirectory() << "' on plugin stop.";
+	else
+		Log() << "Param history save disabled.";
 }
 
 void StimApp::setNoDropFrameWarn(bool b) {
@@ -386,6 +402,7 @@ void StimApp::loadSettings()
     debug = settings.value("debug", false).toBool();
 	noDropFrameWarn = settings.value("noDropFrameWarn", false).toBool();
 	saveFrameVars = settings.value("saveFrameVars", false).toBool();
+	saveParamHistory = settings.value("saveParamHistory", false).toBool();
 	vsyncDisabled = settings.value("noVSync", false).toBool();
     lastFile = settings.value("lastFile", "").toString();
     mut.lock();
@@ -432,6 +449,7 @@ void StimApp::saveSettings()
     settings.setValue("debug", debug);
 	settings.setValue("noDropFrameWarn", noDropFrameWarn);
 	settings.setValue("saveFrameVars", saveFrameVars);
+	settings.setValue("saveParamHistory", saveParamHistory);
     settings.setValue("lastFile", lastFile);
 	settings.setValue("noVSync", vsyncDisabled);
     mut.lock();
@@ -523,114 +541,143 @@ struct ReentrancyPreventer
 };
 volatile int ReentrancyPreventer::ct = 0;
 
+
 void StimApp::loadStim()
 {
     unloadStim();
     ReentrancyPreventer rp; if (!rp) return;
 
     QString lf;
-    if ( !(lf = QFileDialog::getOpenFileName(0, "Choose a protocol spec to open", lastFile)).isNull() ) { 
+    if ( !(lf = QFileDialog::getOpenFileName(0, "Choose a protocol spec to open", lastFile)).isNull() ) { 		
         lastFile = lf;
         saveSettings(); // just to remember the file *now*
-        QFile f(lastFile);
+		
+		QFile f(lastFile);
         if (!f.open(QIODevice::ReadOnly|QIODevice::Text)) {
             QMessageBox::critical(0, "Could not open", QString("Could not open '") + lastFile + "' for reading.");
             return;
         }
-        QTextStream ts(&f);
-        QString line;
-		do {
-			line = ts.readLine().trimmed();
-		} while (!line.length() && !ts.atEnd());
-        Debug() << "stim plugin: " << line;
-        StimPlugin *pfound = glWindow->pluginFind(line), *p = glWindow->runningPlugin();
-        if (!pfound) {
-            QMessageBox::critical(0, "Plugin not found", QString("Plugin '") + line + "' not found.");
-            return;
-        }
-        if (p && p->getFrameNum() > -1) {
-            bool doSave = 0; //QMessageBox::question(0, "Save data?", QString("Save data for currently-running '") + p->name() + "'?", QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes;
-            if (p != glWindow->runningPlugin()) {
-                QMessageBox::information(0, "Already unloaded", 
-                                         "Plugin already unloaded in the meantime!");
-            } else {
-                p->stop(doSave, true);
-            }
-        }
-        p = pfound;
-
-        StimParams params;
-        QString paramsBuf;  
-        QTextStream tsparams(&paramsBuf, QIODevice::WriteOnly|QIODevice::Truncate|QIODevice::Text);
-        // now parse remaining lines which should be name/value pairs
-        while ( !(line = ts.readLine()).isNull() ) {
-            tsparams << line << "\n";
-        }
-        tsparams.flush();
-		{
-			params.clear();
-			GlobalDefaults & defs (globalDefaults);
-			// set params from defaults
-			params["mon_x_pix"] = defs.mon_x_pix;
-			params["mon_y_pix"] = defs.mon_y_pix;
-			params["ftrackbox_x"] = defs.ftrackbox_x;
-			params["ftrackbox_y"] = defs.ftrackbox_y;
-			params["ftrackbox_w"] = defs.ftrackbox_w;
-			params["ftrack_track_color"] = defs.ftrack_track_color;
-			params["ftrack_off_color"] = defs.ftrack_off_color;
-			params["ftrack_change_color"] = defs.ftrack_change_color;
-			params["ftrack_start_color"] = defs.ftrack_start_color;
-			params["ftrack_end_color"] = defs.ftrack_end_color;
-			params["fps_mode"] = defs.fps_mode == 0 ? "single" : (defs.fps_mode == 1 ? "double" : "triple");
-			params["color_order"] = defs.color_order;
-			params["DO_with_vsync"] = defs.DO_with_vsync;
-			params["Nblinks"] = defs.Nblinks;
-			params["nblinks"] = defs.Nblinks; // case insensitive?
-		}
-        params.fromString(paramsBuf, false);
-
-		{
-			QString devChan;
-			if ( (devChan = params["DO_with_vsync"].toString()) != "off" && devChan.length()) {
-				DAQ::WriteDO(devChan, false); // set it low initially..
-			}
-		}
 		
+		StimPlugin *p = 0;		
+		QString pname;
+		QStack<StimPlugin::ParamHistoryEntry> hist;
+		
+		if (StimPlugin::fileAppearsToBeValidParamHistory(lastFile) 
+			&& StimPlugin::parseParamHistoryString(pname, hist, QString(f.readAll()))) {
+			// It's a param history!  Huzzah!  Just read it in and set param history
+			p = glWindow->pluginFind(pname);
+			if (!p) {
+				QMessageBox::critical(0, "Plugin not found", QString("Plugin '") + pname + "' not found.");
+				return;
+			}
+			StimPlugin *prunning = 0;
+			if ((prunning = glWindow->runningPlugin())) {
+				prunning->stop(false, true);
+			}
+			if (p) p->setPendingParamHistory(hist);
+			
+		} else {
+			// if we get here, it's a regular stim param file..
+			
+			QTextStream ts(&f);
+			QString line;
+			do {
+				line = ts.readLine().trimmed();
+			} while (!line.length() && !ts.atEnd());
+			Debug() << "stim plugin: " << line;
+			StimPlugin *pfound = glWindow->pluginFind(line);
+			p = glWindow->runningPlugin();
+			if (!pfound) {
+				QMessageBox::critical(0, "Plugin not found", QString("Plugin '") + line + "' not found.");
+				return;
+			}
+			if (p && p->getFrameNum() > -1) {
+				bool doSave = 0; //QMessageBox::question(0, "Save data?", QString("Save data for currently-running '") + p->name() + "'?", QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes;
+				if (p != glWindow->runningPlugin()) {
+					QMessageBox::information(0, "Already unloaded", 
+											 "Plugin already unloaded in the meantime!");
+				} else {
+					p->stop(doSave, true);
+				}
+			}
+			p = pfound;
 
-        {
-            // custom window size handling: mon_x_pix and mon_y_pix
-            QSize desiredSize(DEFAULT_WIN_SIZE);
-            if (params.contains("mon_x_pix")) 
-                desiredSize.setWidth(params["mon_x_pix"].toUInt());
-            if (params.contains("mon_y_pix")) 
-                desiredSize.setHeight(params["mon_y_pix"].toUInt());
-            
-            if (desiredSize != glWinSize && !desiredSize.isEmpty()) {
-                Log() << "GLWindow size changed to: " << desiredSize.width() << "x" << desiredSize.height();
-                QString pname = p->name();
-                // need to (re)create the gl window with the desired size!
-                QDesktopWidget desktop;
-                const QRect screenRect(desktop.screenGeometry(glWindow));
-                delete glWindow, glWindow = 0;
-                glWinSize = desiredSize;                
-                createGLWindow();
-                glWindow->move(screenRect.x(), screenRect.y());
-                glWindow->show();
-		/* NB: this needs to be here because Qt OpenGL on Windows 
-		acts funny when we recreate the window and use it immediately.
-		I suspect some Qt event needs to fire to properly create the 
-		window and the OpenGL context. */
-                qApp->processEvents();
+			StimParams params;
+			QString paramsBuf;  
+			QTextStream tsparams(&paramsBuf, QIODevice::WriteOnly|QIODevice::Truncate|QIODevice::Text);
+			// now parse remaining lines which should be name/value pairs
+			while ( !(line = ts.readLine()).isNull() ) {
+				tsparams << line << "\n";
+			}
+			tsparams.flush();
+			{
+				params.clear();
+				GlobalDefaults & defs (globalDefaults);
+				// set params from defaults
+				params["mon_x_pix"] = defs.mon_x_pix;
+				params["mon_y_pix"] = defs.mon_y_pix;
+				params["ftrackbox_x"] = defs.ftrackbox_x;
+				params["ftrackbox_y"] = defs.ftrackbox_y;
+				params["ftrackbox_w"] = defs.ftrackbox_w;
+				params["ftrack_track_color"] = defs.ftrack_track_color;
+				params["ftrack_off_color"] = defs.ftrack_off_color;
+				params["ftrack_change_color"] = defs.ftrack_change_color;
+				params["ftrack_start_color"] = defs.ftrack_start_color;
+				params["ftrack_end_color"] = defs.ftrack_end_color;
+				params["fps_mode"] = defs.fps_mode == 0 ? "single" : (defs.fps_mode == 1 ? "double" : "triple");
+				params["color_order"] = defs.color_order;
+				params["DO_with_vsync"] = defs.DO_with_vsync;
+				params["Nblinks"] = defs.Nblinks;
+				params["nblinks"] = defs.Nblinks; // case insensitive?
+			}
+			params.fromString(paramsBuf, false);
 
-                p = pfound = glWindow->pluginFind(pname);
-            }
-        }
+			{
+				QString devChan;
+				if ( (devChan = params["DO_with_vsync"].toString()) != "off" && devChan.length()) {
+					DAQ::WriteDO(devChan, false); // set it low initially..
+				}
+			}
+			
 
-        QFileInfo fi(lastFile);
-        Log() << fi.fileName() << " loaded";
-        p->setParams(params);       
+			{
+				// custom window size handling: mon_x_pix and mon_y_pix
+				QSize desiredSize(DEFAULT_WIN_SIZE);
+				if (params.contains("mon_x_pix")) 
+					desiredSize.setWidth(params["mon_x_pix"].toUInt());
+				if (params.contains("mon_y_pix")) 
+					desiredSize.setHeight(params["mon_y_pix"].toUInt());
+				
+				if (desiredSize != glWinSize && !desiredSize.isEmpty()) {
+					Log() << "GLWindow size changed to: " << desiredSize.width() << "x" << desiredSize.height();
+					QString pname = p->name();
+					// need to (re)create the gl window with the desired size!
+					QDesktopWidget desktop;
+					const QRect screenRect(desktop.screenGeometry(glWindow));
+					delete glWindow, glWindow = 0;
+					glWinSize = desiredSize;                
+					createGLWindow();
+					glWindow->move(screenRect.x(), screenRect.y());
+					glWindow->show();
+			/* NB: this needs to be here because Qt OpenGL on Windows 
+			acts funny when we recreate the window and use it immediately.
+			I suspect some Qt event needs to fire to properly create the 
+			window and the OpenGL context. */
+					qApp->processEvents();
+
+					p = pfound = glWindow->pluginFind(pname);
+				}
+			}			
+			
+			p->setParams(params);       
+
+		}
+		QFileInfo fi(lastFile);
+		Log() << fi.fileName() << " loaded";
+		QString stimfile = fi.fileName();
+		
 		if ( p->start() ) {
-			glWindow->setWindowTitle(QString("StimulateOpenGL II - ") + fi.fileName());
+			glWindow->setWindowTitle(QString("StimulateOpenGL II - ") + stimfile);
 		} else {
 			QMessageBox::critical(0, QString("Plugin Failed to Start"), QString("Plugin ") + p->name() + " failed to start.  Check the console for errors.");
 			p->stop();

@@ -195,16 +195,20 @@ public:
 	/// Returns the parameter history for the plugin, represented as a string.  Calls the static method by the same name, after acquiring the mutex.
 	QString paramHistoryToString() const; 
 	/// Returns the parameter history, represented as a string
-	static QString paramHistoryToString(const QVector<ParamHistoryEntry> & history);
+	static QString paramHistoryToString(const QString & pluginName, const QVector<ParamHistoryEntry> & history);
 	/// Inverse of paramHistoryToString
-	static bool parseParamHistoryString(QVector<ParamHistoryEntry> & history_out, const QString & str);
+	static bool parseParamHistoryString(QString & pluginName_out, QVector<ParamHistoryEntry> & history_out, const QString & str);
 
 	void setPendingParamHistoryFromString(const QString &s);
+	void setPendingParamHistory(const QVector<ParamHistoryEntry> & history);
 	
 	unsigned pendingParamsHistorySize() const { QMutexLocker l(&mut); return pendingParamHistory.size(); }
 	/// Called by getFrameDump() when it's restarting a plugin to restore the original param history for a plugin before stopping it.
 	QStack<ParamHistoryEntry> rebuildOriginalParamHistory() const;
 
+	/// Called by StimApp loadStim() to determine how to parse a stim file. Returns true for nonzero length files with header PLUGIN
+	static bool fileAppearsToBeValidParamHistory(const QString & filename);
+	
 signals:
     void started(); ///< emitted when plugin starts
     void finished(); ///< emitted when plugin finishes naturally
@@ -423,6 +427,9 @@ protected:
 	    Called after the VSync by GLWindow::paintGL.  
 	    Reimplemented in CheckerFlicker subclass which has its own custom pending params rules.  */
 	virtual void checkPendingParamHistory();
+	
+	/// Just saves the current param history to a disk file in output dir, file name is based on plugin name and date, with .txt ext.
+	void saveParamHistoryToFile() const; 
 	
 private:
     void computeFPS();

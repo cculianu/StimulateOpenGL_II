@@ -36,6 +36,9 @@ ConsoleWindow::ConsoleWindow(QWidget *p, Qt::WindowFlags f)
 	action = m->addAction("&Save Frame Vars", stimApp(), SLOT(setSaveFrameVars(bool)));
 	action->setCheckable(true);
 	action->setChecked(stimApp()->isSaveFrameVars());
+	action = m->addAction("Save Param &History", stimApp(), SLOT(setSaveParamHistory(bool)));
+	action->setCheckable(true);
+	action->setChecked(stimApp()->isSaveParamHistory());
 	action = m->addAction("Dump Frames To Disk (SLOW!)", stimApp(), SLOT(setFrameDumpMode(bool)));
 	action->setCheckable(true);
 	action->setChecked(stimApp()->isFrameDumpMode());
