@@ -94,10 +94,13 @@ public:
     virtual QString description() const { return "A Stim Plugin."; }
 
     /// Set the plugin's configuration parameters.  ConnectonThread calls this method for example when the client wants to define experiment parameters for a plugin.
-    void setParams(const StimParams & p) { QMutexLocker l(&mut); previous_previous_params = previous_params; previous_params = params; params = p; gotNewParams = true; }
+    void setParams(const StimParams & p, bool isRealtimeUpdate=false) { QMutexLocker l(&mut); previous_previous_params = previous_params; previous_params = params; params = p; gotNewParams = true; needToSaveParamHistory = needToSaveParamHistory || isRealtimeUpdate; }
     /// We return an implicitly shared copy of the parameters.  Due to multithreading concerns, implicit sharing is a good thing!
     StimParams getParams() const { QMutexLocker l(&mut); return params; }
 
+	/// Call this to force plugin to save param history on stop (if it's enabled in the GUI, that is).  Called from ConnectionThread when they upload a new param history
+	void setSaveParamHistoryOnStopOverride(bool b) { needToSaveParamHistory = b; }
+	
     /// templatized function for reading parameters
     template <typename T> bool getParam(const QString & name, T & out) const;
 	/// current param suffix context -- defaults to ""
@@ -322,6 +325,7 @@ protected:
 	bool dontCloseFVarFileAcrossLoops; ///< defaults to false -- if true, keep the same frame var file open across loop iterations. MovingObjects sets this to true iff rndtrial=1
 	volatile bool gotNewParams; ///< flag set when new params arrive from ConnectionThread.  This mechanism is used to signal to plugin in realtime that new params have arrived, as its running.  Plugin's drawFrame code is expected to clear this after it accepts/uses the new params.
 	bool pluginDoesOwnClearing; ///< set this to true if you don't want calling GLWindow.cpp code to call glClear() for you before a framedraw.  Usually false, except MovingObejcts sets this to true
+	bool needToSaveParamHistory; ///< set if plugin got any realtime param updates while running, otherwise false
 	
 	///< margins, used for scissor testing
 	int lmargin,rmargin,bmargin,tmargin;

@@ -398,6 +398,7 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
             }
             paramts.flush();
 			p->setPendingParamHistoryFromString(paramstr);
+			p->setSaveParamHistoryOnStopOverride(true); // also tell plugin to save this param history, since it came from an external source
             return "";
 		}
 	} else if (cmd == "NUMPARAMSQUEUED" && toks.size()) {
@@ -424,7 +425,7 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
                 paramts << line << "\n";
             }
             paramts.flush();
-            p->setParams(paramstr);
+            p->setParams(paramstr, p == stimApp()->glWin()->runningPlugin());
             return "";
         } else if (!p) {
             Error() << "SETPARAMS issued on a non-existant plugin";

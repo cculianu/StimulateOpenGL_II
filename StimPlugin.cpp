@@ -21,7 +21,8 @@ softCleanup(false), dontCloseFVarFileAcrossLoops(false), gotNewParams(false), pl
     frameNum = 0x7fffffff;
 	loopCt = 0;
     setObjectName(name);
-    parent->pluginCreated(this);    
+    parent->pluginCreated(this);   
+	needToSaveParamHistory = false;
 }
 
 StimPlugin::~StimPlugin() 
@@ -58,9 +59,10 @@ void StimPlugin::stop(bool doSave, bool useGui, bool softStop)
 		pendingParamHistory.clear();
 		
 		// also, save the actual param history if that's turned-on
-		if (stimApp()->isSaveParamHistory() && paramHistory.size() > 1) {
+		if (stimApp()->isSaveParamHistory() && needToSaveParamHistory && paramHistory.size() > 1) {
 			saveParamHistoryToFile();
 		}
+		needToSaveParamHistory = false;
 	}
 	
 	softCleanup = softStop;
