@@ -29,8 +29,8 @@ win32 {
 }
 
 # Input
-HEADERS += Version.h StimApp.h Util.h RNG.h ConsoleWindow.h GLHeaders.h GLWindow.h ConnectionThread.h StimPlugin.h CalibPlugin.h MovingObjects_Old.h GridPlugin.h MovingGrating.h CheckerFlicker.h ZigguratGauss.h StimParams.h StimGL_SpikeGL_Integration.h FrameVariables.h Flicker.h Flicker_RGBW.h Sawtooth.h DAQ.h TypeDefs.h Shapes.h MovingObjects.h
-SOURCES += main.cpp StimApp.cpp Util.cpp RNG.cpp ConsoleWindow.cpp GLWindow.cpp osdep.cpp ConnectionThread.cpp StimPlugin.cpp CalibPlugin.cpp MovingObjects_Old.cpp GridPlugin.cpp MovingGrating.cpp CheckerFlicker.cpp ZigguratGauss.cpp StimParams.cpp StimGL_SpikeGL_Integration.cpp FrameVariables.cpp Flicker.cpp Flicker_RGBW.cpp Sawtooth.cpp DAQ.cpp Shapes.cpp MovingObjects.cpp
+HEADERS += Version.h StimApp.h Util.h RNG.h ConsoleWindow.h GLHeaders.h GLWindow.h ConnectionThread.h StimPlugin.h CalibPlugin.h MovingObjects_Old.h GridPlugin.h MovingGrating.h CheckerFlicker.h ZigguratGauss.h StimParams.h StimGL_SpikeGL_Integration.h FrameVariables.h Flicker.h Flicker_RGBW.h Sawtooth.h DAQ.h TypeDefs.h Shapes.h MovingObjects.h Movie.h
+SOURCES += main.cpp StimApp.cpp Util.cpp RNG.cpp ConsoleWindow.cpp GLWindow.cpp osdep.cpp ConnectionThread.cpp StimPlugin.cpp CalibPlugin.cpp MovingObjects_Old.cpp GridPlugin.cpp MovingGrating.cpp CheckerFlicker.cpp ZigguratGauss.cpp StimParams.cpp StimGL_SpikeGL_Integration.cpp FrameVariables.cpp Flicker.cpp Flicker_RGBW.cpp Sawtooth.cpp DAQ.cpp Shapes.cpp MovingObjects.cpp Movie.cpp
 
 FORMS += SpikeGLIntegration.ui ParamDefaultsWindow.ui
 

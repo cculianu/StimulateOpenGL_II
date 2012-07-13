@@ -500,6 +500,8 @@ StimPlugin *GLWindow::pluginFind(const QString &name, bool casesensitive)
 #include "Sawtooth.h"
 #include "MovingObjects_Old.h"
 #include "MovingObjects.h"
+#include "Movie.h"
+
 void GLWindow::initPlugins()
 {
     Log() << "Initializing plugins...";
@@ -516,7 +518,7 @@ void GLWindow::initPlugins()
 	new Sawtooth();       // experiment plugin.. the sawtooth generator!
     new MovingObjects_Old();  // experiment plugin.. bouncey square!
 	new MovingObjects();   // experiment plugin.. bouncey square, ellipses, and spheres on steroids!
-
+    new Movie(); // plays GIF animation movies!
     // TODO: more plugins here
 
     Log() << "Initialized " << pluginsList.size() << " plugins.";

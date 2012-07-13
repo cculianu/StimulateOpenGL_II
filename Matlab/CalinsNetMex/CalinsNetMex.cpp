@@ -91,7 +91,7 @@ void tryConnection(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   bool ok = false;
   try {
     ok = nc->connect();
-    nc->setSocketOption(Socket::TCPNoDelay, true);
+    if (ok) nc->setSocketOption(Socket::TCPNoDelay, true);
   } catch (const SocketException & e) {
     const std::string why (e.why());
     if (why.length()) mexWarnMsgTxt(why.c_str());
