@@ -21,7 +21,7 @@ struct Context {
 		setImgLast(0); 
 	}
 	void setImgLast(gdImagePtr img) {
-		if (imgLast) gdImageDestroy(imgLast);
+		if (imgLast && imgLast != img) gdImageDestroy(imgLast);
 		imgLast = img;
 	}
 	void endAnimCloseFile() {
@@ -29,7 +29,12 @@ struct Context {
 			if (imgLast) {
 				mexPrintf("%d x %d animated GIF, %d frames, written to %s\n", imgLast->sx, imgLast->sy, frameCt, fileName.c_str());
 			}			
-			if (needAnimEnd) gdImageGifAnimEnd(outf);
+			if (needAnimEnd) {
+				if (frameCt == 1 && imgLast)
+					gdImageGif(imgLast, outf);
+				else
+					gdImageGifAnimEnd(outf);
+			}
 			needAnimEnd = false;
 			fclose(outf); 
 			outf = 0; 
@@ -169,14 +174,14 @@ void addFrame(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 			
 			switch(clsid) {
 				case mxCHAR_CLASS:
-				case mxINT8_CLASS: color = ((signed char *)m)[y*sx + x] + 128; break;
+				case mxINT8_CLASS: color = static_cast<int>(((signed char *)m)[y*sx + x]) + 128; break;
 				case mxUINT8_CLASS: color = ((unsigned char *)m)[y*sx + x]; break;
 				case mxINT16_CLASS: color = ((short *)m)[y*sx + x]; break;
 				case mxUINT16_CLASS: color = ((unsigned short *)m)[y*sx + x]; break;
 				case mxUINT32_CLASS: color = ((unsigned int *)m)[y*sx + x]; break;
 				case mxINT32_CLASS: color = ((int *)m)[y*sx + y]; break;
-				case mxDOUBLE_CLASS: color = ((double *)m)[y*sx + x] * 256.; break;
-				case mxSINGLE_CLASS: color = ((float *)m)[y*sx + x] * 256.; break;
+				case mxDOUBLE_CLASS: color = ((double *)m)[y*sx + x] * 255.; break;
+				case mxSINGLE_CLASS: color = ((float *)m)[y*sx + x] * 255.; break;
 				default:
 					gdImageDestroy(img);
 					mexErrMsgTxt("Argument 2 must be a matrix of numeric type.");
@@ -188,8 +193,13 @@ void addFrame(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	}
 	
 	if (!c->imgLast) {
-		gdImageGifAnimBegin(img, c->outf, 1, 0xffff);
+		c->setImgLast(img);
+		// defer call to gdImageGifAnimBegin because we may only get 1 frame total, in which case we
+		// will just write out the GIF using gfImageGif..
 	} else {
+		if (c->frameCt == 1)
+			// we got more than 1 frame already, so we do an 'anim'
+			gdImageGifAnimBegin(c->imgLast, c->outf, 1, 0xffff);
 		gdImageGifAnimAdd(img, c->outf, 1, 0, 0, 0, 1, c->imgLast);
 	}
 	c->setImgLast(img);
