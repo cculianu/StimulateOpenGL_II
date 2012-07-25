@@ -38,6 +38,7 @@ struct Context {
 			needAnimEnd = false;
 			fclose(outf); 
 			outf = 0; 
+			setImgLast(0);
 		}
 	}
 };
@@ -124,7 +125,7 @@ void createNewContext(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]
 		std::string msg = std::string("Cannot open specified file for writing: ") + strerror(err); 
 		mexErrMsgTxt(msg.c_str());
 	}
-	int h = ctxId++;
+	int h = ++ctxId;
 	MapPut(h, c);
 	RETURN(h);
 }
@@ -197,9 +198,11 @@ void addFrame(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		// defer call to gdImageGifAnimBegin because we may only get 1 frame total, in which case we
 		// will just write out the GIF using gfImageGif..
 	} else {
-		if (c->frameCt == 1)
+		if (c->frameCt == 1) {
 			// we got more than 1 frame already, so we do an 'anim'
 			gdImageGifAnimBegin(c->imgLast, c->outf, 1, 0xffff);
+			gdImageGifAnimAdd(c->imgLast, c->outf, 1, 0, 0, 0, 1, c->imgLast);
+		}
 		gdImageGifAnimAdd(img, c->outf, 1, 0, 0, 0, 1, c->imgLast);
 	}
 	c->setImgLast(img);
