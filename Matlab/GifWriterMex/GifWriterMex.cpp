@@ -169,14 +169,14 @@ void addFrame(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 			
 			switch(clsid) {
 				case mxCHAR_CLASS:
-				case mxINT8_CLASS: color = ((signed char *)m)[x*sy + y] + 128; break;
-				case mxUINT8_CLASS: color = ((unsigned char *)m)[x*sy + y]; break;
-				case mxINT16_CLASS: color = ((short *)m)[x*sy + y]; break;
-				case mxUINT16_CLASS: color = ((unsigned short *)m)[x*sy + y]; break;
-				case mxUINT32_CLASS: color = ((unsigned int *)m)[x*sy + y]; break;
-				case mxINT32_CLASS: color = ((int *)m)[x*sy + y]; break;
-				case mxDOUBLE_CLASS: color = ((double *)m)[x*sy + y] * 256.; break;
-				case mxSINGLE_CLASS: color = ((float *)m)[x*sy + y] * 256.; break;
+				case mxINT8_CLASS: color = ((signed char *)m)[y*sx + x] + 128; break;
+				case mxUINT8_CLASS: color = ((unsigned char *)m)[y*sx + x]; break;
+				case mxINT16_CLASS: color = ((short *)m)[y*sx + x]; break;
+				case mxUINT16_CLASS: color = ((unsigned short *)m)[y*sx + x]; break;
+				case mxUINT32_CLASS: color = ((unsigned int *)m)[y*sx + x]; break;
+				case mxINT32_CLASS: color = ((int *)m)[y*sx + y]; break;
+				case mxDOUBLE_CLASS: color = ((double *)m)[y*sx + x] * 256.; break;
+				case mxSINGLE_CLASS: color = ((float *)m)[y*sx + x] * 256.; break;
 				default:
 					gdImageDestroy(img);
 					mexErrMsgTxt("Argument 2 must be a matrix of numeric type.");
