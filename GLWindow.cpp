@@ -420,7 +420,8 @@ void GLWindow::paintGL()
 		}
 
 		// pending param history & realtime param update support here
-		running->doRealtimeParamUpdateHousekeeping();
+		if (running)
+			running->doRealtimeParamUpdateHousekeeping();
     }
     
 }

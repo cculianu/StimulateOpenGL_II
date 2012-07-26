@@ -10,6 +10,7 @@
 #include <QSemaphore>
 #include <QVector>
 #include <QList>
+#include "Util.h"
 
 class GLWindow;
 class BlenderThread;
@@ -27,6 +28,10 @@ class Movie : public StimPlugin
 
     bool loop;
     	
+public:
+	
+    void stop(bool doSave = false, bool use_gui = false, bool softStop = false);
+
 protected:
     Movie(); ///< can only be constructed by our friend class
 
@@ -38,9 +43,11 @@ protected:
 	/* virtual */ void cleanup();
 	
 private:
-	bool initFromParams();
+	bool initFromParams(bool skipfboinit = false);
 	void stopAllThreads();
 	QByteArray popOneFrame();
+	void drawFrameUsingDrawPixels();
+	void drawFrameUsingFBOTexture();
     
 	QMutex imgReaderMut;
     QImageReader imgReader;
@@ -55,9 +62,20 @@ private:
 	QList<QThread *> threads;
 	QSemaphore sem;
 	
-	bool is8bit;
+	bool is8bit, inAfterVSync, pendingStop;
     int xoff, yoff;
 	volatile bool movieEnded;
+	
+	
+	bool initFBOs();
+	void cleanupFBOs();
+	bool preloadNextFrameToFBO();
+	
+	static const int nfbo = 2;
+	GLuint fbos[nfbo], texs[nfbo];
+	int fboctr;
+	GLint ifmt, fmt, type, vertices[8], texCoords[8];
+	bool usefbo;
 };
 
 
