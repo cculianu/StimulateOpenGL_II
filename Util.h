@@ -103,6 +103,9 @@ extern double random(double min = 0., double max = 1.);
 
 /// returns a QString signifying the last error error
 extern QString glGetErrorString(int err);
+	
+/// returns true on success, false on error and prints an error message to Error()
+extern bool glCheckFBStatus();
 
 /// returns the number of seconds since this machine last rebooted
 extern unsigned getUpTime();

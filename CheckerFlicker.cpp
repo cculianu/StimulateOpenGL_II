@@ -253,30 +253,6 @@ CheckerFlicker::~CheckerFlicker()
     cleanupFCs();
 }
 
-static
-bool checkFBStatus()
-{
-    int status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
-    switch(status)
-    {
-    case GL_FRAMEBUFFER_COMPLETE_EXT:
-        return true;
-
-    case GL_FRAMEBUFFER_UNSUPPORTED_EXT:
-        Error() << "FBO: unsupported error";
-        return false;
-
-    case GL_INVALID_FRAMEBUFFER_OPERATION_EXT:
-        Error() << "FBO: invalid framebuffer operation";
-        return false;
-
-    default:
-        Error() << "FBO: unknown error";
-        return false;
-    }
-    return true;
-}
-
 
 Rand_Gen CheckerFlicker::parseRandGen(const QString & rgen) const
 {
@@ -562,7 +538,7 @@ bool CheckerFlicker::applyNewParamsAtRuntime()
 
 bool CheckerFlicker::initFBO()
 {
-            if ( !checkFBStatus() ) {
+            if ( !glCheckFBStatus() ) {
                 Error() << "`FBO' mode is selected but the implementation doesn't support framebuffer objects.";
                 return false;
             }
@@ -587,7 +563,7 @@ bool CheckerFlicker::initFBO()
 			frames.resize(fbo);
 	
             glGenFramebuffersEXT(fbo, fbos);
-            if ( !checkFBStatus() ) {
+            if ( !glCheckFBStatus() ) {
                 Error() << "Error after glGenFramebuffersEXT call.";
                 return false;
             }
@@ -634,7 +610,7 @@ bool CheckerFlicker::initFBO()
                     Error() << "GL Error: " << glGetErrorString(err) << " after call to glFramebufferTexture2DEXT";
                     return false;
                 }
-                if ( !checkFBStatus() ) {
+                if ( !glCheckFBStatus() ) {
                     Error() << "`FBO' error associating fbo/tex #" << i;
                     // Re-enable rendering to the window
                     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
@@ -643,7 +619,7 @@ bool CheckerFlicker::initFBO()
 
             }
             
-            if ( !checkFBStatus() ) {
+            if ( !glCheckFBStatus() ) {
                 Error() << "`FBO' error after initialization.";
                 // Re-enable rendering to the window
                 glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);

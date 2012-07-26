@@ -65,6 +65,29 @@ QString glGetErrorString(int err)
     return QString("UNKNOWN: ") + QString::number(err);
 }
 
+bool glCheckFBStatus()
+{
+	int status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+	switch(status)
+	{
+		case GL_FRAMEBUFFER_COMPLETE_EXT:
+			return true;
+			
+		case GL_FRAMEBUFFER_UNSUPPORTED_EXT:
+			Error() << "FBO: unsupported error";
+			return false;
+			
+		case GL_INVALID_FRAMEBUFFER_OPERATION_EXT:
+			Error() << "FBO: invalid framebuffer operation";
+			return false;
+			
+		default:
+			Error() << "FBO: unknown error";
+			return false;
+	}
+	return true;
+}
+
 Log::Log()
     : doprt(true), str(""), s(&str, QIODevice::WriteOnly)
 {
@@ -207,6 +230,6 @@ QString makeUniqueFileName(const QString & prefix, const QString & ext_in)
 		;
 	return fn;	
 }
-
+	
 	
 }
