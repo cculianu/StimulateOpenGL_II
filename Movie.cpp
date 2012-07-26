@@ -161,7 +161,7 @@ void Movie::drawFrame()
 	glPopMatrix();
 	
 	elapsed = 1000.0*(getTime() - t0);
-	//qDebug("frame %d elaped: %f msec", imgct, elapsed);
+	//qDebug("frame %d elapsed: %f msec", poppedframect, elapsed);
 	//if (elapsed > 3.0) {
 	//	Warning() << "frame " << frameNum << " draw time: " << elapsed << " msec exceeds 3ms!";
 	//}
