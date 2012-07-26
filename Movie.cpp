@@ -71,7 +71,7 @@ bool Movie::initFromParams()
         return false;        
     }
     
-	drawnframect = framect = imgct = 0;
+	poppedframect = framect = imgct = 0;
     sz = imgReader.size();
 	movieEnded = false;
 	
@@ -108,17 +108,8 @@ void Movie::afterVSync(bool isSimulated)
 	StimPlugin::afterVSync(isSimulated);
 }
 
-/// test code for 8-bit images where *WE* do the triple-fps blending ourselves..
-void Movie::drawFrame()
-{   
-	
-	double t0 = getTime(), elapsed = 0.;
-	
-	// Done in calling code.. glClear( GL_COLOR_BUFFER_BIT );
-	glPushMatrix();
-    	
-    glRasterPos2i(xoff,yoff);
-    
+QByteArray Movie::popOneFrame()
+{
 	QByteArray frame;
 	int failct = 0;
 	bool endedExit = false;
@@ -128,29 +119,44 @@ void Movie::drawFrame()
 			Log() << "Movie file " << imgReader.fileName() << " ended.";
 			endedExit = true;
 			break;
-		} else if (blendedFrames.size() == 0 || blendedFrames.begin().key() != drawnframect) {
+		} else if (blendedFrames.size() == 0 || blendedFrames.begin().key() != poppedframect) {
 			QWaitCondition sleep;
 			sleep.wait(&blendedFramesMut, 1);   // 1 ms
 			++failct;
 		} else {
 			frame = blendedFrames.begin().value();
 			blendedFrames.erase(blendedFrames.begin());
+			++poppedframect;
+			sem.release(1);
 		}
 		blendedFramesMut.unlock();
 	}
 	if (endedExit) {
 		stop();
-		return;
+		return QByteArray();
 	}
-	if (failct >= 1000) {
+	if (failct >= 1000 && frame.isNull()) {
 		Error() << "INTERNAL ERROR IN MOVIE PLUGIN: could not grab a frame from the queue.  FIXME!";
 		stop();
-		return;
+		return QByteArray();
 	}
+	return frame;
+}
+
+/// test code for 8-bit images where *WE* do the triple-fps blending ourselves..
+void Movie::drawFrame()
+{   
+	double t0 = getTime(), elapsed = 0.;
 	
-	glDrawPixels(sz.width(), sz.height(), GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, frame.constData());
-	++drawnframect;
-	sem.release(1);
+	// Done in calling code.. glClear( GL_COLOR_BUFFER_BIT );
+	glPushMatrix();
+    	
+    glRasterPos2i(xoff,yoff);
+    
+	QByteArray frame ( popOneFrame() );
+	
+	if (!frame.isNull()) 	
+		glDrawPixels(sz.width(), sz.height(), GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, frame.constData());
 	
 	glPopMatrix();
 	
@@ -159,7 +165,6 @@ void Movie::drawFrame()
 	//if (elapsed > 3.0) {
 	//	Warning() << "frame " << frameNum << " draw time: " << elapsed << " msec exceeds 3ms!";
 	//}
-	
 }
 
 void Movie::stopAllThreads()

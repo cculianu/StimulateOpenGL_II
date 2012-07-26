@@ -40,13 +40,14 @@ protected:
 private:
 	bool initFromParams();
 	void stopAllThreads();
+	QByteArray popOneFrame();
     
 	QMutex imgReaderMut;
     QImageReader imgReader;
 	QSize sz;
 	volatile int imgct, framect;
 	
-	int drawnframect;
+	int poppedframect;
 	
 	QMutex blendedFramesMut;
 	QMap<int,QByteArray> blendedFrames;
