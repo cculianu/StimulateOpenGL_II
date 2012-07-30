@@ -1,7 +1,7 @@
 #ifndef Version_H
 #define Version_H
 
-#define VERSION 0x20120726
-#define VERSION_STR "StimulateOpenGL II v.20120726"
+#define VERSION 0x20120730
+#define VERSION_STR "StimulateOpenGL II v.20120730"
 
 #endif
