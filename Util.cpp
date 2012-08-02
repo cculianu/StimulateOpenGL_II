@@ -10,18 +10,10 @@
 #include <QThread>
 #include <QFile>
 #include <iostream>
+#include "GLHeaders.h"
 #include "StimApp.h"
 #include "Util.h"
 #include "GLWindow.h"
-#ifdef Q_OS_WIN
-#include <windows.h>
-#include <wingdi.h>
-#endif
-#ifdef Q_WS_MACX
-#  include <gl.h>
-#else
-#  include <GL/gl.h>
-#endif
 
 namespace Util {
 

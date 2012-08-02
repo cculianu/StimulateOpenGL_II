@@ -1,17 +1,7 @@
 #ifndef StimPlugin_H
 #define StimPlugin_H
 #include <QObject>
-#ifdef Q_OS_WIN
-#include <windows.h>
-#include <wingdi.h>
-#endif
-#ifdef Q_WS_MACX
-#  include <gl.h>
-#  include <glu.h>
-#else
-#  include <GL/gl.h>
-#  include <GL/glu.h>
-#endif
+#include "GLHeaders.h"
 
 // --- NB: these headers are included here so that plugin writers don't 
 //         have to worry

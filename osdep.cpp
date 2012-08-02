@@ -1,4 +1,5 @@
 #include "Util.h"
+#include "GLHeaders.h"
 #include "StimApp.h"
 #include "GLWindow.h"
 
@@ -534,3 +535,82 @@ unsigned  setCurrentThreadAffinityMask(unsigned mask)
 #endif
 
 }
+	
+	
+#ifdef Q_OS_WIN /* Hack for now to get windows to see the framebuffer ext stuff */
+#if defined(__GNUC__ ) || defined(_MSC_VER)
+	GLAPI void APIENTRY glDeleteFramebuffersEXT (GLsizei s, const GLuint *a)
+	{
+		typedef void (APIENTRY *Fun_t)(GLsizei, const GLuint *);
+		static Fun_t fun = 0;
+		if (!fun) fun = (Fun_t)wglGetProcAddress("glDeleteFramebuffersEXT");
+		if (!fun) {
+			Error() << "glDeleteFramebuffersEXT not found";
+		} else
+			fun(s,a);
+	}
+	GLAPI void APIENTRY glGenFramebuffersEXT (GLsizei s, GLuint *a)
+	{
+		typedef void (APIENTRY *Fun_t)(GLsizei, GLuint *); 
+		static Fun_t fun = 0;
+		if (!fun) fun =  (Fun_t)wglGetProcAddress("glGenFramebuffersEXT");
+		if (!fun) {
+			Error() << "glGenFramebuffersEXT not found";
+		} else
+			fun(s,a);
+	}
+	GLAPI GLenum APIENTRY glCheckFramebufferStatusEXT (GLenum e)
+	{
+		typedef GLenum (APIENTRY *Fun_t)(GLenum);
+		static Fun_t fun = 0;
+		if (!fun) fun = (Fun_t)wglGetProcAddress("glCheckFramebufferStatusEXT");
+		if (!fun) {
+			Error() << "glCheckFramebufferStatusEXT not found";        
+		} else
+			return fun(e);
+		return GL_INVALID_FRAMEBUFFER_OPERATION_EXT;
+	}
+	GLAPI void APIENTRY glFramebufferTexture2DEXT (GLenum a, GLenum b, GLenum c, GLuint d, GLint e)
+	{
+		typedef void (APIENTRY *Fun_t) (GLenum a, GLenum b, GLenum c, GLuint d, GLint e);
+		static Fun_t fun = 0;
+		if (!fun) fun = (Fun_t)wglGetProcAddress("glFramebufferTexture2DEXT");
+		if (!fun) {
+			Error() << "glFramebufferTexture2DEXT not found";        
+		} else
+			fun(a,b,c,d,e);
+	}
+	GLAPI void APIENTRY glGenerateMipmapEXT (GLenum e)
+	{
+		typedef void (APIENTRY *Fun_t)(GLenum);
+		static Fun_t fun = 0;
+		if (!fun) fun = (Fun_t)wglGetProcAddress("glGenerateMipmapEXT");
+		if (!fun) {
+			Error() << "glGenerateMipmapEXT not found";        
+		} else
+			fun(e);
+	}
+	GLAPI void APIENTRY glBindFramebufferEXT (GLenum a, GLuint e)
+	{
+		typedef void (APIENTRY *Fun_t) (GLenum a, GLuint e); 
+		static Fun_t fun = 0;
+		if (!fun) fun = (Fun_t)wglGetProcAddress("glBindFramebufferEXT");
+		if (!fun) {
+			Error() << "glBindFramebufferEXT not found";        
+		} else
+			fun(a,e);
+	}
+	
+	GLAPI void APIENTRY glGetBufferParameterivARB(GLenum a, GLenum b, GLint *i)
+	{
+		typedef void (APIENTRY *Fun_t) (GLenum, GLenum, GLint *); 
+		static Fun_t fun = 0;
+		if (!fun) fun = (Fun_t)wglGetProcAddress("glGetBufferParameterivARB");
+		if (!fun) {
+			Error() << "glGetBufferParameterivARB not found";        
+		} else
+			fun(a,b,i);
+	}
+#endif	
+#endif
+	

@@ -70,9 +70,9 @@ private:
 	bool initFBOs();
 	void cleanupFBOs();
 	bool preloadNextFrameToFBO();
-	
-	static const int nfbo = 2;
-	GLuint fbos[nfbo], texs[nfbo];
+
+#define MOVIE_NUM_FBO 2
+	GLuint fbos[MOVIE_NUM_FBO], texs[MOVIE_NUM_FBO];
 	int fboctr;
 	GLint ifmt, fmt, type, vertices[8], texCoords[8];
 	bool usefbo;

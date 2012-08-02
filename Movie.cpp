@@ -1,9 +1,9 @@
+#include "GLHeaders.h"
 #include "Movie.h"
 #include "Util.h"
 #include <QFile>
 #include <QMutexLocker>
 #include <QWaitCondition>
-
 
 #define FRAME_QUEUE_SIZE 100
 
@@ -30,9 +30,6 @@ private:
 	Movie *m;
 	int threadid;
 };
-
-
-/* static */ const int Movie::nfbo;
 
 Movie::Movie()
     : StimPlugin("Movie"), loop(true), imgct(0), framect(0), xoff(0), yoff(0)
@@ -72,10 +69,13 @@ bool Movie::initFromParams(bool skipfboinit)
 		return false;
 	}
 	
+#if QT_VERSION >= 0x040500	
 	if (!imgReader.supportsAnimation() || imgReader.imageCount() <= 1) {
 		Error() << "movie file not an animation!  Use an animated GIF with at least 2 frames!" ;
 		return false;        
 	}
+#endif
+
 	
 	poppedframect = framect = imgct = 0;
 	sz = imgReader.size();
@@ -91,8 +91,17 @@ bool Movie::initFromParams(bool skipfboinit)
 	else yoff = (height() - sz.height()) / 2;
 	if (xoff < 0) xoff = 0;
 	if (yoff < 0) yoff = 0;
-	is8bit = imgReader.imageFormat() == QImage::Format_Indexed8; 
 
+#if QT_VERSION <  0x040500
+#error Movie plugin requires Qt 4.5 or newer!  Please install the latest Qt from the Nokia Qt website!
+#endif
+	
+#if QT_VERSION >= 0x040500
+	is8bit = imgReader.imageFormat() == QImage::Format_Indexed8; 
+#else
+	is8bit = true
+#endif
+	
 	for (QList<QThread *>::iterator it = threads.begin(); it != threads.end(); ++it) 
 		(*it)->start();
 
@@ -260,14 +269,14 @@ bool Movie::initFBOs()
 	}
 	
 	glGetError(); // clear error flag
-	Log() << "`FBO' mode enabled, generating " << nfbo << " FBO textures  (please wait)..";
+	Log() << "`FBO' mode enabled, generating " << MOVIE_NUM_FBO << " FBO textures  (please wait)..";
 	Status() << "Generating texture cache ...";
 	
 	stimApp()->console()->update(); // ensure message is printed
 	stimApp()->processEvents(QEventLoop::ExcludeUserInputEvents); // ensure message is printed
 	const double t0 = getTime();
 	
-	glGenFramebuffersEXT(nfbo, fbos);
+	glGenFramebuffersEXT(MOVIE_NUM_FBO, fbos);
 	if ( !glCheckFBStatus() ) {
 		Error() << "Error after glGenFramebuffersEXT call.";
 		return false;
@@ -277,13 +286,13 @@ bool Movie::initFBOs()
 		Error() << "GL Error: " << glGetErrorString(err) << " after call to glGenFramebuffersEXT";
 		return false;
 	}
-	glGenTextures(nfbo, texs);
+	glGenTextures(MOVIE_NUM_FBO, texs);
 	if ((err=glGetError())) {
 		Error() << "GL Error: " << glGetErrorString(err) << " after call to glGenTextures";
 		return false;
 	}
 	// initialize the off-screen VRAM-based textures
-	for (int i = 0; i < nfbo; ++i) {
+	for (int i = 0; i < MOVIE_NUM_FBO; ++i) {
 		glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[i]);
 		if ((err=glGetError())) {
 			Error() << "GL Error: " << glGetErrorString(err) << " after call to glBindTexture";
@@ -301,7 +310,7 @@ bool Movie::initFBOs()
 		
 	}
 	// setup framebuffers-to-texture association
-	for (int i = 0; i < nfbo; ++i) {
+	for (int i = 0; i < MOVIE_NUM_FBO; ++i) {
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbos[i]);
 		if ((err=glGetError())) {
 			Error() << "GL Error: " << glGetErrorString(err) << " after call to glBindFramebufferEXT";
@@ -357,7 +366,7 @@ bool Movie::preloadNextFrameToFBO()
 {
 	double t0 = getTime(), elapsed;
 	
-	const int i = (++fboctr) % nfbo;
+	const int i = (++fboctr) % MOVIE_NUM_FBO;
 	
 	// enable rendering to the FBO
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbos[i]);
@@ -390,8 +399,8 @@ bool Movie::preloadNextFrameToFBO()
 
 void Movie::cleanupFBOs()
 {
-	glDeleteFramebuffersEXT(nfbo, fbos); // it's weird.. you have to detach the texture from the FBO first, before deleting the texture itself
-	glDeleteTextures(nfbo, texs);
+	glDeleteFramebuffersEXT(MOVIE_NUM_FBO, fbos); // it's weird.. you have to detach the texture from the FBO first, before deleting the texture itself
+	glDeleteTextures(MOVIE_NUM_FBO, texs);
 	memset(fbos, 0, sizeof(fbos));
 	memset(texs, 0, sizeof(texs));
 	// Make sure rendering to the window is on, just in case
@@ -406,7 +415,7 @@ void Movie::drawFrameUsingFBOTexture()
 	
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	glEnable(GL_TEXTURE_RECTANGLE_ARB);
-	glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[fboctr%nfbo]);
+	glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[fboctr%MOVIE_NUM_FBO]);
 	glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	
