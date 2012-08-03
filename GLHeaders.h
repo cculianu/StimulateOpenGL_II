@@ -8,6 +8,7 @@
  */
 #ifndef GLHeaders_H
 #define GLHeaders_H
+
 #define GL_GLEXT_PROTOTYPES
 #include <QGLContext>
 #ifdef Q_OS_WIN
@@ -28,7 +29,7 @@
 #  endif
 #  include <GL/glu.h>
 #endif
-#endif
+
 /* These #defines are needed because the stupid MinGW headers are 
  OpenGL 1.1 only.. but the actual Windows lib has OpenGL 2               */
 #ifndef GL_BGRA
@@ -57,27 +58,69 @@
 #ifndef GLAPI
 #define GLAPI 
 #endif
+#ifndef GL_MAX_COLOR_ATTACHMENTS_EXT
 #define GL_MAX_COLOR_ATTACHMENTS_EXT      0x8CDF
+#endif
+#ifndef GL_COLOR_ATTACHMENT0_EXT
 #define GL_COLOR_ATTACHMENT0_EXT          0x8CE0
+#endif
+#ifndef GL_COLOR_ATTACHMENT1_EXT
 #define GL_COLOR_ATTACHMENT1_EXT          0x8CE1
+#endif
+#ifndef GL_COLOR_ATTACHMENT2_EXT
 #define GL_COLOR_ATTACHMENT2_EXT          0x8CE2
+#endif
+#ifndef GL_COLOR_ATTACHMENT3_EXT
 #define GL_COLOR_ATTACHMENT3_EXT          0x8CE3
+#endif
+#ifndef GL_COLOR_ATTACHMENT4_EXT
 #define GL_COLOR_ATTACHMENT4_EXT          0x8CE4
+#endif
+#ifndef GL_COLOR_ATTACHMENT5_EXT
 #define GL_COLOR_ATTACHMENT5_EXT          0x8CE5
+#endif
+#ifndef GL_COLOR_ATTACHMENT6_EXT
 #define GL_COLOR_ATTACHMENT6_EXT          0x8CE6
+#endif
+#ifndef GL_COLOR_ATTACHMENT7_EXT
 #define GL_COLOR_ATTACHMENT7_EXT          0x8CE7
+#endif
+#ifndef GL_COLOR_ATTACHMENT8_EXT
 #define GL_COLOR_ATTACHMENT8_EXT          0x8CE8
+#endif
+#ifndef GL_COLOR_ATTACHMENT9_EXT
 #define GL_COLOR_ATTACHMENT9_EXT          0x8CE9
+#endif
+#ifndef GL_COLOR_ATTACHMENT10_EXT
 #define GL_COLOR_ATTACHMENT10_EXT         0x8CEA
+#endif
+#ifndef GL_COLOR_ATTACHMENT11_EXT
 #define GL_COLOR_ATTACHMENT11_EXT         0x8CEB
+#endif
+#ifndef GL_COLOR_ATTACHMENT12_EXT
 #define GL_COLOR_ATTACHMENT12_EXT         0x8CEC
+#endif
+#ifndef GL_COLOR_ATTACHMENT13_EXT
 #define GL_COLOR_ATTACHMENT13_EXT         0x8CED
+#endif
+#ifndef GL_COLOR_ATTACHMENT14_EXT
 #define GL_COLOR_ATTACHMENT14_EXT         0x8CEE
+#endif
+#ifndef GL_COLOR_ATTACHMENT15_EXT
 #define GL_COLOR_ATTACHMENT15_EXT         0x8CEF
+#endif
+#ifndef GL_FRAMEBUFFER_EXT
 #define GL_FRAMEBUFFER_EXT                0x8D40
+#endif
+#ifndef GL_FRAMEBUFFER_COMPLETE_EXT
 #define GL_FRAMEBUFFER_COMPLETE_EXT       0x8CD5
+#endif
+#ifndef GL_FRAMEBUFFER_UNSUPPORTED_EXT
 #define GL_FRAMEBUFFER_UNSUPPORTED_EXT    0x8CDD
+#endif
+#ifndef GL_INVALID_FRAMEBUFFER_OPERATION_EXT
 #define GL_INVALID_FRAMEBUFFER_OPERATION_EXT 0x0506
+#endif
 extern "C" {
  GLAPI void APIENTRY glDeleteFramebuffersEXT (GLsizei, const GLuint *);
  GLAPI void APIENTRY glGenFramebuffersEXT (GLsizei, GLuint *);
@@ -89,4 +132,6 @@ extern "C" {
 
 //#endif // __GNUC__
 #endif // Q_OS_WIN
+
+#endif // GLHeaders_H
 
