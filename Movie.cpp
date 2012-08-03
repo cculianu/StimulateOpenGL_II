@@ -1,6 +1,6 @@
+#include "Util.h"
 #include "GLHeaders.h"
 #include "Movie.h"
-#include "Util.h"
 #include <QFile>
 #include <QMutexLocker>
 #include <QWaitCondition>
