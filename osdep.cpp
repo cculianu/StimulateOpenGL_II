@@ -538,7 +538,7 @@ unsigned  setCurrentThreadAffinityMask(unsigned mask)
 	
 	
 #ifdef Q_OS_WIN /* Hack for now to get windows to see the framebuffer ext stuff */
-#if defined(__GNUC__ ) || defined(_MSC_VER)
+//#if defined(__GNUC__ ) || defined(_MSC_VER)
 	GLAPI void APIENTRY glDeleteFramebuffersEXT (GLsizei s, const GLuint *a)
 	{
 		typedef void (APIENTRY *Fun_t)(GLsizei, const GLuint *);
@@ -611,6 +611,6 @@ unsigned  setCurrentThreadAffinityMask(unsigned mask)
 		} else
 			fun(a,b,i);
 	}
-#endif	
+//#endif	
 #endif
 	

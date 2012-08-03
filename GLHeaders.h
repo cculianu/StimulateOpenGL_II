@@ -53,7 +53,7 @@
 #define GL_BUFFER_SIZE_ARB                0x8764
 #endif
 #ifdef Q_OS_WIN /* Hack for now to get windows to see the framebuffer ext stuff */
-#if defined(__GNUC__ ) || defined(_MSC_VER)
+//#if defined(__GNUC__ ) || defined(_MSC_VER)
 #ifndef GLAPI
 #define GLAPI 
 #endif
@@ -87,6 +87,6 @@ extern "C" {
  GLAPI void APIENTRY glBindFramebufferEXT (GLenum, GLuint);
 }
 
-#endif // __GNUC__
+//#endif // __GNUC__
 #endif // Q_OS_WIN
 
