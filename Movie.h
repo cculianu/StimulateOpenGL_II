@@ -13,7 +13,7 @@
 #include "Util.h"
 
 class GLWindow;
-class BlenderThread;
+class ReaderThread;
 
 /** \brief A plugin that plays a movie as the stim.  
 
@@ -24,7 +24,7 @@ class BlenderThread;
 class Movie : public StimPlugin
 {
 	friend class GLWindow;
-	friend class BlenderThread;
+	friend class ReaderThread;
 
     bool loop;
     	
@@ -46,7 +46,6 @@ private:
 	bool initFromParams(bool skipfboinit = false);
 	void stopAllThreads();
 	QByteArray popOneFrame();
-	void drawFrameUsingDrawPixels();
 	void drawFrameUsingFBOTexture();
     
 	QMutex imgReaderMut;
@@ -56,8 +55,8 @@ private:
 	
 	int poppedframect;
 	
-	QMutex blendedFramesMut;
-	QMap<int,QByteArray> blendedFrames;
+	QMutex readFramesMut;
+	QMap<int,QByteArray> readFrames;
 
 	QList<QThread *> threads;
 	QSemaphore sem;
@@ -69,13 +68,13 @@ private:
 	
 	bool initFBOs();
 	void cleanupFBOs();
-	bool preloadNextFrameToFBO();
+	bool preloadNextTexToFBO();
 
-#define MOVIE_NUM_FBO 2
+#define MOVIE_NUM_FBO 20
 	GLuint fbos[MOVIE_NUM_FBO], texs[MOVIE_NUM_FBO];
 	int fboctr;
 	GLint ifmt, fmt, type, vertices[8], texCoords[8];
-	bool usefbo;
+	int nSubFrames;
 };
 
 

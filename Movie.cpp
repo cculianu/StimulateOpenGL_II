@@ -16,11 +16,11 @@ static void dummySleep(int ms)
 	bs.unlock();
 }
 
-class BlenderThread : public QThread
+class ReaderThread : public QThread
 {
 public:
-	BlenderThread(Movie *m, int threadid) : QThread(m), m(m), threadid(threadid) {}
-	~BlenderThread() {}
+	ReaderThread(Movie *m, int threadid) : QThread(m), m(m), threadid(threadid) {}
+	~ReaderThread() {}
 	
 	volatile bool stop;
 	
@@ -37,7 +37,7 @@ Movie::Movie()
 	int nThreads = int(getNProcessors()) /*- 2*/;
 	if (nThreads < 2) nThreads = 2;
 	for (int i = 0; i < nThreads; ++i) {
-		QThread *t = new BlenderThread(this, i+1);
+		QThread *t = new ReaderThread(this, i+1);
 		threads.push_back(t);
 	}
 }
@@ -45,10 +45,11 @@ Movie::Movie()
 bool Movie::initFromParams(bool skipfboinit)
 {	
 	imgReaderMut.lock();
-	blendedFramesMut.lock();
+	readFramesMut.lock();
 
 	inAfterVSync = false;
 	pendingStop = false;
+	nSubFrames = ((int)fps_mode)+1;
 
 	QString file;
 	
@@ -99,25 +100,33 @@ bool Movie::initFromParams(bool skipfboinit)
 	for (QList<QThread *>::iterator it = threads.begin(); it != threads.end(); ++it) 
 		(*it)->start();
 
-	blendedFrames.clear();
+	readFrames.clear();
 	sem.release(FRAME_QUEUE_SIZE);
 	
 	if (!skipfboinit) {
-		usefbo = initFBOs();
+		bool usefbo = initFBOs();
 		// Re-enable rendering to the window
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);	
+		if (!usefbo) {
+			Error() << "Movie plugin requires FBO support from the OpenGL subsystem.  Please install good OpenGL drivers that support FBO!  Aborting plugin!";
+			return false;
+		}
 	}
 
 	// unlock mutexes to allow threads to proceed
 	imgReaderMut.unlock();
-	blendedFramesMut.unlock();	
+	readFramesMut.unlock();	
 
-	if (usefbo && !skipfboinit && !preloadNextFrameToFBO()) {
-		Error() << "Failed to preload the first frame to the FBO -- aborting plugin!";
-		return false;
+	if (!skipfboinit) {
+		for (int k = 0; k < nSubFrames; ++k) {
+			if (!preloadNextTexToFBO()) {
+				Error() << "Failed to preload the first frame to the FBO -- aborting plugin!";
+				return false;
+			}
+		}
 	}
 
-	Log() << "Movie plugin started using " << threads.count() << " threads to blend frames " << (usefbo ? "+ 2 FBO backbuffers." : "(no FBO support).") ;
+	Log() << "Movie plugin started using " << threads.count() << " threads to blend frames " << MOVIE_NUM_FBO << " FBO backbuffers.";
 
 	return true;	
 }
@@ -142,9 +151,11 @@ void Movie::afterVSync(bool isSimulated)
 {
 	(void)isSimulated;
 	inAfterVSync = true;
-	if (usefbo && !preloadNextFrameToFBO() && !pendingStop) {
-		Error() << "Failed to preload a frame to the FBO -- aborting plugin!";
-		stop();
+	for (int k = 0; k < nSubFrames; ++k) {
+		if (!preloadNextTexToFBO() && !pendingStop) {
+			Error() << "Failed to preload a frame to the FBO -- aborting plugin!";
+			stop();
+		}
 	}
 	StimPlugin::afterVSync(isSimulated);
 	inAfterVSync = false;	
@@ -156,23 +167,23 @@ QByteArray Movie::popOneFrame()
 	int failct = 0;
 	bool endedExit = false;
 	while (frame.isNull() && failct < 1000) {
-		blendedFramesMut.lock();
-		if (blendedFrames.size() == 0 && movieEnded) {
+		readFramesMut.lock();
+		if (readFrames.size() == 0 && movieEnded) {
 			Log() << "Movie file " << imgReader.fileName() << " ended.";
 			endedExit = true;
-			blendedFramesMut.unlock();
+			readFramesMut.unlock();
 			break;
-		} else if (blendedFrames.size() == 0 || blendedFrames.begin().key() != poppedframect) {
+		} else if (readFrames.size() == 0 || readFrames.begin().key() != poppedframect) {
 			QWaitCondition sleep;
-			sleep.wait(&blendedFramesMut, 1);   // 1 ms
+			sleep.wait(&readFramesMut, 1);   // 1 ms
 			++failct;
 		} else {
-			frame = blendedFrames.begin().value();
-			blendedFrames.erase(blendedFrames.begin());
+			frame = readFrames.begin().value();
+			readFrames.erase(readFrames.begin());
 			++poppedframect;
 			sem.release(1);
 		}
-		blendedFramesMut.unlock();
+		readFramesMut.unlock();
 	}
 	if (endedExit) {
 		stop();
@@ -185,30 +196,7 @@ QByteArray Movie::popOneFrame()
 	}
 	return frame;
 }
-
-void Movie::drawFrameUsingDrawPixels()
-{
-	double t0 = getTime(), elapsed = 0.;
 	
-	// Done in calling code.. glClear( GL_COLOR_BUFFER_BIT );
-	glPushMatrix();
-	
-	glRasterPos2i(xoff,yoff);
-	
-	QByteArray frame ( popOneFrame() );
-	
-	if (!frame.isNull()) 	
-		glDrawPixels(sz.width(), sz.height(), GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, frame.constData());
-	
-	glPopMatrix();
-	
-	elapsed = 1000.0*(getTime() - t0);
-	//qDebug("frame %d elapsed: %f msec", poppedframect, elapsed);
-	//if (elapsed > 3.0) {
-	//	Warning() << "frame " << frameNum << " draw time: " << elapsed << " msec exceeds 3ms!";
-	//}	
-}
-
 /// test code for 8-bit images where *WE* do the triple-fps blending ourselves..
 void Movie::drawFrame()
 {   
@@ -218,17 +206,13 @@ void Movie::drawFrame()
 		return;
 	}
 	
-	if (usefbo) {
-		drawFrameUsingFBOTexture();
-	} else { // !usefbo -- use drawpixels method.. which is slower and is prone to dropped frames because it blocks
-		drawFrameUsingDrawPixels();
-	}
+	drawFrameUsingFBOTexture();
 }
 
 void Movie::stopAllThreads()
 {
 	for (QList<QThread *>::iterator it = threads.begin(); it != threads.end(); ++it) {
-		BlenderThread *t = dynamic_cast<BlenderThread *>(*it);
+		ReaderThread *t = dynamic_cast<ReaderThread *>(*it);
 		if (t) {
 			t->stop = true;
 		}
@@ -247,7 +231,7 @@ bool Movie::applyNewParamsAtRuntime()
 void Movie::cleanup()
 {
 	stopAllThreads();
-	blendedFrames.clear();
+	readFrames.clear();
 	cleanupFBOs();
 }
 
@@ -343,10 +327,10 @@ bool Movie::initFBOs()
 		xoff, yoff + h
 	};
 	GLint t[] = {
-		0, 0,
-		w, 0,
+		0, h,
 		w, h,
-		0, h
+		w, 0,
+		0, 0,
 	};
 	
 	memcpy(vertices, v, sizeof(vertices));
@@ -356,7 +340,7 @@ bool Movie::initFBOs()
 	return true;	
 }
 
-bool Movie::preloadNextFrameToFBO()
+bool Movie::preloadNextTexToFBO()
 {
 	double t0 = getTime(), elapsed;
 	
@@ -372,6 +356,7 @@ bool Movie::preloadNextFrameToFBO()
 	glViewport(0, 0, width(), height());
 	// draw to off-screen texture i
 	QByteArray frame = popOneFrame();
+	//t0 = getTime();
 	if (!frame.isNull()) {
 		glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, ifmt, sz.width(), sz.height(), 0, fmt, type, frame.constData());
 		glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
@@ -386,7 +371,7 @@ bool Movie::preloadNextFrameToFBO()
 	
 	elapsed = getTime() - t0;
 	
-	//qDebug("preloadNextFrameToFBO %g ms", elapsed*1000.0);
+	//qDebug("preloadNextTexToFBO %g ms", elapsed*1000.0);
 
 	return !frame.isNull();
 }
@@ -409,16 +394,34 @@ void Movie::drawFrameUsingFBOTexture()
 	
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	glEnable(GL_TEXTURE_RECTANGLE_ARB);
-	glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[fboctr%MOVIE_NUM_FBO]);
-	glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	
 	// render our vertex and coord buffers which don't change.. just the texture changes
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glVertexPointer(2, GL_INT, 0, vertices);
-	glTexCoordPointer(2, GL_INT, 0, texCoords);
-	glDrawArrays(GL_QUADS, 0, 4);
+	
+	GLint saved_cmask[4];
+	glGetIntegerv(GL_COLOR_WRITEMASK, saved_cmask);
+	
+	for (int k = 0; k < nSubFrames; ++k) {
+		const int texnum = (fboctr-(nSubFrames-k)) % MOVIE_NUM_FBO;
+		glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[texnum]);
+		if (!k) {													 
+			glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		}
+		if (fps_mode) {
+			switch (color_order[k]) {
+				case 'r': glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE); break;
+				case 'g': glColorMask(GL_FALSE, GL_TRUE, GL_FALSE, GL_FALSE); break;
+				case 'b': glColorMask(GL_FALSE, GL_FALSE, GL_TRUE, GL_FALSE); break;
+			}
+		}
+		
+		glVertexPointer(2, GL_INT, 0, vertices);
+		glTexCoordPointer(2, GL_INT, 0, texCoords);
+		glDrawArrays(GL_QUADS, 0, 4);
+	}
+	glColorMask(saved_cmask[0], saved_cmask[1], saved_cmask[2], saved_cmask[3]);
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	
@@ -430,99 +433,66 @@ void Movie::drawFrameUsingFBOTexture()
 	//qDebug("drawFrameUsingFBOTexture %g ms", elapsed*1000.0);
 }
 
-void BlenderThread::run() 
+void ReaderThread::run() 
 {
 	bool dostop = false;
 	stop = false;
 	
-	Debug() << "blender thread " << threadid << " started.";
+	Debug() << "reader thread " << threadid << " started.";
 	
 	while (!stop && !dostop) {
 		if (m->sem.tryAcquire(1,250)) {
-			// supports dual/triple fps mode!
-			const int nSubFrames = ((int)m->fps_mode)+1;
 			int framenum;
-			QList<QImage> imgs;
 			
 			m->imgReaderMut.lock();
 		
-			// first, grab all the subframes from the reader as an atomic operation...
-			for (int k = 0; k < nSubFrames; ++k) {
-				
-				QImage img (m->imgReader.read());
-				if (img.isNull()) {
-					if (m->loop && m->fps_mode) {
-						Warning() << "FPS mode is set but the movie file has a number of frames that is not a multiple of the subframe count!";
-					} else {
-						if (!m->movieEnded) {
-							m->movieEnded = true;
-						}
-						//stop();
-						dostop = true;
-						stop = true;
-						break;
+		
+			double t0;
+			
+			t0 = getTime();
+			
+			QImage img (m->imgReader.read());
+			if (img.isNull()) {
+				if (m->loop && m->fps_mode) {
+					//Warning() << "FPS mode is set but the movie file has a number of frames that is not a multiple of the subframe count!";
+				} else {
+					if (!m->movieEnded) {
+						m->movieEnded = true;
 					}
-				}
-				if (!k) framenum = m->framect++;
-				++m->imgct;				
-				imgs.push_back(img);
-				
-				if (m->loop && m->imgct >= m->imgReader.imageCount()) {
-					// loop it.. re-read the image, etc...
-					m->imgReader.setFileName(m->imgReader.fileName());
-					m->imgct = 0;					
+					//stop();
+					dostop = true;
+					stop = true;
+					break;
 				}
 			}
+			framenum = m->framect++;
+			++m->imgct;				
 			
+			if (m->loop && m->imgct >= m->imgReader.imageCount()) {
+				// loop it.. re-read the image, etc...
+				m->imgReader.setFileName(m->imgReader.fileName());
+				m->imgct = 0;					
+			}
+			//qDebug("imgreader %d read time %g ms, frame %d", (int)threadid, (getTime()-t0)*1000., (int)framenum);
 			m->imgReaderMut.unlock();
 			
-			// next, blend them...
+			// next, copy bits to our queue...
 			if (!dostop) {
-				int k = 0;
 				QByteArray pixels;
 				pixels.resize(m->sz.width() * m->sz.height() * 4);
-
-				double t0;
 				
-				t0 = getTime();
+				unsigned char *p = reinterpret_cast<unsigned char *>(pixels.data());
 				
-				for (QList<QImage>::iterator it = imgs.begin(); it != imgs.end(); ++it, ++k) {
-					QImage img(*it);
-					
-					int pxidx(0);
-					if (m->fps_mode) {
-						switch (m->color_order[k]) {
-							case 'r': pxidx = 0; break;
-							case 'g': pxidx = 1; break;
-							case 'b': pxidx = 2; break;
-						}
-					}
-					const int w(img.width()), h(img.height());
-					
-					unsigned char *p = reinterpret_cast<unsigned char *>(pixels.data());
-					
-					for (int y = h-1; y >= 0; --y) {
-						for (int x = 0; x < w; ++x, p += 4) {
-							QRgb rgb = img.pixel(x,y);
-							
-							if (m->fps_mode) {
-								if (!k) *((unsigned int *)p) = 0; // clear entire pixel if first frame in subframe set
-								p[pxidx] = qGray(rgb);
-							} else {
-								p[0] = qRed(rgb);
-								p[1] = qGreen(rgb);
-								p[2] = qBlue(rgb);
-							}					
-							p[3] = 255;
-						}
-					}
-				}
-				//Debug() << "thread " << threadid << ", frame " << framenum << " took " << ((getTime()-t0)*1000.) << " msec to blend";
-				//qDebug("thread %d, frame %d took %g msec to blend", (int)threadid, (int)framenum, ((getTime()-t0)*1000.));
-				m->blendedFramesMut.lock();
-				m->blendedFrames[framenum] = pixels;
-				m->blendedFramesMut.unlock();
+				memcpy(p, img.bits(), pixels.size());
+				
+				m->readFramesMut.lock();
+				m->readFrames[framenum] = pixels;
+				m->readFramesMut.unlock();
 			}
+			
+			//Debug() << "thread " << threadid << ", frame " << framenum << " took " << ((getTime()-t0)*1000.) << " msec to read from file;
+			//qDebug("thread %d, frame %d took %g msec to read from file", (int)threadid, (int)framenum, ((getTime()-t0)*1000.));
+
 		}
 	}
 	

@@ -201,9 +201,9 @@ void addFrame(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		if (c->frameCt == 1) {
 			// we got more than 1 frame already, so we do an 'anim'
 			gdImageGifAnimBegin(c->imgLast, c->outf, 1, 0xffff);
-			gdImageGifAnimAdd(c->imgLast, c->outf, 1, 0, 0, 0, 1, c->imgLast);
+			gdImageGifAnimAdd(c->imgLast, c->outf, 0, 0, 0, 0, 1, c->imgLast);
 		}
-		gdImageGifAnimAdd(img, c->outf, 1, 0, 0, 0, 1, c->imgLast);
+		gdImageGifAnimAdd(img, c->outf, 0, 0, 0, 0, 1, c->imgLast);
 	}
 	c->setImgLast(img);
 	c->needAnimEnd = true;
