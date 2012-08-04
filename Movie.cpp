@@ -69,12 +69,10 @@ bool Movie::initFromParams(bool skipfboinit)
 		return false;
 	}
 	
-#if QT_VERSION >= 0x040500	
 	if (!imgReader.supportsAnimation() || imgReader.imageCount() <= 1) {
 		Error() << "movie file not an animation!  Use an animated GIF with at least 2 frames!" ;
 		return false;        
 	}
-#endif
 
 	
 	poppedframect = framect = imgct = 0;
@@ -96,11 +94,7 @@ bool Movie::initFromParams(bool skipfboinit)
 #error Movie plugin requires Qt 4.5 or newer!  Please install the latest Qt from the Nokia Qt website!
 #endif
 	
-#if QT_VERSION >= 0x040500
 	is8bit = imgReader.imageFormat() == QImage::Format_Indexed8; 
-#else
-	is8bit = true
-#endif
 	
 	for (QList<QThread *>::iterator it = threads.begin(); it != threads.end(); ++it) 
 		(*it)->start();
@@ -358,7 +352,7 @@ bool Movie::initFBOs()
 	memcpy(vertices, v, sizeof(vertices));
 	memcpy(texCoords, t, sizeof(texCoords));
 	
-	Log() << "FBO texture generation completed in " << (getTime()-t0) << " seconds.";
+	Log() << "FBO init completed in " << (getTime()-t0) << " seconds.";
 	return true;	
 }
 
@@ -524,6 +518,7 @@ void BlenderThread::run()
 					}
 				}
 				//Debug() << "thread " << threadid << ", frame " << framenum << " took " << ((getTime()-t0)*1000.) << " msec to blend";
+				//qDebug("thread %d, frame %d took %g msec to blend", (int)threadid, (int)framenum, ((getTime()-t0)*1000.));
 				m->blendedFramesMut.lock();
 				m->blendedFrames[framenum] = pixels;
 				m->blendedFramesMut.unlock();
