@@ -70,7 +70,7 @@ private:
 	void cleanupFBOs();
 	bool preloadNextTexToFBO();
 
-#define MOVIE_NUM_FBO 20
+#define MOVIE_NUM_FBO 6
 	GLuint fbos[MOVIE_NUM_FBO], texs[MOVIE_NUM_FBO];
 	int fboctr;
 	GLint ifmt, fmt, type, vertices[8], texCoords[8];
