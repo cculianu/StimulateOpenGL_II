@@ -41,6 +41,7 @@
 #include <string.h>
 #include <iostream>
 #include <QHostInfo>
+#include <QProcess>
 
 namespace {
     struct Init {
@@ -81,6 +82,16 @@ void setProcessAffinityMask(unsigned mask)
     } else {
         Log() << "Process affinity mask set to: " << QString().sprintf("0x%x",mask);
     }
+}
+unsigned long long getHWPhysMem()
+{
+	MEMORYSTATUSEX memory_status;
+	ZeroMemory(&memory_status, sizeof(MEMORYSTATUSEX));
+	memory_status.dwLength = sizeof(MEMORYSTATUSEX);
+	if (GlobalMemoryStatusEx(&memory_status)) {
+		return memory_status.ullTotalPhys;
+	} 
+	return 512ULL*1024ULL*1024ULL; // return 512 MB?
 }
 #elif defined(Q_OS_LINUX)
 void setRTPriority()
@@ -127,6 +138,19 @@ void setProcessAffinityMask(unsigned mask)
         Log() << "Process affinity mask set to: " << QString().sprintf("0x%x",mask);
     }
 }
+	
+unsigned long long getHWPhysMem()
+{
+	QProcess p;
+	p.start("awk", QStringList() << "/MemTotal/ { print $2 }" << "/proc/meminfo");
+	p.waitForFinished();
+	QString memory = p.readAllStandardOutput();
+	p.close();
+	unsigned long long memory = memory.toULongLong() * 1024ULL;
+	if (!memory) memory = 512*1024*1024;
+	return memory;
+}
+	
 #else /* !WIN and !LINUX */
 void setRTPriority()
 {
@@ -148,7 +172,19 @@ double getTime()
 	struct mach_timebase_info info;
 	mach_timebase_info(&info);
 	return t * (1e-9 * static_cast<double>(info.numer) / static_cast<double>(info.denom) );
-}	
+}
+
+unsigned long long getHWPhysMem()
+{
+	QProcess p;
+	p.start("sysctl", QStringList() << "-n" << "hw.memsize");
+	p.waitForFinished();
+	QString system_info = p.readAllStandardOutput();
+	p.close();
+	unsigned long long mem = system_info.toULongLong();
+	if (!mem) mem = 512ULL*1024ULL*1024ULL;
+	return mem;
+}
 #else
 #include <QTime>
 namespace Util {
@@ -160,6 +196,7 @@ double getTime()
     if (!started) { t.start(); started = true; }
     return double(t.elapsed())/1000.0;
 }
+unsigned long long getHWPhysMem() { return 512ULL*1024ULL*1024ULL; }
 #endif // !Q_OS_DARWIN
 
 #endif 

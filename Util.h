@@ -90,6 +90,9 @@ extern QString getHostName();
 /// turns off Nagle algorithm for socket sock
 extern void socketNoNagle(int sock);
 
+/// returns the number of bytes of physical memory of the current machine.
+extern unsigned long long getHWPhysMem();
+
 /// \brief True if the platform we are running on has a 'get refresh rate' function
 ///
 /// true on Windows 

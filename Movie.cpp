@@ -7,6 +7,7 @@
 #include "GifReader.h"
 
 #define FRAME_QUEUE_SIZE 100
+#define IMAGE_CACHE_SIZE 100*1024*1024 /* 100MB image cache! */
 
 static void dummySleep(int ms) 
 {
@@ -48,12 +49,14 @@ Movie::Movie()
 
 bool Movie::initFromParams(bool skipfboinit)
 {	
-	readFramesMut.lock();
+	readFramesMutex.lock();
 
 	inAfterVSync = false;
 	pendingStop = false;
 	drewAFrame = false;
 	nSubFrames = ((int)fps_mode)+1;
+	imgCache.clear();
+	imgCache.setMaxCost(IMAGE_CACHE_SIZE);
 	
 	if ( !getParam("file", file) ) {
 		Error() << "`file' parameter missing!";
@@ -85,13 +88,17 @@ bool Movie::initFromParams(bool skipfboinit)
 		return false;        		
 	}
 	
-	if (gr.isAnimatedGifNonOptimized()) { // scan file..
-			//Log()("Input movie is non optimized GIF");
-	} else {
-		Error() << "Input movie is an optimized GIF.  This plugin only supports non-optimized GIFs for fast reading!";
+	if (!gr.isAnimatedGifNonOptimized()) { // scan file..
+		Error() << "Input movie is an optimized GIF. (This plugin only supports non-optimized GIFs for fast reading.)  Use the @GifWriter Matlab class to generate non-optimized GIFs for input to this plugin!";
 		return false;
 	}
 	
+	unsigned long long memsize = getHWPhysMem();
+	if (static_cast<unsigned long long>(imgCache.maxCost()) > memsize/2ULL) {
+		Debug() << "Image cache size is too big for physical memory; shrinking to 1/2 of RAM!";
+		imgCache.setMaxCost(static_cast<int>(memsize / 2ULL));
+	}
+	Debug() << "MemSize: " << memsize << ", image cache size: " << imgCache.maxCost();
 	
 	poppedframect = framect = imgct = 0;
 	sz = gr.size();
@@ -120,7 +127,7 @@ bool Movie::initFromParams(bool skipfboinit)
 			rt->reader->setDevice(&rt->iodevice);
 			rt->reader->copyImageLengthsAndOffsets(gr); // copy cached values from existing reader..
 		} else {
-			Error() << "INTERNAL PLUGIN ERROR -- reather thread is not of type ReaderThread!";
+			Error() << "INTERNAL PLUGIN ERROR -- reader thread is not of type ReaderThread!";
 			return false;
 		}
 		(*it)->start();
@@ -140,7 +147,7 @@ bool Movie::initFromParams(bool skipfboinit)
 	}
 
 	// unlock mutex to allow threads to proceed
-	readFramesMut.unlock();	
+	readFramesMutex.unlock();	
 
 	if (!skipfboinit) {
 		for (int k = 0; k < nSubFrames; ++k) {
@@ -196,15 +203,15 @@ QByteArray Movie::popOneFrame()
 	int failct = 0;
 	bool endedExit = false;
 	while (frame.isNull() && failct < 1000) {
-		readFramesMut.lock();
+		readFramesMutex.lock();
 		if (readFrames.size() == 0 && movieEnded) {
 			Log() << "Movie file " << file << " ended.";
 			endedExit = true;
-			readFramesMut.unlock();
+			readFramesMutex.unlock();
 			break;
 		} else if (readFrames.size() == 0 || readFrames.begin().key() != poppedframect) {
 			QWaitCondition sleep;
-			sleep.wait(&readFramesMut, 1);   // 1 ms
+			sleep.wait(&readFramesMutex, 1);   // 1 ms
 			++failct;
 		} else {
 			frame = readFrames.begin().value();
@@ -212,7 +219,7 @@ QByteArray Movie::popOneFrame()
 			++poppedframect;
 			sem.release(1);
 		}
-		readFramesMut.unlock();
+		readFramesMutex.unlock();
 	}
 	if (endedExit) {
 		stop();
@@ -262,6 +269,7 @@ void Movie::cleanup()
 {
 	stopAllThreads();
 	readFrames.clear();
+	imgCache.clear();
 	cleanupFBOs();
 }
 
@@ -480,7 +488,7 @@ void ReaderThread::run()
 			
 			t0 = getTime();
 			
-			m->readFramesMut.lock();
+			m->readFramesMutex.lock();
 			if (m->imgct >= m->animationNumFrames) {
 				if (m->loop)
 					m->imgct = 0;
@@ -490,39 +498,47 @@ void ReaderThread::run()
 			int imgct = m->imgct++;		
 			framenum = m->framect++;
 			bool movieEnded = m->movieEnded;
-			m->readFramesMut.unlock();
+			QByteArray cachedImg;
+			if (m->imgCache.contains(imgct))
+				cachedImg = *(m->imgCache.object(imgct));
+			m->readFramesMutex.unlock();
 			
-			bool readok = false;
-			
-			if (!movieEnded) {
-				
-				// jump the reader to current image
-				readok=reader->randomAccessRead(&img, imgct+1);
-
-			} else {
-				//stop();
+			if (movieEnded) {
 				stop = true;
 				break;
 			}
 			
-			//qDebug("imgreader %d read time %g ms, frame %d", (int)threadid, (getTime()-t0)*1000., (int)framenum);
-			
-			// next, copy bits to our queue...
-			if (readok) {
-				QByteArray pixels;
-				pixels.resize(img.byteCount());
+			if (!cachedImg.isNull()) {
 				
-				unsigned char *p = reinterpret_cast<unsigned char *>(pixels.data());
+				m->readFramesMutex.lock();
+				m->readFrames[framenum] = cachedImg;
+				m->readFramesMutex.unlock();
 				
-				memcpy(p, img.bits(), pixels.size());
+			} else {
+				// img not in cache, so read it from the disk file and enqueue it, and also cache it
+				bool readok = false;
 				
-				m->readFramesMut.lock();
-				m->readFrames[framenum] = pixels;
-				m->readFramesMut.unlock();
+				// jump the reader to current image
+				readok=reader->randomAccessRead(&img, imgct+1);
+				
+				// next, copy bits to our queue...
+				if (readok) {
+					QByteArray *pixels = new QByteArray; // it's ok, the imgCache below will own and auto-delete this object when it goes out-of-cache..
+					pixels->resize(img.byteCount());
+					
+					unsigned char *p = reinterpret_cast<unsigned char *>(pixels->data());
+					
+					memcpy(p, img.bits(), pixels->size());
+					
+					m->readFramesMutex.lock();
+					m->readFrames[framenum] = *pixels; // shallow copy..
+					m->imgCache.insert(imgct, pixels, pixels->size()); // img cache owns object, will delete when emptying..
+					m->readFramesMutex.unlock();
+				}
+				
 			}
 			
-			//Debug() << "thread " << threadid << ", frame " << framenum << " took " << ((getTime()-t0)*1000.) << " msec to read from file;
-			//qDebug("thread %d, frame %d imgnr %d took %g msec to read from file", (int)threadid, (int)framenum, imgct, ((getTime()-t0)*1000.));
+			//qDebug("thread %d, frame %d imgnr %d took %g msec to read from %s", (int)threadid, (int)framenum, imgct, ((getTime()-t0)*1000.),				   cachedImg.isNull() ? "file" : "cache");
 
 		}
 	}

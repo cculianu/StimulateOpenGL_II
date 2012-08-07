@@ -11,6 +11,7 @@
 #include <QVector>
 #include <QList>
 #include "Util.h"
+#include <QCache>
 
 class GLWindow;
 class ReaderThread;
@@ -55,7 +56,7 @@ private:
 	
 	int poppedframect;
 	
-	QMutex readFramesMut;
+	QMutex readFramesMutex;
 	QMap<int,QByteArray> readFrames;
 
 	QList<QThread *> threads;
@@ -74,7 +75,8 @@ private:
 	unsigned char fboctr;
 	GLint ifmt, fmt, type, vertices[8], texCoords[8];
 	int nSubFrames;
-	
+
+	QCache<int,QByteArray> imgCache;
 };
 
 
