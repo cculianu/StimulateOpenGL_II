@@ -4,6 +4,7 @@
 #include <QFile>
 #include <QMutexLocker>
 #include <QWaitCondition>
+#include "GifReader.h"
 
 #define FRAME_QUEUE_SIZE 100
 
@@ -19,10 +20,13 @@ static void dummySleep(int ms)
 class ReaderThread : public QThread
 {
 public:
-	ReaderThread(Movie *m, int threadid) : QThread(m), m(m), threadid(threadid) {}
-	~ReaderThread() {}
+	ReaderThread(Movie *m, int threadid) : QThread(m), reader(0), m(m), threadid(threadid) {}
+	~ReaderThread() { delete reader; reader = 0; }
 	
 	volatile bool stop;
+	
+	GifReader *reader;
+	QFile iodevice;
 	
 protected:
 	void run();
@@ -44,14 +48,12 @@ Movie::Movie()
 
 bool Movie::initFromParams(bool skipfboinit)
 {	
-	imgReaderMut.lock();
 	readFramesMut.lock();
 
 	inAfterVSync = false;
 	pendingStop = false;
+	drewAFrame = false;
 	nSubFrames = ((int)fps_mode)+1;
-
-	QString file;
 	
 	if ( !getParam("file", file) ) {
 		Error() << "`file' parameter missing!";
@@ -63,26 +65,42 @@ bool Movie::initFromParams(bool skipfboinit)
 	}
 	if (!getParam("loop",  loop) ) loop = true;
 
-	imgReader.setFileName(file);
+	QFile f (file);
+	f.open(QIODevice::ReadOnly);
+	if (!f.isOpen()) {
+		Error() << "movie file error, cannot open: " << file;
+		return false;
+		
+	}
+	GifReader gr;
+	gr.setDevice(&f);
 	
-	if (!imgReader.canRead() ) {
-		Error() << "movie file error: " << imgReader.errorString();
+	if (!gr.canRead() ) {
+		Error() << "movie file error: cannot read input file";
+		return false;
+	}
+
+	if (gr.imageCount() < 2) {
+		Error() << "movie file not an animation!  Use an animated GIF with at least 2 frames!" ;
+		return false;        		
+	}
+	
+	if (gr.isAnimatedGifNonOptimized()) { // scan file..
+			//Log()("Input movie is non optimized GIF");
+	} else {
+		Error() << "Input movie is an optimized GIF.  This plugin only supports non-optimized GIFs for fast reading!";
 		return false;
 	}
 	
-	if (!imgReader.supportsAnimation() || imgReader.imageCount() <= 1) {
-		Error() << "movie file not an animation!  Use an animated GIF with at least 2 frames!" ;
-		return false;        
-	}
-
 	
 	poppedframect = framect = imgct = 0;
-	sz = imgReader.size();
+	sz = gr.size();
+	animationNumFrames = gr.imageCount();
 	movieEnded = false;
 	
 	ifmt = GL_RGB;
-	fmt = GL_RGBA;
-	type = GL_UNSIGNED_INT_8_8_8_8_REV;
+	fmt = GL_LUMINANCE;
+	type = GL_UNSIGNED_BYTE;
 	
 	if (lmargin) xoff = lmargin;
 	else xoff = (width() - sz.width()) / 2;
@@ -91,14 +109,22 @@ bool Movie::initFromParams(bool skipfboinit)
 	if (xoff < 0) xoff = 0;
 	if (yoff < 0) yoff = 0;
 
-#if QT_VERSION <  0x040500
-#error Movie plugin requires Qt 4.5 or newer!  Please install the latest Qt from the Nokia Qt website!
-#endif
-	
-	is8bit = imgReader.imageFormat() == QImage::Format_Indexed8; 
-	
-	for (QList<QThread *>::iterator it = threads.begin(); it != threads.end(); ++it) 
+	for (QList<QThread *>::iterator it = threads.begin(); it != threads.end(); ++it) {
+		ReaderThread *rt = dynamic_cast<ReaderThread *>(*it);
+		if (rt) {
+			delete rt->reader;
+			rt->reader = new GifReader;
+			rt->iodevice.close();
+			rt->iodevice.setFileName(file);
+			rt->iodevice.open(QIODevice::ReadOnly);
+			rt->reader->setDevice(&rt->iodevice);
+			rt->reader->copyImageLengthsAndOffsets(gr); // copy cached values from existing reader..
+		} else {
+			Error() << "INTERNAL PLUGIN ERROR -- reather thread is not of type ReaderThread!";
+			return false;
+		}
 		(*it)->start();
+	}
 
 	readFrames.clear();
 	sem.release(FRAME_QUEUE_SIZE);
@@ -113,8 +139,7 @@ bool Movie::initFromParams(bool skipfboinit)
 		}
 	}
 
-	// unlock mutexes to allow threads to proceed
-	imgReaderMut.unlock();
+	// unlock mutex to allow threads to proceed
 	readFramesMut.unlock();	
 
 	if (!skipfboinit) {
@@ -150,15 +175,19 @@ void Movie::stop(bool doSave, bool use_gui, bool softStop)
 void Movie::afterVSync(bool isSimulated)
 {
 	(void)isSimulated;
+	if (!drewAFrame) return;
 	inAfterVSync = true;
-	for (int k = 0; k < nSubFrames; ++k) {
-		if (!preloadNextTexToFBO() && !pendingStop) {
+	bool preloadOk = true;
+	for (int k = 0; preloadOk && k < nSubFrames; ++k) {
+		preloadOk = preloadNextTexToFBO();
+		if ( !preloadOk && !pendingStop) {
 			Error() << "Failed to preload a frame to the FBO -- aborting plugin!";
 			stop();
 		}
 	}
 	StimPlugin::afterVSync(isSimulated);
 	inAfterVSync = false;	
+	drewAFrame = false;
 }
 
 QByteArray Movie::popOneFrame()
@@ -169,7 +198,7 @@ QByteArray Movie::popOneFrame()
 	while (frame.isNull() && failct < 1000) {
 		readFramesMut.lock();
 		if (readFrames.size() == 0 && movieEnded) {
-			Log() << "Movie file " << imgReader.fileName() << " ended.";
+			Log() << "Movie file " << file << " ended.";
 			endedExit = true;
 			readFramesMut.unlock();
 			break;
@@ -207,6 +236,7 @@ void Movie::drawFrame()
 	}
 	
 	drawFrameUsingFBOTexture();
+	drewAFrame = true;
 }
 
 void Movie::stopAllThreads()
@@ -239,7 +269,7 @@ bool Movie::initFBOs()
 {
 	memset(fbos, 0, sizeof(fbos));
 	memset(texs, 0, sizeof(texs));
-	fboctr = 0;
+	fboctr = nSubFrames;
 	
 	if ( !glCheckFBStatus() ) {
 		Error() << "`FBO' mode is selected but the implementation doesn't support framebuffer objects.";
@@ -344,7 +374,7 @@ bool Movie::preloadNextTexToFBO()
 {
 	double t0 = getTime(), elapsed;
 	
-	const int i = (++fboctr) % MOVIE_NUM_FBO;
+	const int i = unsigned(fboctr++) % MOVIE_NUM_FBO;
 	
 	// enable rendering to the FBO
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbos[i]);
@@ -403,7 +433,7 @@ void Movie::drawFrameUsingFBOTexture()
 	glGetIntegerv(GL_COLOR_WRITEMASK, saved_cmask);
 	
 	for (int k = 0; k < nSubFrames; ++k) {
-		const int texnum = (fboctr-(nSubFrames-k)) % MOVIE_NUM_FBO;
+		const int texnum = (unsigned(fboctr)-(nSubFrames-k)) % MOVIE_NUM_FBO;
 		glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[texnum]);
 		if (!k) {													 
 			glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -435,51 +465,52 @@ void Movie::drawFrameUsingFBOTexture()
 
 void ReaderThread::run() 
 {
-	bool dostop = false;
 	stop = false;
 	
 	Debug() << "reader thread " << threadid << " started.";
 	
-	while (!stop && !dostop) {
+	QImage img(m->sz.width(), m->sz.height(), QImage::Format_RGB32);
+	
+	while (!stop) {
 		if (m->sem.tryAcquire(1,250)) {
 			int framenum;
-			
-			m->imgReaderMut.lock();
-		
+					
 		
 			double t0;
 			
 			t0 = getTime();
 			
-			QImage img (m->imgReader.read());
-			if (img.isNull()) {
-				if (m->loop && m->fps_mode) {
-					//Warning() << "FPS mode is set but the movie file has a number of frames that is not a multiple of the subframe count!";
-				} else {
-					if (!m->movieEnded) {
-						m->movieEnded = true;
-					}
-					//stop();
-					dostop = true;
-					stop = true;
-					break;
-				}
+			m->readFramesMut.lock();
+			if (m->imgct >= m->animationNumFrames) {
+				if (m->loop)
+					m->imgct = 0;
+				else
+					m->movieEnded = true;
 			}
+			int imgct = m->imgct++;		
 			framenum = m->framect++;
-			++m->imgct;				
+			bool movieEnded = m->movieEnded;
+			m->readFramesMut.unlock();
 			
-			if (m->loop && m->imgct >= m->imgReader.imageCount()) {
-				// loop it.. re-read the image, etc...
-				m->imgReader.setFileName(m->imgReader.fileName());
-				m->imgct = 0;					
+			bool readok = false;
+			
+			if (!movieEnded) {
+				
+				// jump the reader to current image
+				readok=reader->randomAccessRead(&img, imgct+1);
+
+			} else {
+				//stop();
+				stop = true;
+				break;
 			}
+			
 			//qDebug("imgreader %d read time %g ms, frame %d", (int)threadid, (getTime()-t0)*1000., (int)framenum);
-			m->imgReaderMut.unlock();
 			
 			// next, copy bits to our queue...
-			if (!dostop) {
+			if (readok) {
 				QByteArray pixels;
-				pixels.resize(m->sz.width() * m->sz.height() * 4);
+				pixels.resize(img.byteCount());
 				
 				unsigned char *p = reinterpret_cast<unsigned char *>(pixels.data());
 				
@@ -491,15 +522,12 @@ void ReaderThread::run()
 			}
 			
 			//Debug() << "thread " << threadid << ", frame " << framenum << " took " << ((getTime()-t0)*1000.) << " msec to read from file;
-			//qDebug("thread %d, frame %d took %g msec to read from file", (int)threadid, (int)framenum, ((getTime()-t0)*1000.));
+			//qDebug("thread %d, frame %d imgnr %d took %g msec to read from file", (int)threadid, (int)framenum, imgct, ((getTime()-t0)*1000.));
 
 		}
 	}
-	
-	if (dostop) {
-		// TODO signal STOP of plugin in a thread-safe manner!
-	}
-	
-	Debug() << "blender thread " << threadid << " stopped.";
+	delete reader;
+	reader = 0;
+	Debug() << "reader thread " << threadid << " stopped.";
 
 }

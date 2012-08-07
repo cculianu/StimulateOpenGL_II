@@ -47,9 +47,9 @@ private:
 	void stopAllThreads();
 	QByteArray popOneFrame();
 	void drawFrameUsingFBOTexture();
-    
-	QMutex imgReaderMut;
-    QImageReader imgReader;
+
+    QString file;
+	int animationNumFrames;
 	QSize sz;
 	volatile int imgct, framect;
 	
@@ -61,10 +61,9 @@ private:
 	QList<QThread *> threads;
 	QSemaphore sem;
 	
-	bool is8bit, inAfterVSync, pendingStop;
+	bool inAfterVSync, pendingStop, drewAFrame;
     int xoff, yoff;
 	volatile bool movieEnded;
-	
 	
 	bool initFBOs();
 	void cleanupFBOs();
@@ -72,9 +71,10 @@ private:
 
 #define MOVIE_NUM_FBO 6
 	GLuint fbos[MOVIE_NUM_FBO], texs[MOVIE_NUM_FBO];
-	int fboctr;
+	unsigned char fboctr;
 	GLint ifmt, fmt, type, vertices[8], texCoords[8];
 	int nSubFrames;
+	
 };
 
 
