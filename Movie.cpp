@@ -95,15 +95,23 @@ bool Movie::initFromParams(bool skipfboinit)
 	
 	unsigned long long memsize = getHWPhysMem();
 	if (static_cast<unsigned long long>(imgCache.maxCost()) > memsize/2ULL) {
-		Debug() << "Image cache size is too big for physical memory; shrinking to 1/2 of RAM!";
+		Warning() << "Image cache size is too big for physical memory; shrinking to 1/2 of RAM!";
 		imgCache.setMaxCost(static_cast<int>(memsize / 2ULL));
 	}
 	Debug() << "MemSize: " << memsize << ", image cache size: " << imgCache.maxCost();
-	
 	poppedframect = framect = imgct = 0;
 	sz = gr.size();
 	animationNumFrames = gr.imageCount();
 	movieEnded = false;
+
+	int fqsize = FRAME_QUEUE_SIZE;
+	
+	if (static_cast<unsigned long long>(fqsize * sz.width() * sz.height()) > memsize / 2ULL) {
+		Warning() << "Image queue size is too big for physical memory; shrinking to 1/2 of RAM!";
+		fqsize = static_cast<int>(memsize/2ULL)/(sz.width() * sz.height());
+	}
+	if (fqsize < 10) fqsize = 10;
+	
 	
 	ifmt = GL_RGB;
 	fmt = GL_LUMINANCE;
@@ -134,7 +142,7 @@ bool Movie::initFromParams(bool skipfboinit)
 	}
 
 	readFrames.clear();
-	sem.release(FRAME_QUEUE_SIZE);
+	sem.release(fqsize);
 	
 	if (!skipfboinit) {
 		bool usefbo = initFBOs();
