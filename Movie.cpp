@@ -5,6 +5,8 @@
 #include <QMutexLocker>
 #include <QWaitCondition>
 #include "GifReader.h"
+#include "FastMovieReader.h"
+#include <QScopedPointer>
 
 #define FRAME_QUEUE_SIZE 100
 #define IMAGE_CACHE_SIZE 100*1024*1024 /* 100MB image cache! */
@@ -26,7 +28,7 @@ public:
 	
 	volatile bool stop;
 	
-	GifReader *reader;
+	GenericMovieReader *reader;
 	QFile iodevice;
 	
 protected:
@@ -75,20 +77,35 @@ bool Movie::initFromParams(bool skipfboinit)
 		return false;
 		
 	}
-	GifReader gr;
-	gr.setDevice(&f);
-	
-	if (!gr.canRead() ) {
+	GenericMovieReader *rdr = 0;
+	GifReader *gr = 0;
+	FastMovieReader *fmr = 0;
+	if (FastMovieReader::canRead(file)) {
+		fmr = new FastMovieReader(file);
+		if (!fmr->canRead()) {
+			delete fmr; fmr = 0;
+		}
+		rdr = fmr;
+	}
+	if (!rdr) {
+		gr = new GifReader;
+		gr->setDevice(&f);
+		rdr = gr;
+	}
+
+	QScopedPointer<GenericMovieReader> scopedPtr(rdr);
+
+	if (!rdr->canRead() ) {
 		Error() << "movie file error: cannot read input file";
 		return false;
 	}
 
-	if (gr.imageCount() < 2) {
-		Error() << "movie file not an animation!  Use an animated GIF with at least 2 frames!" ;
+	if (rdr->imageCount() < 2) {
+		Error() << "movie file not an animation!  Use an animated GIF and/or FastMovie file with at least 2 frames!" ;
 		return false;        		
 	}
 	
-	if (!gr.isAnimatedGifNonOptimized()) { // scan file..
+	if (gr && !gr->isAnimatedGifNonOptimized()) { // scan file..
 		Error() << "Input movie is an optimized GIF. (This plugin only supports non-optimized GIFs for fast reading.)  Use the @GifWriter Matlab class to generate non-optimized GIFs for input to this plugin!";
 		return false;
 	}
@@ -100,8 +117,8 @@ bool Movie::initFromParams(bool skipfboinit)
 	}
 	Debug() << "MemSize: " << memsize << ", image cache size: " << imgCache.maxCost();
 	poppedframect = framect = imgct = 0;
-	sz = gr.size();
-	animationNumFrames = gr.imageCount();
+	sz = rdr->size();
+	animationNumFrames = rdr->imageCount();
 	movieEnded = false;
 
 	int fqsize = FRAME_QUEUE_SIZE;
@@ -128,19 +145,28 @@ bool Movie::initFromParams(bool skipfboinit)
 		ReaderThread *rt = dynamic_cast<ReaderThread *>(*it);
 		if (rt) {
 			delete rt->reader;
-			rt->reader = new GifReader;
-			rt->iodevice.close();
-			rt->iodevice.setFileName(file);
-			rt->iodevice.open(QIODevice::ReadOnly);
-			rt->reader->setDevice(&rt->iodevice);
-			rt->reader->copyImageLengthsAndOffsets(gr); // copy cached values from existing reader..
+			if (dynamic_cast<GifReader *>(rdr)) {
+				GifReader *gg = new GifReader;
+				rt->reader = gg;
+				rt->iodevice.close();
+				rt->iodevice.setFileName(file);
+				rt->iodevice.open(QIODevice::ReadOnly);
+				gg->setDevice(&rt->iodevice);
+				gg->copyImageLengthsAndOffsets(*gr); // copy cached values from existing reader..
+			} else {
+				FastMovieReader *f = new FastMovieReader(file);
+				f->canRead(); // scan...
+				rt->reader = f;
+			}
 		} else {
 			Error() << "INTERNAL PLUGIN ERROR -- reader thread is not of type ReaderThread!";
 			return false;
 		}
 		(*it)->start();
 	}
-
+	rdr = 0;
+	gr = 0;
+	fmr = 0;
 	readFrames.clear();
 	sem.release(fqsize);
 	

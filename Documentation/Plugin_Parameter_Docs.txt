@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: July 26, 2012
+Last Updated: August 10, 2012
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -483,12 +483,12 @@ duty_cycle
 
 PLUGIN NOTES
 
-The `Movie' plugin takes as input an animated GIF file which contains 8-bit
-(grayscale) frames.  It plays these frames inside of StimulateOpenGL_II.  Dual 
-and triple FPS modes are rendered in real-time within the plugin, thus the GIF 
-movie should not contain double/triple FPS blended frames; It should just 
-contain 8-bit grayscale frames, and each frame should be the same X,Y size as
-the first.  
+The `Movie' plugin takes as input either a custom .fmv (FastMovie format) file
+or an animated GIF file which contains 8-bit (grayscale) frames.  It plays these
+frames inside of StimulateOpenGL_II.  Dual and triple FPS modes are rendered in 
+real-time within the plugin, thus the movie should not contain double/triple FPS 
+blended frames; It should just contain 8-bit grayscale frames, and each frame 
+should be the same X,Y size as the first.  
 
 Use the `lmargin' and `bmargin' parameters to specify where in the GL window
 to render the movie (in cases where the movie frames are smaller than the GL 
@@ -497,12 +497,13 @@ specified, then the movie is rendered in the center of the plugin window.
 
 The other margin parameters (`tmargin', `rmargin') are ignored.
 
-Use the Matlab `@GifWriter' class to generate acceptable GIF movies from within
-Matlab.
+Use the Matlab `@FastMovieWriter' class to generate .fmv files (which are
+the preferred format and faster than .GIF files), or the `@GifWriter' class to 
+generate acceptable GIF movies from within Matlab.
 
 
 file
-       Synopsis:         Specifies the input GIF file to play.
+       Synopsis:         Specifies the input .FMV or .GIF file to play.
        Datatype:         string
        Possible values:  Any legal file path on the system.
        Default value:    NONE (must be specified)

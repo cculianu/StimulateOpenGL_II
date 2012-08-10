@@ -8,9 +8,10 @@
 #include <QIODevice>
 #include <QImageReader>
 #include <QPoint>
+#include "FastMovieReader.h"
 
 class GIFFormat;
-class GifReader : public QImageIOHandler
+class GifReader : public GenericMovieReader
 {
 public:
     GifReader();
@@ -57,6 +58,4 @@ private:
     mutable bool scanIsCached, isOptimizedIsCached, isOptimized;
 };
 
-QT_END_NAMESPACE
-
-#endif // GifReader_P_H
+#endif // GifReader_H
