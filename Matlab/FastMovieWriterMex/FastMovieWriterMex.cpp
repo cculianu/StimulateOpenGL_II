@@ -11,6 +11,8 @@
 #endif
 #include "../../FastMovieFormat.h"
 
+extern int errno;
+
 struct Context {
 	FM_Context *ctx;
 	int w, h;
@@ -152,27 +154,32 @@ void addFrame(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	}
 	const int clsid = mxGetClassID(prhs[1]);
 	
-	for (int x = 0; x < sx; ++x) {
-		for (int y = 0; y < sy; ++y) {
-			int color = 0;
-			
-			switch(clsid) {
-				case mxCHAR_CLASS:
-				case mxINT8_CLASS: color = static_cast<int>(((signed char *)m)[y*sx + x]) + 128; break;
-				case mxUINT8_CLASS: color = ((unsigned char *)m)[y*sx + x]; break;
-				case mxINT16_CLASS: color = ((short *)m)[y*sx + x]; break;
-				case mxUINT16_CLASS: color = ((unsigned short *)m)[y*sx + x]; break;
-				case mxUINT32_CLASS: color = ((unsigned int *)m)[y*sx + x]; break;
-				case mxINT32_CLASS: color = ((int *)m)[y*sx + y]; break;
-				case mxDOUBLE_CLASS: color = ((double *)m)[y*sx + x] * 255.; break;
-				case mxSINGLE_CLASS: color = ((float *)m)[y*sx + x] * 255.; break;
-				default:
-					delete [] imgbuf;
-					mexErrMsgTxt("Argument 2 must be a matrix of numeric type.");
+	if (clsid == mxUINT8_CLASS) {
+		// optimized processing of pixels if the format is correct -- just do a memcpy!
+		memcpy(imgbuf, m, sx*sy);
+	} else {	
+		for (int x = 0; x < sx; ++x) {
+			for (int y = 0; y < sy; ++y) {
+				int color = 0;
+				
+				switch(clsid) {
+					case mxCHAR_CLASS:
+					case mxINT8_CLASS: color = static_cast<int>(((signed char *)m)[y*sx + x]) + 128; break;
+					case mxUINT8_CLASS: color = ((unsigned char *)m)[y*sx + x]; break;
+					case mxINT16_CLASS: color = ((short *)m)[y*sx + x]; break;
+					case mxUINT16_CLASS: color = ((unsigned short *)m)[y*sx + x]; break;
+					case mxUINT32_CLASS: color = ((unsigned int *)m)[y*sx + x]; break;
+					case mxINT32_CLASS: color = ((int *)m)[y*sx + x]; break;
+					case mxDOUBLE_CLASS: color = ((double *)m)[y*sx + x] * 255.; break;
+					case mxSINGLE_CLASS: color = ((float *)m)[y*sx + x] * 255.; break;
+					default:
+						delete [] imgbuf;
+						mexErrMsgTxt("Argument 2 must be a matrix of numeric type.");
+				}
+				if (color < 0) color = 0;
+				if (color > 255) color = 255;
+				(imgbuf + (y*sx))[x] = (uint8_t)color;
 			}
-			if (color < 0) color = 0;
-			if (color > 255) color = 255;
-			(imgbuf + (y*sx))[x] = (uint8_t)color;
 		}
 	}
 

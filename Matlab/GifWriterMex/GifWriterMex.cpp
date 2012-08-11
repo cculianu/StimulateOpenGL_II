@@ -181,7 +181,7 @@ void addFrame(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 				case mxINT16_CLASS: color = ((short *)m)[y*sx + x]; break;
 				case mxUINT16_CLASS: color = ((unsigned short *)m)[y*sx + x]; break;
 				case mxUINT32_CLASS: color = ((unsigned int *)m)[y*sx + x]; break;
-				case mxINT32_CLASS: color = ((int *)m)[y*sx + y]; break;
+				case mxINT32_CLASS: color = ((int *)m)[y*sx + x]; break;
 				case mxDOUBLE_CLASS: color = ((double *)m)[y*sx + x] * 255.; break;
 				case mxSINGLE_CLASS: color = ((float *)m)[y*sx + x] * 255.; break;
 				default:
