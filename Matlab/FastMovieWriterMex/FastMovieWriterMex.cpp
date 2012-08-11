@@ -11,7 +11,9 @@
 #endif
 #include "../../FastMovieFormat.h"
 
+#ifdef __MACH__
 extern int errno;
+#endif
 
 struct Context {
 	FM_Context *ctx;
