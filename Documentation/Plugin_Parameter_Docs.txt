@@ -508,12 +508,13 @@ file
        Possible values:  Any legal file path on the system.
        Default value:    NONE (must be specified)
        
-loop
-       Synopsis:         Specifies whether to loop the animation or play it just
-                         once.
-       Datatype:         boolean
-       Possible values:  1 or 0 
-       Default value:    1 (loop infinitely)
+loops
+       Synopsis:         Specifies the number of times to play the movie 
+                         through.  A value of 1 means play the movie once, 2
+                         twice, etc.  0 means play the movie infinitely.
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    0 (loop infinitely)
 
 ------------------------------------------------------------------------------
 `MovingGrating' PLUGIN PARAMETERS
