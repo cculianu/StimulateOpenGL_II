@@ -24,9 +24,12 @@ static void zUncompress(const void *inbuffer, unsigned nbytes,
 #ifdef _MSC_VER
 
 #if _MSC_VER >= 1400
-#define fseeko(stream, offset, origin) _fseeki64(stream, offset, origin)
-#define ftello(stream) _ftelli64(stream)
-#else /* Older MSVC.. Lacks 64 bit support in LIBC.. grrr... */
+// MS VC++ 2005 and above
+#  define fseeko(stream, offset, origin) _fseeki64(stream, offset, origin)
+#  define ftello(stream) _ftelli64(stream)
+
+#else /* Older MSVC.. Lacks 64 bit file support in LIBC.. grrr... so we emulate using lower-level functions */
+
 #include <io.h>
 #include <stdio.h>
 #include <stdlib.h>

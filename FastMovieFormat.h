@@ -28,9 +28,11 @@ typedef unsigned __int8 uint8_t;
 #define PACKED /* nothing */
 #pragma pack(push, 1)
 
-#else
+#else /* GCC, non-Windows */
+
 #include <stdint.h>
 #define PACKED __attribute__ ((__packed__))
+
 #endif
 
 #ifdef __cplusplus
