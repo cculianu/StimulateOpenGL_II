@@ -26,8 +26,6 @@ class Movie : public StimPlugin
 {
 	friend class GLWindow;
 	friend class ReaderThread;
-
-    bool loop;
     	
 public:
 	
@@ -52,7 +50,8 @@ private:
     QString file;
 	int animationNumFrames;
 	QSize sz;
-	volatile int imgct, framect;
+	volatile int imgct, framect, loopsleft;
+	bool loopforever;
 	
 	int poppedframect;
 	

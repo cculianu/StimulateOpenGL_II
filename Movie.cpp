@@ -39,7 +39,7 @@ private:
 };
 
 Movie::Movie()
-    : StimPlugin("Movie"), loop(true), imgct(0), framect(0), xoff(0), yoff(0)
+    : StimPlugin("Movie"), imgct(0), framect(0), loopsleft(0), loopforever(true), xoff(0), yoff(0)
 {
 	int nThreads = int(getNProcessors()) /*- 2*/;
 	if (nThreads < 2) nThreads = 2;
@@ -68,7 +68,17 @@ bool Movie::initFromParams(bool skipfboinit)
 		Error() << "movie file `" << file << "' not found!";
 		return false;
 	}
-	if (!getParam("loop",  loop) ) loop = true;
+	{
+		QString dummy;
+		if ( getParam("loop",  dummy) ) {
+			Error() << "`loop' parameter (a boolean) no longer supported.  Try `loops' instead, which is the number of times to loop the movie (0=infinite).";
+			return false;
+		}
+	}
+	
+	loopsleft = 0;
+	getParam("loops", *const_cast<int *>(&loopsleft));
+	loopforever = (loopsleft < 1);
 
 	QFile f (file);
 	f.open(QIODevice::ReadOnly);
@@ -524,7 +534,7 @@ void ReaderThread::run()
 			
 			m->readFramesMutex.lock();
 			if (m->imgct >= m->animationNumFrames) {
-				if (m->loop)
+				if (m->loopforever || --m->loopsleft > 0)
 					m->imgct = 0;
 				else
 					m->movieEnded = true;
