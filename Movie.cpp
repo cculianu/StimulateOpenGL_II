@@ -51,7 +51,7 @@ Movie::Movie()
 
 bool Movie::initFromParams(bool skipfboinit)
 {	
-	readFramesMutex.lock();
+	QMutexLocker locker(&readFramesMutex);
 
 	inAfterVSync = false;
 	pendingStop = false;
@@ -181,7 +181,7 @@ bool Movie::initFromParams(bool skipfboinit)
 	}
 
 	// unlock mutex to allow threads to proceed
-	readFramesMutex.unlock();	
+	locker.unlock();
 
 	if (!skipfboinit) {
 		for (int k = 0; k < nSubFrames; ++k) {

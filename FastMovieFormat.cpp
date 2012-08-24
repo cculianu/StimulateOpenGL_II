@@ -21,9 +21,34 @@ static void zUncompress(const void *inbuffer, unsigned nbytes,
 #endif
 
 
-#ifdef WIN32
-#ifndef ftello
-#define ftello ftell
+#ifdef _MSC_VER
+
+#if _MSC_VER >= 1400
+#define fseeko(stream, offset, origin) _fseeki64(stream, offset, origin)
+#define ftello(stream) _ftelli64(stream)
+#else /* Older MSVC.. Lacks 64 bit support in LIBC.. grrr... */
+#include <io.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#define fwrite fwriteo
+#define fread freado
+
+static int fwriteo(const void *buf, __int64 elemsize, int nelems, FILE *f)
+{
+	int n = _write(_fileno(f), buf, elemsize*nelems);
+	return n / elemsize;
+}
+
+static int freado(void *buf, __int64 elemsize, int nelems, FILE *f)
+{
+	int n = _read(_fileno(f), buf, elemsize*nelems);
+	return n / elemsize;	
+}
+static __int64 ftello(FILE *f) { return _telli64(_fileno(f)); }
+static __int64 fseeko (FILE * f, __int64 offset, int origin) { return _lseeki64(_fileno(f), offset, origin); }
 #endif
 #endif
 
@@ -40,8 +65,6 @@ FM_Context * FM_Create(const char *filename)
 	c->isOutput = true;
 	c->imgOffsets.clear();
 	c->imgOffsets.reserve(16);
-	c->imgSizes.clear();
-	c->imgSizes.reserve(16);
 	
 	FM_Header h;
 	memset(&h, 0, sizeof(h));
@@ -55,19 +78,19 @@ FM_Context * FM_Create(const char *filename)
 /// returns true on success
 bool         FM_AddFrame(FM_Context *c, const void *pixels, 
 						 unsigned width, unsigned height, 
+						 unsigned compressionLevel,
 						 unsigned depth, FM_Fmt fmt, 
 						 bool comp, unsigned duration_ms)
 {
 	if (!c || !c->file || !c->isOutput || !width || !height || !depth) return false;
+	
 	//off_t savedOff = ftello(c->file);
-	fseek(c->file, 0, SEEK_END);
+	fseeko(c->file, 0, SEEK_END);
 	off_t imgoffset = ftello(c->file);
 	if (c->imgOffsets.capacity() == c->imgOffsets.size()) {
 		c->imgOffsets.reserve(c->imgOffsets.capacity()*2);
-		c->imgSizes.reserve(c->imgOffsets.capacity());
 	}
 	c->imgOffsets.push_back(imgoffset);
-	c->imgSizes.push_back(ImgSize(width, height));
 	
 	FM_ImageDescriptor desc;
 	memset(&desc, 0, sizeof(desc));
@@ -98,9 +121,9 @@ bool         FM_AddFrame(FM_Context *c, const void *pixels,
 	if (comp) {
 		data = 0;
 #ifdef NO_QT
-		zCompress(pixels, datasz, 9, &data, &datasz);
+		zCompress(pixels, datasz, compressionLevel, &data, &datasz);
 #else
-		d = qCompress((uchar *)pixels, datasz, 9);
+		d = qCompress((uchar *)pixels, datasz, compressionLevel);
 		data = (void *)d.constData();
 		if (!data) {
 			return false;
@@ -115,11 +138,17 @@ bool         FM_AddFrame(FM_Context *c, const void *pixels,
 		 && fwrite(&desc, sizeof(desc), 1, c->file) == 1 
 		 && (!datasz || fwrite(data, datasz, 1, c->file) == 1) ) {
 		// update header .. tell it how many images we have
-		fseek(c->file, 0, SEEK_SET);
+		fseeko(c->file, 0, SEEK_SET);
+		if (c->width < width || c->height < height) {
+			c->width = width;
+			c->height = height;
+		}		
 		FM_Header h;
 		if ( fread(&h, sizeof(h), 1, c->file) == 1 ) {
 			h.nFrames = c->imgOffsets.size();
-			fseek(c->file, 0, SEEK_SET);
+			h.width = c->width;
+			h.height = c->height;
+			fseeko(c->file, 0, SEEK_SET);
 			fwrite(&h, sizeof(h), 1, c->file);
 		}
 		ret = true;
@@ -154,21 +183,52 @@ FM_Context * FM_Open(const char *filename)
 	c->isOutput = false;
 	c->file = f;
 	c->imgOffsets.reserve(h.nFrames);
-	c->imgSizes.reserve(h.nFrames);
-	// scan file..
-	for (unsigned i = 0; i < h.nFrames; ++i) {
-		c->imgOffsets.push_back(ftello(f)); // save image offset..
-		FM_ImageDescriptor desc;
-		memset(&desc, 0, sizeof(desc));
-		if ( fread(&desc, sizeof(desc), 1, f) != 1 ) {
+	c->width = h.width;
+	c->height = h.height;
+	if (!h.indexRecordOffset) {		
+		// scan file..
+		for (unsigned i = 0; i < h.nFrames; ++i) {
+			c->imgOffsets.push_back(ftello(f)); // save image offset..
+			FM_ImageDescriptor desc;
+			memset(&desc, 0, sizeof(desc));
+			if ( fread(&desc, sizeof(desc), 1, f) != 1 ) {
+				delete c;
+				return 0;
+			}
+			
+			// now advance to next image
+			if ( fseeko(f, desc.length, SEEK_CUR) ) {
+				// eek! seek error!  image file corrupt/truncated??
+				delete c;
+				return 0;
+			}
+		}
+	} else {
+		// file has index record, so read it
+		if ( fseeko(f, h.indexRecordOffset, SEEK_SET) ) {
+			// eek! seek error! image file corrupt/truncated??
 			delete c;
 			return 0;
 		}
-		c->imgSizes.push_back(ImgSize(desc.width, desc.height));
-		
-		// now advance to next image
-		if ( fseek(f, desc.length, SEEK_CUR) ) {
-			// eek! seek error!  image file corrupt/truncated??
+		FM_IndexRecord ir;
+		if ( fread(&ir, sizeof(ir), 1, f) != 1 ) {
+			// read error in index record...
+			delete c;
+			return 0;
+		}
+		if (ir.magic != FM_INDEX_RECORD_MAGIC) {
+			// eek, corrupt file??
+			delete c;
+			return 0;
+		}
+		if (ir.length != h.nFrames*sizeof(uint64_t)) {
+			// error.. trunacted file?
+			delete c;
+			return 0;
+		}
+		c->imgOffsets.resize(h.nFrames);
+		if ( fread(&c->imgOffsets[0], sizeof(uint64_t), h.nFrames, f) != h.nFrames ) {
+			// error.. short object count/file truncated?
 			delete c;
 			return 0;
 		}
@@ -196,7 +256,7 @@ FM_Image * FM_ReadFrame(FM_Context *c, unsigned frame_id /* first frame is frame
 	if (!c || c->isOutput || frame_id >= c->imgOffsets.size()) return 0;
 	
 //	off_t savedOff = ftello(c->file);
-	if ( fseek(c->file, c->imgOffsets[frame_id], SEEK_SET) ) {
+	if ( fseeko(c->file, c->imgOffsets[frame_id], SEEK_SET) ) {
 		return 0;
 	}
 
@@ -262,8 +322,28 @@ FM_Image * FM_ReadFrame(FM_Context *c, unsigned frame_id /* first frame is frame
  in both cases frees the context pointer, closes file, etc. */
 void         FM_Close(FM_Context *c)
 {
+	if (!c) return;
+	if (c->isOutput) {
+		FM_Header h;
+		fseeko(c->file, 0, SEEK_SET);
+		if ( fread(&h, sizeof(h), 1, c->file) == 1 ) {
+			// update header
+			fseeko(c->file, 0, SEEK_END);
+			h.indexRecordOffset = ftello(c->file);
+			h.nFrames = c->imgOffsets.size();
+			fseeko(c->file, 0, SEEK_SET);
+			fwrite(&h, sizeof(h), 1, c->file);
+		}
+		// now write out the index record
+		fseeko(c->file, 0, SEEK_END);
+		FM_IndexRecord ir;
+		ir.magic = FM_INDEX_RECORD_MAGIC;
+		ir.length = c->imgOffsets.size() * sizeof(uint64_t);
+		fwrite(&ir, sizeof(ir), 1, c->file);
+		if ( c->imgOffsets.size() ) 
+			fwrite(&c->imgOffsets[0], sizeof(uint64_t), c->imgOffsets.size(), c->file);
+	}	
 	delete c; 
-	// NB we dont need to update header for output mode since we did it in realtime as we added frames..
 }
 
 

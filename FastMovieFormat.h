@@ -8,11 +8,14 @@
  */
 #ifndef FastMovieFormat_H
 #define FastMovieFormat_H
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(WIN32)
 
 typedef __int32 int32_t;
 typedef unsigned __int32 uint32_t;
@@ -22,9 +25,12 @@ typedef __int16 int16_t;
 typedef unsigned __int16 uint16_t;
 typedef __int8 int8_t;
 typedef unsigned __int8 uint8_t;
+#define PACKED /* nothing */
+#pragma pack(push, 1)
 
 #else
 #include <stdint.h>
+#define PACKED __attribute__ ((__packed__))
 #endif
 
 #ifdef __cplusplus
@@ -35,16 +41,19 @@ extern "C" {
 enum FM_Fmt {  FM_LUMINOSITY = 0, FM_RGB, FM_BGR, FM_RGBA, FM_ARGB };
 enum FM_Comp { FM_No_Comp = 0, FM_ZLib_Comp };
 	
-struct FM_Header {
-#define FM_MAGIC_STR "StimGLFMv1"
-	    char magic[16]; ///< for now, the FAST_MOVIE_MAGIC_STR
+struct PACKED FM_Header {
+#define FM_MAGIC_STR "StimGLFMv2"
+	char magic[16]; ///< for now, the FAST_MOVIE_MAGIC_STR
 	uint32_t nFrames;   ///< the number of animation frames contained in the file
-	    char reserved[12]; ///< padding to make this struct 32 bytes
+	uint32_t width; ///< the width of the image frame, in pixels 
+	uint32_t height; ///< the height of the total image frame, in pixels
+	uint32_t reserved; ///< padding...
+	uint64_t indexRecordOffset; ///< where in the file to find the index record.  if 0, then build index ourselves 
 };
 
-struct FM_ImageDescriptor {
-#define FM_IMAGE_DESCRIPTOR_MAGIC 0x1337    
-	uint16_t magic;     ///< guard against image corruption?
+struct PACKED FM_ImageDescriptor {
+#define FM_IMAGE_DESCRIPTOR_MAGIC 0x1337f00d    
+	uint32_t magic;     ///< guard against image corruption?
 	uint32_t width;     ///< width of image/animation, in pix
 	uint32_t height;    ///< height of image/animation, in pix
 	uint32_t bitdepth;  ///< usually 8,16,24,32, for now we only support 8
@@ -53,6 +62,20 @@ struct FM_ImageDescriptor {
 	uint32_t duration;  ///< the duration of the animation frame, in ms. set to 0 for stimgl
 	uint32_t length;    ///< the length of the image data (compressed) that follows 
 };
+
+struct PACKED FM_IndexRecord {
+#define FM_INDEX_RECORD_MAGIC 0x12341234
+	uint32_t magic;
+	uint32_t reserved;
+	uint64_t length;
+	char padding[16];
+	// indices for each frame follow..., each index is a 64-bit unsigned offset into the file for that frame
+};
+	
+	
+#if defined(_MSC_VER) || defined(WIN32)
+#pragma pack(pop)
+#endif
 
 #ifdef __cplusplus
 }
@@ -67,16 +90,16 @@ struct FM_ImageDescriptor {
 #include <QByteArray>
 #endif
 
-typedef std::pair<uint32_t, uint32_t> ImgSize;
+#undef PACKED
 
 struct FM_Context
 {
 	FILE *file;
-	std::vector<off_t> imgOffsets;
-	std::vector<ImgSize> imgSizes;
+	std::vector<uint64_t> imgOffsets;
 	bool isOutput; 
+	unsigned width, height;
 	
-	FM_Context() : file(0), isOutput(true) {}
+	FM_Context() : file(0), isOutput(true), width(0), height(0) {}
 	~FM_Context() {	if (file) fclose(file); file = 0; }
 };
 
@@ -105,7 +128,7 @@ struct FM_Image
 FM_Context * FM_Create(const char *filename); 
 /// returns true on success
 bool         FM_AddFrame(FM_Context *ctx, const void *pixels, 
-						 unsigned width, unsigned height, 
+						 unsigned width, unsigned height, unsigned compressionLevel = 1,
 						 unsigned depth = 8, FM_Fmt = FM_LUMINOSITY, 
 						 bool comp = true, unsigned duration_ms = 0);
 

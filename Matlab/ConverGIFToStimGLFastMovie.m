@@ -13,7 +13,6 @@ function [] = ConvertGIFToStimGLFastMovie(filename,out)
         end;
         f(:,:,1,i) = a;
     end;
-
     fw=FastMovieWriter(out);
     for i=1:size(f,4), AddFrame(fw, f(:,:,1,i)'); end;
     Finalize(fw);

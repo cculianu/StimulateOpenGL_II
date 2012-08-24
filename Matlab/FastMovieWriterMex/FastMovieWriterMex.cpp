@@ -125,13 +125,22 @@ void createNewContext(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]
 
 void addFrame(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-	if (nrhs != 2) mexErrMsgTxt("Two arguments required: handle, matrix.");
+	if (nrhs != 3) mexErrMsgTxt("Three arguments required: handle, matrix, compression level.");
 	Context *c = GetContext(nrhs, prhs);
 	if (!c->ctx) {
 		mexErrMsgTxt("Cannot add frame -- invalid object state.  Either the output file was closed or was never opened or some other error occurred.");
 	}
 	int sx = mxGetM(prhs[1]), sy = mxGetN(prhs[1]);
+	int clevel = 1;
+	
+	if ( !mxIsDouble(prhs[2]) || mxGetM(prhs[2]) != 1 || mxGetN(prhs[2]) != 1)
+		mexErrMsgTxt("Compression level must be a single double value.");
+	
+	clevel = static_cast<int>(*mxGetPr(prhs[2]));
 
+	if (clevel < 0) clevel = 0;
+	if (clevel > 9) clevel = 9;
+	
 	//mexPrintf("DBG: %d x %d matrix...\n", sx, sy);
 
 	if (c->w && c->h) {
@@ -185,7 +194,7 @@ void addFrame(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		}
 	}
 
-	if (!FM_AddFrame(c->ctx, imgbuf, sx, sy)) {
+	if (!FM_AddFrame(c->ctx, imgbuf, sx, sy, clevel)) {
 		delete [] imgbuf;
 		mexErrMsgTxt("Failed in call to FM_AddFrame().");
 	}

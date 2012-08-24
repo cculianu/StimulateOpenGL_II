@@ -85,8 +85,8 @@ void FastMovieReader::setOption(ImageOption option, const QVariant &value)
 
 QSize FastMovieReader::size() const {
 	if (!ctx && !open()) return QSize();
-	if (ctx && ctx->imgSizes.size()) {
-		return QSize(ctx->imgSizes.front().first, ctx->imgSizes.front().second);
+	if (ctx) {
+		return QSize(ctx->width, ctx->height);
 	}
 	return QSize();
 }
@@ -94,7 +94,7 @@ QSize FastMovieReader::size() const {
 bool FastMovieReader::randomAccessRead(QImage *image, int imgnum)
 {
 	--imgnum; // internally img numbers are 0-based
-	if (!image && !ctx && !open() && (imgnum < 0 || imgnum >= (int)ctx->imgSizes.size())) return false;
+	if (!image && !ctx && !open() && (imgnum < 0 || imgnum >= (int)ctx->imgOffsets.size())) return false;
 	if (ctx) {
 		FM_Image *img = FM_ReadFrame(ctx, imgnum);
 		if (!img) return false;
