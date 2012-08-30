@@ -162,6 +162,8 @@ public slots:
     void unloadStim();
     /// Pops up the application "About" dialog box
     void about();
+	/// Pops up a file dialog for an .FMV file to check for errors...
+	void checkFMV();
     /// \brief Prompts the user to pick a save directory.
     /// @see setOutputDirectory 
     /// @see outputDirectory
@@ -183,6 +185,9 @@ public slots:
     /// Pops up the Global Default Params dialog
     void globalDefaultsDialog();
 
+signals:
+	void gotCheckFMV(const QString & file);
+	
 protected:
 
 protected slots:
@@ -204,7 +209,7 @@ private:
     ConsoleWindow *consoleWindow;
     GLWindow *glWindow;
     bool glWinHasFrame, debug, noDropFrameWarn, saveFrameVars, saveParamHistory, vsyncDisabled;
-    QString lastFile;
+    QString lastFile, lastFMV;
     volatile bool initializing;
     QColor defaultLogColor;
     QTcpServer *server;

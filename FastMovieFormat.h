@@ -87,6 +87,7 @@ struct PACKED FM_IndexRecord {
 #include <string.h> /* for memset/memcpy */
 #include <vector>
 #include <utility>
+#include <string>
 #include <sys/types.h>
 #ifndef NO_QT
 #include <QByteArray>
@@ -138,12 +139,27 @@ bool         FM_AddFrame(FM_Context *ctx, const void *pixels,
   READ/INPUT FUNCTIONS
  -----------------------------------------------------------------------------*/
 /// open .fmv file for input. returns pointer to context on success
-FM_Context * FM_Open(const char *filenmae);
+FM_Context * FM_Open(const char *filename, std::string *errmsg = 0, bool rebuildIndexIfMissing = false);
 /// read a frame from the .fmv file, caller should delete returned pointer
-FM_Image *   FM_ReadFrame(FM_Context *ctx, unsigned frame_id /* first frame is frame 0 */);
+FM_Image *   FM_ReadFrame(FM_Context *ctx, unsigned frame_id /* first frame is frame 0 */, std::string *errmsg = 0);
 /// returns true if the filename is openable and readable as an .fmv file!
 bool         FM_IsFMV(const char *filename);
-						  
+
+typedef void (*FM_ErrorFn)(void *, const std::string &);
+typedef bool (*FM_ProgressFn)(void *, int);
+
+/** Error checking function.  Scans the specified FMV file and checks it for 
+	errors. Returns true if the file validates to a valid FMV, otherwise false.
+    Optionally, you can specify a progress function, and an error function as 
+    callbacks. The progress function is called as the file is scanned (about 
+    once every 1% of progress) and it takes 2 params, the void * arg, as well as 
+    a percentage indicating scan progress from 0 to 100).  The error function
+    is called with a specific message describing the error.  After the error 
+    function is called, FM_CheckForErrors will return immediately with a false
+    result. */  
+bool         FM_CheckForErrors(const char *filename, void *arg = 0, 
+							   FM_ProgressFn progfunc = 0, FM_ErrorFn errorfunc = 0);
+
 /*-----------------------------------------------------------------------------
  READ/WRITE FUNCTIONS (applicable to both)
  -----------------------------------------------------------------------------*/

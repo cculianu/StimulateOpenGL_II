@@ -412,6 +412,7 @@ void StimApp::loadSettings()
     outDir = settings.value("outDir", QDir::homePath() + "/StimulusLogs").toString();
 #endif
     mut.unlock();
+	lastFMV = settings.value("lastFMV", outDir).toString();
 
     struct SpikeGLNotifyParams & leoDaq (spikeGLNotifyParams);
     leoDaq.enabled = settings.value("LeoDAQGL_Notify_Enabled", true).toBool();
@@ -451,6 +452,7 @@ void StimApp::saveSettings()
 	settings.setValue("saveFrameVars", saveFrameVars);
 	settings.setValue("saveParamHistory", saveParamHistory);
     settings.setValue("lastFile", lastFile);
+	settings.setValue("lastFMV", lastFMV);
 	settings.setValue("noVSync", vsyncDisabled);
     mut.lock();
     settings.setValue("outDir", outDir);
@@ -541,6 +543,19 @@ struct ReentrancyPreventer
 };
 volatile int ReentrancyPreventer::ct = 0;
 
+void StimApp::checkFMV()
+{
+	QString file = QFileDialog::getOpenFileName(0, "Choose a .FMV file to check", lastFMV);
+	if (file.isNull()) return;
+	QFile f(file);
+	if (!f.open(QIODevice::ReadOnly)) {
+		QMessageBox::critical(0, "Could not open", QString("Could not open '") + file + "' for reading.");
+		return;
+	}
+	lastFMV = file;
+	saveSettings();
+	emit gotCheckFMV(file);
+}
 
 void StimApp::loadStim()
 {

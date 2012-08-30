@@ -7,6 +7,10 @@
 #include "GifReader.h"
 #include "FastMovieReader.h"
 #include <QScopedPointer>
+#include <QProgressDialog>
+#include "FastMovieFormat.h"
+#include <QMessageBox>
+#include <QFileInfo>
 
 #define FRAME_QUEUE_SIZE 100
 #define IMAGE_CACHE_SIZE 100*1024*1024 /* 100MB image cache! */
@@ -47,6 +51,7 @@ Movie::Movie()
 		QThread *t = new ReaderThread(this, i+1);
 		threads.push_back(t);
 	}
+	Connect(stimApp(), SIGNAL(gotCheckFMV(const QString &)), this, SLOT(checkFMV(const QString &)));
 }
 
 bool Movie::initFromParams(bool skipfboinit)
@@ -590,4 +595,75 @@ void ReaderThread::run()
 	reader = 0;
 	Debug() << "reader thread " << threadid << " stopped.";
 
+}
+
+void Movie::checkFMV(const QString & file)
+{
+	FMVChecker *f = new FMVChecker(stimApp(), this, file);
+	f->start();
+}
+
+void Movie::fmvChkError(const QString & file, const QString & err)
+{
+	QMessageBox::critical(0, QString("Error in %1").arg(file), err);
+}
+
+void Movie::fmvChkDone(FMVChecker *f)
+{
+	f->pd->hide();
+	if (f->checkOk) {
+		Log() << QFileInfo(f->file).fileName() << " checks ok.";
+		QMessageBox::information(0, "No errors in .FMV file", QString("%1 appears ok!").arg(QFileInfo(f->file).fileName()));
+	}
+	delete f;
+}
+
+FMVChecker::FMVChecker(QObject *parent, Movie *m, const QString & f)
+:QThread(parent), checkOk(false), file(f), pd(0)
+{
+	connect(this, SIGNAL(done(FMVChecker *)), m, SLOT(fmvChkDone(FMVChecker *)), Qt::QueuedConnection);
+	connect(this, SIGNAL(errorMessage(const QString &, const QString &)), m, SLOT(fmvChkError(const QString &, const QString &)), Qt::QueuedConnection);
+	pd = new QProgressDialog ( QString("Checking %1 for errors...").arg(QFileInfo(file).fileName()), "Cancel", 0, 100);
+	pd->setValue(0);
+	connect(this, SIGNAL(progress(int)), pd, SLOT(setValue(int)), Qt::QueuedConnection);
+	pd->show();
+}
+
+FMVChecker::~FMVChecker() 
+{
+	delete pd; pd = 0;
+}
+
+/*static*/ void FMVChecker::errCB(void *fmvinstance, const std::string &msg)
+{
+	static_cast<FMVChecker *>(fmvinstance)->err(msg.c_str());
+}
+/*static*/ bool FMVChecker::progCB(void *fmvinstance, int prog)
+{
+	return static_cast<FMVChecker *>(fmvinstance)->prog(prog);	
+}
+
+void FMVChecker::run()
+{
+	Log() << "Checking " << QFileInfo(file).fileName() << " for errors...";
+	checkOk = FM_CheckForErrors(file.toUtf8().constData(), this, progCB, errCB);
+	emit done(this);
+}
+
+bool FMVChecker::prog(int pct)
+{
+	if (pd->wasCanceled()) {
+		Log() << "FMV error check of " << QFileInfo(file).fileName() << " cancelled.";
+		return false;
+	}
+	//Debug() << "errchk progress: " << pct;
+	emit progress(pct);
+	return true;
+}
+
+void FMVChecker::err(const QString &msg)
+{
+	QString fn = QFileInfo(file).fileName();
+	Log() << "FMV error check of " << fn << " found an error: " << msg;
+	emit errorMessage(fn, msg);
 }

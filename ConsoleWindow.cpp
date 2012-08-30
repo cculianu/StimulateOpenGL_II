@@ -22,6 +22,7 @@ ConsoleWindow::ConsoleWindow(QWidget *p, Qt::WindowFlags f)
     m->addAction("Load Stim.  L", qApp, SLOT(loadStim()));
     m->addAction("Unload Stim.  ESC", qApp, SLOT(unloadStim()));
     m->addAction("Pause/Unpause Stim.  SPACE", qApp, SLOT(pauseUnpause()));
+    m->addAction("Check .FMV file for errors...", qApp, SLOT(checkFMV()));
     m->addSeparator();
     m->addAction("&Quit", qApp, SLOT(quit()));    
     statusBar()->showMessage("");

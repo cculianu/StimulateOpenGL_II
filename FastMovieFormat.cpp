@@ -8,6 +8,7 @@
  */
 #include "FastMovieFormat.h"
 #include <stdlib.h>
+#include <errno.h>
 
 #ifdef NO_QT
 #include <zlib.h>
@@ -173,14 +174,31 @@ bool         FM_AddFrame(FM_Context *c, const void *pixels,
  READ/INPUT FUNCTIONS
  -----------------------------------------------------------------------------*/
 /// open .fmv file for input. returns pointer to context on success
-FM_Context * FM_Open(const char *filename)
+FM_Context * FM_Open(const char *filename, std::string *errmsg, bool rebuildIndex)
 {
+	if (errmsg) *errmsg = "";
 	FILE *f = fopen(filename, "rb");
-	if (!f) return 0;
+	if (!f) {
+		if (errmsg) {
+			const int e = errno;
+			*errmsg = std::string("Cannot open ") + filename + " for reading: " + strerror(e);
+		}
+		return 0;
+	}
 	FM_Header h;
 	memset(&h, 0, sizeof(h));
-	if (fread(&h, sizeof(h), 1, f) != 1) { fclose(f); return 0; }
-	if (strncmp(h.magic, FM_MAGIC_STR, sizeof(h.magic))) { fclose(f); return 0; }
+	if (fread(&h, sizeof(h), 1, f) != 1) { 
+		if (errmsg) {
+			*errmsg = "Failed to read header from file.";
+		}
+		fclose(f); 
+		return 0; 
+	}
+	if (strncmp(h.magic, FM_MAGIC_STR, sizeof(h.magic))) { 
+		if (errmsg) *errmsg = "Header appears invalid or is corrupt.";
+		fclose(f); 
+		return 0; 
+	}
 	
 	FM_Context *c = new FM_Context;
 	c->isOutput = false;
@@ -188,50 +206,71 @@ FM_Context * FM_Open(const char *filename)
 	c->imgOffsets.reserve(h.nFrames);
 	c->width = h.width;
 	c->height = h.height;
-	if (!h.indexRecordOffset) {		
-		// scan file..
-		for (unsigned i = 0; i < h.nFrames; ++i) {
-			c->imgOffsets.push_back(ftello(f)); // save image offset..
-			FM_ImageDescriptor desc;
-			memset(&desc, 0, sizeof(desc));
-			if ( fread(&desc, sizeof(desc), 1, f) != 1 ) {
-				delete c;
-				return 0;
+	if (!h.indexRecordOffset) {
+		if (rebuildIndex) {
+			// scan file..
+			for (unsigned i = 0; i < h.nFrames; ++i) {
+				c->imgOffsets.push_back(ftello(f)); // save image offset..
+				FM_ImageDescriptor desc;
+				memset(&desc, 0, sizeof(desc));
+				if ( fread(&desc, sizeof(desc), 1, f) != 1 ) {
+					if (errmsg) {
+						char buf[64];
+						sprintf(buf, "%d", i);
+						*errmsg = std::string("Failed to read image #") + buf + "'s descriptor from file.";
+					}
+					delete c;
+					return 0;
+				}
+				
+				// now advance to next image
+				if ( fseeko(f, desc.length, SEEK_CUR) ) {
+					// eek! seek error!  image file corrupt/truncated??
+					if (errmsg) {
+						char buf[64];
+						sprintf(buf, "%d", i);
+						*errmsg = std::string("Seek error for image ") + buf + ".  File truncated?";
+					}				
+					delete c;
+					return 0;
+				}
 			}
-			
-			// now advance to next image
-			if ( fseeko(f, desc.length, SEEK_CUR) ) {
-				// eek! seek error!  image file corrupt/truncated??
-				delete c;
-				return 0;
-			}
+		} else {
+			if (errmsg) *errmsg = std::string("File ") + filename + " is missing the index record or is truncated.  Did you forget to call Finalize()?";
+			delete c;
+			return 0;
 		}
 	} else {
 		// file has index record, so read it
 		if ( fseeko(f, h.indexRecordOffset, SEEK_SET) ) {
 			// eek! seek error! image file corrupt/truncated??
+			if (errmsg) *errmsg = "Seek error for index record. File truncated?";
 			delete c;
 			return 0;
 		}
 		FM_IndexRecord ir;
 		if ( fread(&ir, sizeof(ir), 1, f) != 1 ) {
 			// read error in index record...
+			if (errmsg) *errmsg = "Error reading index record.";
 			delete c;
 			return 0;
 		}
 		if (ir.magic != FM_INDEX_RECORD_MAGIC) {
 			// eek, corrupt file??
+			if (errmsg) *errmsg = "Index record appears invalid or corrupt.";
 			delete c;
 			return 0;
 		}
 		if (ir.length != h.nFrames*sizeof(uint64_t)) {
 			// error.. trunacted file?
+			if (errmsg) *errmsg = "Index record is too short. File truncated?";
 			delete c;
 			return 0;
 		}
 		c->imgOffsets.resize(h.nFrames);
 		if ( fread(&c->imgOffsets[0], sizeof(uint64_t), h.nFrames, f) != h.nFrames ) {
 			// error.. short object count/file truncated?
+			if (errmsg) *errmsg = "Index record is too short. File truncated?";
 			delete c;
 			return 0;
 		}
@@ -254,28 +293,38 @@ bool         FM_IsFMV(const char *filename)
 }
 
 /// read a frame from the .fmv file
-FM_Image * FM_ReadFrame(FM_Context *c, unsigned frame_id /* first frame is frame 0 */)
+FM_Image * FM_ReadFrame(FM_Context *c, unsigned frame_id /* first frame is frame 0 */, std::string *errmsg)
 {
-	if (!c || c->isOutput || frame_id >= c->imgOffsets.size()) return 0;
+	char frame_idstr[32];
+	sprintf(frame_idstr, "%u", frame_id);
+	
+	if (!c || c->isOutput || frame_id >= c->imgOffsets.size()) {
+		if (errmsg) *errmsg = std::string("Frame ") + frame_idstr + ": context invalid or requested frame exceeds number of frames in file.";
+		return 0;
+	}
 	
 //	off_t savedOff = ftello(c->file);
 	if ( fseeko(c->file, c->imgOffsets[frame_id], SEEK_SET) ) {
+		if (errmsg) *errmsg = std::string("Frame ") + frame_idstr + ": seek error.";
 		return 0;
 	}
 
 	FM_Image *ret = new FM_Image;
 	if ( fread(&ret->desc, sizeof(ret->desc), 1, c->file) != 1
 		 || ret->desc.magic != FM_IMAGE_DESCRIPTOR_MAGIC) {
+		if (errmsg) *errmsg = std::string("Frame ") + frame_idstr + ": cannot read frame descriptor or frame descriptor corrupt.";
 		delete ret; 
 		ret = 0;
 	} else {		
 #ifdef NO_QT
 		ret->data = (uint8_t *)malloc(ret->desc.length);
 		if (!ret->data) {
+			if (errmsg) *errmsg = std::string("Frame ") + frame_idstr + ": out of memory for image data.";
 			delete ret;
 			ret = 0;
 		} else {
 			if ( fread((void *)ret->data, ret->desc.length, 1, c->file) != 1 ) {
+				if (errmsg) *errmsg = std::string("Frame ") + frame_idstr + ": failed to read image data.";
 				delete ret;
 				ret = 0;
 			} else if (ret->desc.comp) {
@@ -283,6 +332,7 @@ FM_Image * FM_ReadFrame(FM_Context *c, unsigned frame_id /* first frame is frame
 				unsigned outbytes = 0;
 				zUncompress(ret->data, ret->desc.length, &out, &outbytes);
 				if (!out) {
+					if (errmsg) *errmsg = std::string("Frame ") + frame_idstr + ": error decompressing image data. File corrupt?";
 					delete ret;
 					ret = 0;
 				} else {
@@ -293,15 +343,18 @@ FM_Image * FM_ReadFrame(FM_Context *c, unsigned frame_id /* first frame is frame
 #else
 		ret->data.resize(ret->desc.length);
 		if (ret->data.size() != (int)ret->desc.length) {
+			if (errmsg) *errmsg = std::string("Frame ") + frame_idstr + ": out of memory for image data.";
 			delete ret;
 			ret = 0;
 		} else {
 			if ( fread((void *)ret->data.data(), ret->data.size(), 1, c->file) != 1 ) {
+				if (errmsg) *errmsg = std::string("Frame ") + frame_idstr + ": failed to read image data.";
 				delete ret;
 				ret = 0;
 			} else if (ret->desc.comp) {
 				ret->data = qUncompress(ret->data);
 				if (ret->data.isNull()) {
+					if (errmsg) *errmsg = std::string("Frame ") + frame_idstr + ": error decompressing image data.";
 					delete ret;
 					ret = 0;
 				} else {
@@ -318,6 +371,36 @@ FM_Image * FM_ReadFrame(FM_Context *c, unsigned frame_id /* first frame is frame
 	return ret;
 }
 
+bool FM_CheckForErrors(const char *filename, void *arg, FM_ProgressFn pfun, FM_ErrorFn efun)
+{
+	std::string errmsg("");
+	FM_Context *c = FM_Open(filename, &errmsg);
+	if (!c) {
+		if (efun) efun(arg, errmsg);
+		return false;
+	}
+	const unsigned n = c->imgOffsets.size();
+	int lastpct = -1;
+	for (unsigned i = 0; i < n; ++i) {
+		FM_Image *img = FM_ReadFrame(c, i, &errmsg);
+		if (!img) {
+			if (efun) efun(arg, errmsg);
+			FM_Close(c);
+			return false;
+		}
+		delete img;
+		if (static_cast<int>(((i*100)+1) / n) > lastpct) {
+			lastpct = ((i*100)+1) / n;
+			if (pfun && !pfun(arg, lastpct)) {
+				FM_Close(c);
+				return false;
+			}
+		}
+	}
+	FM_Close(c);
+	return true;
+}
+			
 /*-----------------------------------------------------------------------------
  READ/WRITE FUNCTIONS (applicable to both)
  -----------------------------------------------------------------------------*/

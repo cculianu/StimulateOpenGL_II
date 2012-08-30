@@ -15,6 +15,8 @@
 
 class GLWindow;
 class ReaderThread;
+class QProgressDialog;
+class FMVChecker;
 
 /** \brief A plugin that plays a movie as the stim.  
 
@@ -24,13 +26,15 @@ class ReaderThread;
 */ 
 class Movie : public StimPlugin
 {
+	Q_OBJECT
+	
 	friend class GLWindow;
 	friend class ReaderThread;
     	
 public:
 	
     void stop(bool doSave = false, bool use_gui = false, bool softStop = false);
-
+	
 protected:
     Movie(); ///< can only be constructed by our friend class
 
@@ -40,6 +44,11 @@ protected:
 	/* virtual */ void afterVSync(bool isSimulated = false);
 
 	/* virtual */ void cleanup();
+
+private slots:
+	void checkFMV(const QString & fmvfile);
+	void fmvChkError(const QString & filename, const QString & err);
+	void fmvChkDone(FMVChecker *);
 	
 private:
 	bool initFromParams(bool skipfboinit = false);
@@ -78,5 +87,30 @@ private:
 	QCache<int,QByteArray> imgCache;
 };
 
+
+class FMVChecker : public QThread
+{
+	Q_OBJECT
+public:
+	FMVChecker(QObject *parent, Movie *m, const QString & f);
+	~FMVChecker();
+	
+	bool checkOk;
+	QString file;
+	QProgressDialog *pd;
+
+protected:
+	void run();
+signals:
+	void errorMessage(const QString &, const QString &);
+	void progress(int pct);
+	void done(FMVChecker *);
+	
+private:	
+	static void errCB(void *fmvinstance, const std::string &msg);
+	void err(const QString &);
+	static bool progCB(void *fmvinstance, int prog);
+	bool prog(int);
+};
 
 #endif
