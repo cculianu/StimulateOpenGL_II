@@ -500,6 +500,8 @@ bool         FM_RebuildIndex(const char *filename, void * arg, FM_ProgressFn pro
 		FM_Close(c);
 		return false;
 	}
+	int64_t offset = h.indexRecordOffset;
+	int seektype = SEEK_SET;
 	if ( !h.indexRecordOffset ) {
 		fseeko(f, 0, SEEK_END);
 		h.indexRecordOffset = ftello(f);
@@ -509,8 +511,10 @@ bool         FM_RebuildIndex(const char *filename, void * arg, FM_ProgressFn pro
 			FM_Close(c);
 			return false;
 		}
+		offset = 0;
+		seektype = SEEK_END;
 	}
-	if ( fseeko(f, h.indexRecordOffset, SEEK_SET) ) {
+	if ( fseeko(f, offset, seektype) ) {
 		if (errfn) errfn(arg, "Cannot seek to write index record!");
 		FM_Close(c);
 		return false;
