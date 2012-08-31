@@ -167,7 +167,8 @@ bool         FM_CheckForErrors(const char *filename, void *arg = 0,
     in both cases frees the context pointer, closes file, etc. */
 void         FM_Close(FM_Context *); 
 
-
+/** call this to (re)build the index on a pre-existing slightly corrupted .fmv */
+bool         FM_RebuildIndex(const char *filename, void * = 0, FM_ProgressFn = 0, FM_ErrorFn = 0);
 #endif
 
 #endif

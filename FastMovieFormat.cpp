@@ -90,11 +90,11 @@ bool         FM_AddFrame(FM_Context *c, const void *pixels,
 	
 	//off_t savedOff = ftello(c->file);
 	fseeko(c->file, 0, SEEK_END);
-	off_t imgoffset = ftello(c->file);
+	int64_t imgoffset = ftello(c->file);
 	if (c->imgOffsets.capacity() == c->imgOffsets.size()) {
 		c->imgOffsets.reserve(c->imgOffsets.capacity()*2);
 	}
-	c->imgOffsets.push_back(imgoffset);
+	c->imgOffsets.push_back(static_cast<uint64_t>(imgoffset));
 	
 	FM_ImageDescriptor desc;
 	memset(&desc, 0, sizeof(desc));
@@ -170,6 +170,52 @@ bool         FM_AddFrame(FM_Context *c, const void *pixels,
 	return ret;
 }
 
+static bool Reindex(FM_Context *c, unsigned nframes, void *arg = 0, FM_ProgressFn prog = 0, std::string *errmsg = 0)
+{
+	int lastpct = -1;
+	if (c->imgOffsets.size() != 0) c->imgOffsets.resize(0);
+	if (c->imgOffsets.capacity() != nframes) c->imgOffsets.reserve(nframes);
+	if (errmsg) *errmsg = "";
+	
+	FILE * & f = c->file;
+	if ( fseeko(f, sizeof(FM_Header), SEEK_SET) ) {
+		if (errmsg) *errmsg = "Rebuild index failed: cannot seek past header";
+		return false;
+	}
+	
+	// scan file..
+	for (unsigned i = 0; i < nframes; ++i) {
+		c->imgOffsets.push_back(static_cast<uint64_t>(ftello(f))); // save image offset..
+		FM_ImageDescriptor desc;
+		memset(&desc, 0, sizeof(desc));
+		if ( fread(&desc, sizeof(desc), 1, f) != 1 ) {
+			if (errmsg) {
+				char buf[64];
+				sprintf(buf, "%d", i);
+				*errmsg = std::string("Failed to read image #") + buf + "'s descriptor from file.";
+			}
+			return false;
+		}
+		
+		// now advance to next image
+		if ( fseeko(f, desc.length, SEEK_CUR) ) {
+			// eek! seek error!  image file corrupt/truncated??
+			if (errmsg) {
+				char buf[64];
+				sprintf(buf, "%d", i);
+				*errmsg = std::string("Seek error for image ") + buf + ".  File truncated?";
+			}				
+			return false;
+		}
+		if ( prog && lastpct < int((i*100) / nframes) ) {
+			lastpct = int( (i*100) / nframes);
+			prog(arg, lastpct);
+		}
+	}
+	
+	return true;
+}
+
 /*-----------------------------------------------------------------------------
  READ/INPUT FUNCTIONS
  -----------------------------------------------------------------------------*/
@@ -208,32 +254,9 @@ FM_Context * FM_Open(const char *filename, std::string *errmsg, bool rebuildInde
 	c->height = h.height;
 	if (!h.indexRecordOffset) {
 		if (rebuildIndex) {
-			// scan file..
-			for (unsigned i = 0; i < h.nFrames; ++i) {
-				c->imgOffsets.push_back(ftello(f)); // save image offset..
-				FM_ImageDescriptor desc;
-				memset(&desc, 0, sizeof(desc));
-				if ( fread(&desc, sizeof(desc), 1, f) != 1 ) {
-					if (errmsg) {
-						char buf[64];
-						sprintf(buf, "%d", i);
-						*errmsg = std::string("Failed to read image #") + buf + "'s descriptor from file.";
-					}
-					delete c;
-					return 0;
-				}
-				
-				// now advance to next image
-				if ( fseeko(f, desc.length, SEEK_CUR) ) {
-					// eek! seek error!  image file corrupt/truncated??
-					if (errmsg) {
-						char buf[64];
-						sprintf(buf, "%d", i);
-						*errmsg = std::string("Seek error for image ") + buf + ".  File truncated?";
-					}				
-					delete c;
-					return 0;
-				}
+			if (!Reindex(c, h.nFrames, 0, 0, errmsg)) {
+				delete c;
+				return 0;
 			}
 		} else {
 			if (errmsg) *errmsg = std::string("File ") + filename + " is missing the index record or is truncated.  Did you forget to call Finalize()?";
@@ -432,6 +455,82 @@ void         FM_Close(FM_Context *c)
 	delete c; 
 }
 
+bool         FM_RebuildIndex(const char *filename, void * arg, FM_ProgressFn progfn, FM_ErrorFn errfn)
+{
+	std::string errmsg;
+	
+	FILE *f = fopen(filename, "rb");
+	if (!f) {
+		if (errfn) errfn(arg, std::string("Cannot open ") + filename + " for reading: " + strerror(errno));
+		return false;
+	}
+	FM_Header h;
+	memset(&h, 0, sizeof(h));
+	if (fread(&h, sizeof(h), 1, f) != 1) { 
+		if (errfn) errfn(arg, "Failed to read header from file.");
+		fclose(f); 
+		return false; 
+	}
+	if (strncmp(h.magic, FM_MAGIC_STR, sizeof(h.magic))) { 
+		if (errfn) errfn(arg, "Header appears invalid or is corrupt.");
+		fclose(f); 
+		return false; 
+	}
+	
+	FM_Context *c = new FM_Context;
+	if (!c) {
+		if (errfn) errfn(arg, "Out of memory.");
+		return false;
+	}
+	c->isOutput = false;
+	c->file = f;
+	c->imgOffsets.reserve(h.nFrames);
+	c->width = h.width;
+	c->height = h.height;
+	
+	if (!Reindex(c, h.nFrames, arg, progfn, &errmsg)) {
+		if (errfn) errfn(arg, errmsg);
+		FM_Close(c);
+		return false;
+	}
+	fclose(c->file);
+	f =  c->file = fopen(filename, "r+b");
+	if (!f) {
+		if (errfn) errfn(arg, "Cannot open file for writing!");
+		FM_Close(c);
+		return false;
+	}
+	if ( !h.indexRecordOffset ) {
+		fseeko(f, 0, SEEK_END);
+		h.indexRecordOffset = ftello(f);
+		fseeko(f, 0, SEEK_SET);
+		if ( fwrite(&h, sizeof(h), 1, f) != 1 ) {
+			if (errfn) errfn(arg, "Cannot re-write header!");
+			FM_Close(c);
+			return false;
+		}
+	}
+	if ( fseeko(f, h.indexRecordOffset, SEEK_SET) ) {
+		if (errfn) errfn(arg, "Cannot seek to write index record!");
+		FM_Close(c);
+		return false;
+	}
+	FM_IndexRecord ir;
+	ir.magic = FM_INDEX_RECORD_MAGIC;
+	ir.length = c->imgOffsets.size() * sizeof(uint64_t);
+	if ( fwrite(&ir, sizeof(ir), 1, f) != 1 ) {
+		if (errfn) errfn(arg, "Cannot write new index record header!");
+		FM_Close(c);
+		return false;
+	}
+	if ( fwrite(&c->imgOffsets[0], sizeof(uint64_t), c->imgOffsets.size(), f) != c->imgOffsets.size() ) {
+		if (errfn) errfn(arg, "Cannot write new index record; write returned short record count!");
+		FM_Close(c);
+		return false;
+	}
+	FM_Close(c);
+	return true;
+}
 
 #if defined(NO_QT)
 void zCompress(const void* data, unsigned nbytes, int compressionLevel,

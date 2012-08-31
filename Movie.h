@@ -47,8 +47,9 @@ protected:
 
 private slots:
 	void checkFMV(const QString & fmvfile);
-	void fmvChkError(const QString & filename, const QString & err);
+	void fmvChkError(FMVChecker *f, const QString & filename, const QString & err);
 	void fmvChkDone(FMVChecker *);
+	void fmvChkCanceled(FMVChecker *);
 	
 private:
 	bool initFromParams(bool skipfboinit = false);
@@ -98,19 +99,36 @@ public:
 	bool checkOk;
 	QString file;
 	QProgressDialog *pd;
+	QString errMsg;
+
+	virtual QString what();
 
 protected:
 	void run();
 signals:
-	void errorMessage(const QString &, const QString &);
+	void errorMessage(FMVChecker *, const QString &, const QString &);
 	void progress(int pct);
 	void done(FMVChecker *);
+	void canceled(FMVChecker *);
 	
-private:	
+protected:	
 	static void errCB(void *fmvinstance, const std::string &msg);
 	void err(const QString &);
 	static bool progCB(void *fmvinstance, int prog);
 	bool prog(int);
+	
+};
+
+
+class FMVRepairer : public FMVChecker
+{
+public:
+	FMVRepairer(QObject *parent, Movie *m, const QString & f);
+	
+	QString what();
+
+protected:
+	void run();		
 };
 
 #endif

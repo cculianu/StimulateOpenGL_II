@@ -603,30 +603,76 @@ void Movie::checkFMV(const QString & file)
 	f->start();
 }
 
-void Movie::fmvChkError(const QString & file, const QString & err)
+void Movie::fmvChkError(FMVChecker *f, const QString & file, const QString & err)
 {
-	QMessageBox::critical(0, QString("Error in %1").arg(file), err);
+	if (!dynamic_cast<FMVRepairer *>(f)) {
+		QMessageBox::critical(0, QString("Error in %1").arg(file), err);
+	}
+	fmvChkDone(f);
+}
+
+static bool ThereIsHope(const QString &e)
+{
+	return e.contains("missing the index record") || e.contains(": seek error.");
 }
 
 void Movie::fmvChkDone(FMVChecker *f)
 {
 	f->pd->hide();
-	if (f->checkOk) {
-		Log() << QFileInfo(f->file).fileName() << " checks ok.";
-		QMessageBox::information(0, "No errors in .FMV file", QString("%1 appears ok!").arg(QFileInfo(f->file).fileName()));
+	const bool ok = f->checkOk;
+	const QString ffn = f->file;
+	const QString fn (QFileInfo(ffn).fileName()), errmsg(f->errMsg);
+	bool wasrepair = !!dynamic_cast<FMVRepairer *>(f);
+	delete f;
+	f = 0;
+	
+	if (wasrepair) {
+		if (ok) {
+			Log() << fn << " repaired ok.";
+			QMessageBox::information(0, "Repaired .FMV", QString("%1 was successfully repaired!").arg(fn));			
+		} else {
+			Log() << fn << " repaired failed.";
+			QMessageBox::information(0, "Repair Failed", QString("%1 repair was unsuccessful.  Sorry!  :(").arg(fn));						
+		}
+	} else {
+		if (ok) {
+			Log() << fn << " checks ok.";
+			QMessageBox::information(0, "No errors in .FMV file", QString("%1 checks ok!").arg(fn));
+		} else if (ThereIsHope(errmsg)){
+			int b = QMessageBox::question(0, "Repair .FMV?", QString("%1 might be repairable.  Attempt to repair? (This will modify the file in-place).").arg(fn), QMessageBox::Yes, QMessageBox::No);
+			if (b == QMessageBox::Yes) {
+				f = new FMVRepairer(stimApp(), this, ffn);
+				f->start();
+			}
+		}
 	}
+}
+
+void Movie::fmvChkCanceled(FMVChecker *f)
+{
+	Debug() << "deleted fmv " << f->what() << " thread.";
 	delete f;
 }
 
+QString FMVChecker::what() { return "error check"; }
+QString FMVRepairer::what() { return "repair"; }
+
 FMVChecker::FMVChecker(QObject *parent, Movie *m, const QString & f)
-:QThread(parent), checkOk(false), file(f), pd(0)
+:QThread(parent), checkOk(true), file(f), pd(0)
 {
 	connect(this, SIGNAL(done(FMVChecker *)), m, SLOT(fmvChkDone(FMVChecker *)), Qt::QueuedConnection);
-	connect(this, SIGNAL(errorMessage(const QString &, const QString &)), m, SLOT(fmvChkError(const QString &, const QString &)), Qt::QueuedConnection);
+	connect(this, SIGNAL(errorMessage(FMVChecker *, const QString &, const QString &)), m, SLOT(fmvChkError(FMVChecker *, const QString &, const QString &)), Qt::QueuedConnection);
+	connect(this, SIGNAL(canceled(FMVChecker *)), m, SLOT(fmvChkCanceled(FMVChecker *)), Qt::QueuedConnection);
 	pd = new QProgressDialog ( QString("Checking %1 for errors...").arg(QFileInfo(file).fileName()), "Cancel", 0, 100);
 	pd->setValue(0);
 	connect(this, SIGNAL(progress(int)), pd, SLOT(setValue(int)), Qt::QueuedConnection);
 	pd->show();
+}
+
+FMVRepairer::FMVRepairer(QObject *parent, Movie *m, const QString &f)
+: FMVChecker(parent, m, f)
+{
+	pd->setLabelText(QString("Repairing %1...").arg(QFileInfo(f).fileName()));
 }
 
 FMVChecker::~FMVChecker() 
@@ -636,24 +682,34 @@ FMVChecker::~FMVChecker()
 
 /*static*/ void FMVChecker::errCB(void *fmvinstance, const std::string &msg)
 {
-	static_cast<FMVChecker *>(fmvinstance)->err(msg.c_str());
+	reinterpret_cast<FMVChecker *>(fmvinstance)->err(msg.c_str());
 }
 /*static*/ bool FMVChecker::progCB(void *fmvinstance, int prog)
 {
-	return static_cast<FMVChecker *>(fmvinstance)->prog(prog);	
+	return reinterpret_cast<FMVChecker *>(fmvinstance)->prog(prog);	
 }
 
 void FMVChecker::run()
 {
 	Log() << "Checking " << QFileInfo(file).fileName() << " for errors...";
 	checkOk = FM_CheckForErrors(file.toUtf8().constData(), this, progCB, errCB);
-	emit done(this);
+	if (pd->wasCanceled()) emit canceled(this);
+	else if (checkOk) emit done(this);
+}
+
+
+void FMVRepairer::run()
+{
+	Log() << "Repairing " << QFileInfo(file).fileName() << "...";
+	checkOk = FM_RebuildIndex(file.toUtf8().constData(), this, progCB, errCB);
+	if (pd->wasCanceled()) emit canceled(this);
+	else if (checkOk) emit done(this);
 }
 
 bool FMVChecker::prog(int pct)
 {
 	if (pd->wasCanceled()) {
-		Log() << "FMV error check of " << QFileInfo(file).fileName() << " cancelled.";
+		Log() << "FMV " << what() << " of " << QFileInfo(file).fileName() << " cancelled.";
 		return false;
 	}
 	//Debug() << "errchk progress: " << pct;
@@ -664,6 +720,8 @@ bool FMVChecker::prog(int pct)
 void FMVChecker::err(const QString &msg)
 {
 	QString fn = QFileInfo(file).fileName();
-	Log() << "FMV error check of " << fn << " found an error: " << msg;
-	emit errorMessage(fn, msg);
+	Log() << "FMV " << what() << " of " << fn << " found an error: " << msg;
+	checkOk = false;
+	errMsg = msg;
+	emit errorMessage(this, fn, msg);
 }
