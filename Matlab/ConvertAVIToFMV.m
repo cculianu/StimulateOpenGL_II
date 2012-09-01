@@ -1,7 +1,9 @@
 function [] = ConvertAVIToFMV(infile,outfile)
 
-    mm = mmreader(infile)
-    nFrames = mm.NumberOfFrames;
+    %mm = mmreader(infile)
+    %nFrames = mm.NumberOfFrames;
+    info = aviinfo(infile)
+    nFrames = info.NumFrames;
     fmv = FastMovieWriter(outfile);
     idx = 1;
     while (idx <= nFrames)
