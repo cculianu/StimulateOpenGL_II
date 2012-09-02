@@ -409,13 +409,13 @@ bool Movie::initFBOs()
 	const int W = (sz.width() <= (int)width() ? sz.width() : width()),
 	          H = (sz.height() <= (int)height() ? sz.height() : height());
 	
-	 GLint v[] = {
+	GLint v[] = {
 		xoff, yoff,
 		xoff + W, yoff,
 		xoff + W, yoff + H,
 		xoff, yoff + H
 	};
-	GLdouble t[] = {
+	GLint t[] = {
 		0, h,
 		w, h,
 		w, 0,
@@ -519,7 +519,7 @@ void Movie::drawFrameUsingFBOTexture()
 			}
 		}
 		
-		glTexCoordPointer(2, GL_DOUBLE, 0, texCoords);
+		glTexCoordPointer(2, GL_INT, 0, texCoords);
 		glVertexPointer(2, GL_INT, 0, vertices);
 		glDrawArrays(GL_QUADS, 0, 4);
 	}
