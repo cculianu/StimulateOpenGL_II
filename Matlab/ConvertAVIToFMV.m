@@ -14,7 +14,7 @@ function [] = ConvertAVIToFMV(infile,outfile)
         avi = aviread(infile,idx:endidx);
         for i=1:length(avi),
             if (gscale), 
-                AddFrame(fmv,avi(i).cdata');
+                AddFrame(fmv,uint8(avi(i).cdata')-1);
             else
                 % convert to 8 bit grayscale!
                 AddFrame(fmv,ConvertToGScale8Bit(info,avi(i)));
