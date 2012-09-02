@@ -406,19 +406,34 @@ bool Movie::initFBOs()
 	}
 		
 	const int w = sz.width(), h = sz.height();
+	const int W = (sz.width() <= (int)width() ? sz.width() : width()),
+	          H = (sz.height() <= (int)height() ? sz.height() : height());
 	
-	GLint v[] = {
+	 GLint v[] = {
 		xoff, yoff,
-		xoff + w, yoff,
-		xoff + w, yoff + h,
-		xoff, yoff + h
+		xoff + W, yoff,
+		xoff + W, yoff + H,
+		xoff, yoff + H
 	};
-	GLint t[] = {
+	GLdouble t[] = {
 		0, h,
 		w, h,
 		w, 0,
 		0, 0,
 	};
+	 
+	/*GLint v[] = {
+		xoff, yoff,
+		xoff, yoff + H,
+		xoff + W, yoff + H,
+		xoff + W, yoff,
+	};
+	GLdouble t[] = {
+		0., 0.,
+		0., h,
+		w, h, 
+		w, 0.,
+	};*/
 	
 	memcpy(vertices, v, sizeof(vertices));
 	memcpy(texCoords, t, sizeof(texCoords));
@@ -504,8 +519,8 @@ void Movie::drawFrameUsingFBOTexture()
 			}
 		}
 		
+		glTexCoordPointer(2, GL_DOUBLE, 0, texCoords);
 		glVertexPointer(2, GL_INT, 0, vertices);
-		glTexCoordPointer(2, GL_INT, 0, texCoords);
 		glDrawArrays(GL_QUADS, 0, 4);
 	}
 	glColorMask(saved_cmask[0], saved_cmask[1], saved_cmask[2], saved_cmask[3]);

@@ -55,18 +55,19 @@ end
 
 function [frame] = ConvertToGScale8Bit(info, aviframe)
     if (info.NumColormapEntries == 0),
-        cdata = double(aviframe.cdata);
-        if (~strcmp(class(aviframe.cdata), 'uint8') || size(cdata,3)~= 3),
+        %cdata = double(aviframe.cdata);
+        if (~strcmp(class(aviframe.cdata), 'uint8') || size(aviframe.cdata,3)~= 3),
             error('AVI Frame is not RGB data of type uint8!');
         end;
-        frame = zeros(size(cdata,2), size(cdata,1), 'uint8');
-        for x=1:size(frame,1),
-            for y=1:size(frame,2),
-                rgb = [ cdata(y,x,1) cdata(y,x,2) cdata(y,x,3) ];
-                avg = uint8(sum(rgb) / size(rgb,2));
-                frame(x,y) = avg;
-            end;
-        end;
+        frame = FastMovieWriterMex('to_GS_8Bit',aviframe.cdata);
+%         frame = zeros(size(cdata,2), size(cdata,1), 'uint8');
+%         for x=1:size(frame,1),
+%             for y=1:size(frame,2),
+%                 rgb = [ cdata(y,x,1) cdata(y,x,2) cdata(y,x,3) ];
+%                 avg = uint8(sum(rgb) / size(rgb,2));
+%                 frame(x,y) = avg;
+%             end;
+%         end;
     else
         % indexed
         if (~strcmp(info.ImageType,'indexed') || info.NumColormapEntries ~= 256 || ~strcmp(class(aviframe.cdata),'uint8')),

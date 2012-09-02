@@ -158,7 +158,7 @@ void addFrame(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	
 	uint8_t *imgbuf = new uint8_t [sx*sy];
 	
-	void *m = mxGetPr(prhs[1]);
+	void *m = mxGetData(prhs[1]);
 	if (!m) {
 		delete [] imgbuf;
 		mexErrMsgTxt("Passed-in matrix is not valid!");
@@ -213,6 +213,57 @@ void finalize(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	c->endAnimCloseFile(); 
 }
 
+template<typename T> T & GetDatum3(const int *dims, void *array, int m, int n, int p)
+{
+	int M = dims[0], N = dims[1], P = dims[2];
+	T * arr = reinterpret_cast<T *>(array);
+	return arr[m+n*M+p*M*N];
+}
+
+template<typename T> T & GetDatum2(int M, int N, void *array, int m, int n)
+{
+	T * arr = reinterpret_cast<T *>(array);
+	return arr[m+n*M];	
+}
+
+void to_GS_8Bit(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+	if(nlhs < 1) mexErrMsgTxt("One output argument required.");
+	if(nrhs != 1) mexErrMsgTxt("Please pass a H x W x 3 array as the only argument to this function.");
+	void *array = mxGetPr(prhs[0]);
+	if (!array) {
+		mexErrMsgTxt("Passed-in argument is not valid!");
+	}
+	const int clsid = mxGetClassID(prhs[0]);
+	if (mxGetNumberOfDimensions(prhs[0]) != 3) {
+		mexErrMsgTxt("Passed-in argument needs to be a H x W x 3 array!");
+	}
+	const int *dims = mxGetDimensions(prhs[0]);
+	const int w = dims[1], h = dims[0];
+	mxArray *out = mxCreateNumericMatrix(w, h, mxUINT8_CLASS, mxREAL); 
+	uint8_t *o = (uint8_t *)mxGetData(out);
+	int color = 0;
+	for (int x = 0; x < w; ++x) {
+		for (int y = 0; y < h; ++y) {
+			color = 0;
+			switch(clsid) {
+				case mxCHAR_CLASS:
+				case mxINT8_CLASS: color = (int(GetDatum3<int8_t>(dims, array, y, x, 0)) + int(GetDatum3<int8_t>(dims, array, y, x, 1)) + int(GetDatum3<int8_t>(dims, array, y, x, 2))) / 3 + 128; break;
+				case mxUINT8_CLASS: color = (int(GetDatum3<uint8_t>(dims, array, y, x, 0)) + int(GetDatum3<uint8_t>(dims, array, y, x, 1)) + int(GetDatum3<uint8_t>(dims, array, y, x, 2))) / 3; break;
+				case mxINT16_CLASS: color = (int(GetDatum3<int16_t>(dims, array, y, x, 0)) + int(GetDatum3<int16_t>(dims, array, y, x, 1)) + int(GetDatum3<int16_t>(dims, array, y, x, 2))) / 3; break;
+				case mxUINT16_CLASS: color = (int(GetDatum3<uint16_t>(dims, array, y, x, 0)) + int(GetDatum3<uint16_t>(dims, array, y, x, 1)) + int(GetDatum3<uint16_t>(dims, array, y, x, 2))) / 3; break;
+				case mxUINT32_CLASS: color = (int(GetDatum3<uint32_t>(dims, array, y, x, 0)) + int(GetDatum3<uint32_t>(dims, array, y, x, 1)) + int(GetDatum3<uint32_t>(dims, array, y, x, 2))) / 3; break;; break;
+				case mxINT32_CLASS: color = (int(GetDatum3<int32_t>(dims, array, y, x, 0)) + int(GetDatum3<int32_t>(dims, array, y, x, 1)) + int(GetDatum3<int32_t>(dims, array, y, x, 2))) / 3; break;; break;
+				case mxDOUBLE_CLASS: color = ((double(GetDatum3<double>(dims, array, y, x, 0)) + double(GetDatum3<double>(dims, array, y, x, 1)) + double(GetDatum3<double>(dims, array, y, x, 2))) / 3.) * 255.; break;
+				case mxSINGLE_CLASS: color = ((double(GetDatum3<float>(dims, array, y, x, 0)) + double(GetDatum3<float>(dims, array, y, x, 1)) + double(GetDatum3<float>(dims, array, y, x, 2))) / 3.) * 255.; break;
+				default:
+					mexErrMsgTxt("Argument 1 must be a matrix of numeric type.");
+			}
+			GetDatum2<uint8_t>(w, h, o, x, y) = color;
+		}
+	}
+	plhs[0] = out;
+}
 
 void destroyContext(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -234,6 +285,7 @@ static struct CommandFunction functions[] =
     { "destroy", destroyContext },
 	{ "addFrame", addFrame },
 	{ "finalize", finalize },
+	{ "to_GS_8Bit", to_GS_8Bit },
 };
 
 static const int n_functions = sizeof(functions)/sizeof(struct CommandFunction);

@@ -82,7 +82,8 @@ private:
 #define MOVIE_NUM_FBO 6
 	GLuint fbos[MOVIE_NUM_FBO], texs[MOVIE_NUM_FBO];
 	unsigned char fboctr;
-	GLint ifmt, fmt, type, vertices[8], texCoords[8];
+	GLint ifmt, fmt, type, vertices[8];
+	GLdouble texCoords[8];
 	int nSubFrames;
 
 	QCache<int,QByteArray> imgCache;
