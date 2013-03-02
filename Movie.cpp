@@ -415,6 +415,7 @@ bool Movie::initFBOs()
 		xoff + W, yoff + H,
 		xoff, yoff + H
 	};
+	
 	GLint t[] = {
 		0, h,
 		w, h,
@@ -428,11 +429,11 @@ bool Movie::initFBOs()
 		xoff + W, yoff + H,
 		xoff + W, yoff,
 	};
-	GLdouble t[] = {
-		0., 0.,
-		0., h,
+	GLint t[] = {
+		0, 0,
+		0, h,
 		w, h, 
-		w, 0.,
+		w, 0,
 	};*/
 	
 	memcpy(vertices, v, sizeof(vertices));
