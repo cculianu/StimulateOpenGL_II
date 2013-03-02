@@ -579,7 +579,7 @@ temp_freq
        Possible values:  -inf - +inf
        Default value:    1.0
 
-tFrames
+tframes
        Synopsis:         Specifies the number of frames before applying the
                          'dangle' rotation.  FT_Change is asserted when rotation
                          is applied.  
