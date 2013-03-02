@@ -574,7 +574,7 @@ temp_freq
                          (whose total width is specified as spatial_freq above) that
                          pass a particular pixel on the screen per second.  Motion 
                          is from right to left (unless an oblique angle is used for
-                         rotation, in which cas emotion would be reversed).
+                         rotation, in which case motion would be reversed).
        Datatype:         float
        Possible values:  -inf - +inf
        Default value:    1.0
