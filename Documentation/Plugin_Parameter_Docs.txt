@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: August 10, 2012
+Last Updated: March 2, 2013
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -528,7 +528,7 @@ angle
                          etc.                        
        Datatype:         float
        Possible values:  0.0 - 359.9
-       Default value:    NONE (must be specified)
+       Default value:    0.0
 
 dangle
        Synopsis:         Specifies the angle in degrees that the grayscale 
@@ -538,8 +538,8 @@ dangle
                          0 is perfectly vertical, 90 is perfectly horizontal,
                          etc.                        
        Datatype:         float
-       Possible values:  0.0 - 359.9
-       Default value:    angle
+       Possible values:  -359.9 - +359.9
+       Default value:    0.0
 
 min_color
        Synopsis:         Specifies the intensity to use as the minimum color.
@@ -555,40 +555,29 @@ max_color
        Possible values:  0 - 1.0
        Default value:    1.0 (white)
 
-max_color2
-       Synopsis:         Specifies the intensity to use as the maximum color
-                         for reversal mode.  
-                         Every reversal frames, the max_color is alternated
-                         between max_color and max_color2.
+spatial_freq
+       Synopsis:         In units of cycles/pixel.  Essentially specifies the width
+                         of the moving grayscale bars, but in units useful to the
+                         experimenter. Note that: 1.0/spatial_freq is the width
+                         of a complete cycle, in pixels.  So 0.01 has a width of 100
+                         pixels, with the white bar being roughly 50 pixels wide
+                         and the dark bar being roughly 50 pixels (if using sine as
+                         the wave function). NB: Values larger than 1.0 are going
+                         to result in invisible bars on the screen (as the width
+                         of a cycle would fall below 1 pixel)!
        Datatype:         float
-       Possible values:  0 - 1.0
-       Default value:    1.0 (white)
-
-period
-       Synopsis:         Specifies the width of the moving grayscale bars, 
-                         in pixels. Values below 3 seem to not generate any 
-                         visible frames.
-       Datatype:         integer
-       Possible values:  0 - +2147483647
-       Default value:    NONE (must be specified)
-
-reversal
-       Synopsis:         If nonzero, do contrast reversal every 'reversal' frames.
-                         Reversal has the max_color alternate with max_color2.
-                         If using max_color2, then intensities above the halfway
-                         point get re-scaled to max_color2.  In certain parameter
-                         regimes this presents the optical illusion of a 
-                         reversal of the direction of motion of the waves.
-       Datatype:         integer
        Possible values:  0 - +inf
-       Default value:    0 (disabled)
+       Default value:    0.01 (100 pixel width for a complete cycle)
 
-speed
-       Synopsis:         Specifies the number of pixels per frame that the
-                         grayscale bars move.  Motion is from right to left.
-       Datatype:         integer
-       Possible values:  0 - +2147483647
-       Default value:    NONE (must be specified)
+temp_freq
+       Synopsis:         Temporal frequency, or the number of complete bars
+                         (whose total width is specified as spatial_freq above) that
+                         pass a particular pixel on the screen per second.  Motion 
+                         is from right to left (unless an oblique angle is used for
+                         rotation, in which cas emotion would be reversed).
+       Datatype:         float
+       Possible values:  -inf - +inf
+       Default value:    1.0
 
 tFrames
        Synopsis:         Specifies the number of frames before applying the
@@ -604,7 +593,7 @@ wave
        Possible values:  `sine': generate sine waves. 
                          `square': like a sine wave except there is no gray. 
                          Either values are all on or all off.                     
-       Default value:    0 (off)
+       Default value:    `sine'
 
 ----------------------------------------------------------------------------------
 `MovingObjects' PLUGIN PARAMETERS

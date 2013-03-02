@@ -1,30 +1,35 @@
 #include "MovingGrating.h"
 
+#define TEXWIDTH 2048
+
 static double squarewave(double x) {
 	if (sin(x) > 0.) return 1.0;
 	return -1.0;
 }
 
 MovingGrating::MovingGrating()
-    : GridPlugin("MovingGrating"), xscale(1.f), yscale(1.f)
+    : StimPlugin("MovingGrating"), spatial_freq(0.01f), temp_freq(1.0f), angle(0.f), dangle(0.f), tframes(-1), phase(0.0), tex(0)
 {
+    pluginDoesOwnClearing = true;
+
 }
 
+MovingGrating::~MovingGrating() {
+    if (tex) glDeleteTextures(1, &tex);
+    tex = 0;
+}
 
 bool MovingGrating::initFromParams()
 {
-	if( !getParam("period", period) ) period = 400;
-	if( !getParam("speed",  speed) ) speed = 1;
-	if( !getParam("angle", angle) ) angle = 0; 
-	if( !getParam("dangle", dangle) ) dangle = angle;	
+	if( !getParam("spatial_freq", spatial_freq) ) spatial_freq = 0.01f;
+	if( !getParam("temp_freq",  temp_freq) ) temp_freq = 1.0f;
+	if( !getParam("angle", angle) ) angle = 0.f;
+	if( !getParam("dangle", dangle) ) dangle = 0.f;
 	
 	if( !getParam("tframes", tframes) )	tframes = -1;
 	
-	if ( !getParam("min_color", min_color)) min_color = 0.;
+	if ( !getParam("min_color", min_color)) min_color = 0.0;
 	if ( !getParam("max_color", max_color)) max_color = 1.;
-	if ( !getParam("max_color2", max_color2)) max_color2 = max_color;
-	if ( !getParam("reversal", reversal) ) reversal = 0;
-	if (reversal < 0) reversal = 0;
 	
 	if (min_color < 0. || max_color < 0.) {
 		Error() << "min_color and max_color need to be > 0!";
@@ -35,14 +40,13 @@ bool MovingGrating::initFromParams()
 		min_color /= 255.;
 		max_color /= 255.;
 	}
+    
+    phase = 0.0;
 	
 	QString wave;
 	if (!getParam("wave", wave)) wave = "sin";
 	if (wave.toLower().startsWith("sq")) waveFunc = &squarewave;
 	else waveFunc = &sin;
-	
-    xscale = width()/800.0;
-    yscale = height()/600.0;
 
 	return true;	
 }
@@ -50,132 +54,120 @@ bool MovingGrating::initFromParams()
 bool MovingGrating::init()
 {
 	if (!initFromParams()) return false;
-	totalTranslation = 0;
-
-    setupGrid( -800, -800, 1, 1600, 1600, 1 );
+	phase = 0.0;
 	
-	frameVars->setVariableNames(QString("frameNum phase period angle").split(" "));
-	frameVars->setVariableDefaults(QVector<double>() << 0. << 0. << period << angle);
+	frameVars->setVariableNames(QString("frameNum phase spatial_freq angle").split(" "));
+	frameVars->setVariableDefaults(QVector<double>() << 0. << 0. << spatial_freq <<  angle);
 
+    if (!tex) {
+        glGenTextures(1, &tex);
+    }
+    GLfloat pix[TEXWIDTH];
+    for (int i = 0; i < TEXWIDTH; ++i) {
+        pix[i] = (waveFunc(GLfloat(i)/GLfloat(TEXWIDTH)*2.0*M_PI)+1.0)/2.0 * (max_color-min_color) + min_color;
+        if (pix[i] < 0.f) pix[i] = 0.f;
+        if (pix[i] > 1.f) pix[i] = 1.f;
+    }
+    glBindTexture(GL_TEXTURE_1D, tex);
+    glTexImage1D(GL_TEXTURE_1D, 0, GL_LUMINANCE, TEXWIDTH, 0, GL_LUMINANCE, GL_FLOAT, pix);
+        
 	return true;    
-}
-
-inline float MovingGrating::scaleIntensity(float c) const 
-{ 
-	float ret = c*(max_color-min_color) + min_color; 
-	if (reversal > 0 && int(frameNum % (reversal*2)) >= reversal) {
-		float hcolor = (max_color+min_color)/2;
-		if (ret > hcolor) {
-			ret = (max_color2-hcolor)*(ret - hcolor)/(max_color-hcolor) + hcolor;
-		}
-	}
-	return ret;
 }
 
 
 void MovingGrating::drawFrame()
-{   
-	// Done in calling code.. glClear( GL_COLOR_BUFFER_BIT );
-
-	glPushMatrix();
+{
+    const int nIters = int(fps_mode)+1;
+    const double dT = (1.0/double(stimApp()->refreshRate()))/double(nIters);
+    GLboolean savedMask[4];
+    GLfloat savedClear[4];
+    glGetBooleanv(GL_COLOR_WRITEMASK, savedMask);
+    glGetFloatv(GL_COLOR_CLEAR_VALUE, savedClear);
+    glClearColor(min_color, min_color, min_color, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    for (int k = 0; k < nIters; ++k) {
+        glPushMatrix();
         
-    glScalef(xscale, yscale, 1.f);
-
-	if (fps_mode != FPS_Single) {
-		float totalTranslations[3];
-		const int n_iters = ((int)fps_mode)+1;
-		for (int k = 0; k < n_iters; ++k) {
-			QVector<double> fv;
-			if (have_fv_input_file) {
-				fv = frameVars->readNext();
-				if (fv.size() < 2 && frameNum) {
-					// at end of file?
-					Warning() << name() << "'s frame_var file ended input, stopping plugin.";
-					parent->pauseUnpause();
-					have_fv_input_file = false;
-					glPopMatrix();
-					stop();
-					return;
-				} 
-				if (fv.size() < 2 || fv[0] != frameNum) {
-					Error() << "Error reading frame " << frameNum << " from frameVar file! Datafile frame num differs from current frame number!  Does the fps_mode of the frameVar file match the current fps mode?";			
-					stop();
-					return;
-				}
-			}
-			if (fv.size()) {
-				period = fv[2];
-				totalTranslation = fv[1] * period;
-				angle = fv[3];
-			} else if( totalTranslation > period ){
-				totalTranslation = totalTranslation - period + speed;
-			} else {
-				totalTranslation = totalTranslation + speed;
-			}
-			totalTranslations[k] = totalTranslation;
-			if (!fv.size())
-				frameVars->push(double(frameNum), double(totalTranslation)/double(period), period, angle);
-		}
-		for (int i = 0; i < 1600; ++i) {
-			float r = 0., g = 0., b = 0.;
-			for (int ff = 0; ff < (fps_mode == FPS_Dual ? 2 : 3); ++ff) {
-				const float val = scaleIntensity(0.5+0.5*waveFunc(2.*M_PI*(i+totalTranslations[ff])/period));
-				if (ff == r_index) r = val;
-				if (ff == g_index) g = val;
-				if (ff == b_index) b = val;
-			}
-			setColor(i, 0, r, g, b);
-		}
-	} else { // !quad_fps && !dual_fps
-		QVector<double> fv;
-		if (have_fv_input_file) {
-			fv = frameVars->readNext();
-			if (fv.size() < 2 && frameNum) {
-				// at end of file?
-				Warning() << name() << "'s frame_var file ended input, pausing plugin.";
-				parent->pauseUnpause();
-				have_fv_input_file = false;
-				glPopMatrix();
-				stop();
-				return;
-			} 
-			if (fv.size() < 2 || fv[0] != frameNum) {
-				fv.clear();
-				Error() << "Error reading frame " << frameNum << " from frameVar file! Datafile frame num differs from current frame number!  Does the fps_mode of the frameVar file match the current fps mode?";			
-				stop();
-				return;
-			}
-		}
-		if (fv.size()) {
-			period = fv[2];
-			totalTranslation = fv[1] * period;
-			angle = fv[3];
-		} else if( totalTranslation > period ) {
-			totalTranslation = totalTranslation - period + speed;
-		} else {
-			totalTranslation = totalTranslation + speed;
-		}
-		if (!fv.size())
-			frameVars->push(double(frameNum), double(totalTranslation)/double(period), period, angle);
-		
-		for( int i=0; i<1600; i++ )
-			setGrayLevel( i, 0, scaleIntensity(0.5+0.5*waveFunc(2.*M_PI*(i+totalTranslation)/period)) );
-	}
-	
-	if (ftChangeEvery < 1 && reversal && frameNum > 0 && !(frameNum%reversal)) ftAssertions[FT_Change] = true;
-	
-	if ((frameNum > 0) && tframes > 0 && !(frameNum % tframes)) {		
-		if (ftChangeEvery < 1) ftAssertions[FT_Change] = true;		
-		angle = angle + dangle;
-	}
-
-	glRotatef( angle, 0.0, 0.0, 1.0 );
-
-	drawGrid();
-
-	glRotatef( -angle, 0.0, 0.0, 1.0 );
+        QVector<double> fv;
+        if (have_fv_input_file) {
+            fv = frameVars->readNext();
+            if (fv.size() < 2 && frameNum) {
+                // at end of file?
+                Warning() << name() << "'s frame_var file ended input, pausing plugin.";
+                parent->pauseUnpause();
+                have_fv_input_file = false;
+                glPopMatrix();
+                stop();
+                return;
+            } 
+            if (fv.size() < 2 || fv[0] != frameNum) {
+                fv.clear();
+                Error() << "Error reading frame " << frameNum << " from frameVar file! Datafile frame num differs from current frame number!  Does the fps_mode of the frameVar file match the current fps mode?";			
+                stop();
+                return;
+            }
+        }
+        if (fv.size() >= 2) {
+            phase = fv[1];
+            if (fv.size() > 2) spatial_freq = fv[2];
+            if (fv.size() > 3) angle = fv[3];
+        } else {
+            // advance phase here..
+            phase += dT * temp_freq;
+            phase = fmod(phase, 1.0);
+        }
         
-	glPopMatrix();
+        if (spatial_freq < 0.) spatial_freq = -spatial_freq;
+        
+        if (!fv.size())
+            frameVars->push(double(frameNum), phase, spatial_freq, angle);
+        
+            
+        if ((frameNum > 0) && tframes > 0 && !(frameNum % tframes)) {		
+            if (ftChangeEvery < 1) ftAssertions[FT_Change] = true;		
+            angle = angle + dangle;
+        }
+
+        const float w = width()*2, h = height()*2, hw=w/2., hh=h/2.;
+        
+        glTranslatef( width()/2, height()/2, 0);
+        glRotatef( angle, 0.0, 0.0, 1.0 );
+
+        
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+        glEnable(GL_TEXTURE_1D);
+        glBindTexture(GL_TEXTURE_1D, tex);
+        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+        GLfloat v[] = { -hw,-hh, hw,-hh, hw,hh, -hw,hh };
+        const double bw = (spatial_freq <= 0. ? 1.0 : 1.0/spatial_freq);
+        GLfloat t[] = { 0.f+phase, w/bw+phase, w/bw+phase, 0.f+phase };
+        
+        glVertexPointer(2, GL_FLOAT, 0, v);
+        glTexCoordPointer(1, GL_FLOAT, 0, t);
+        
+        if (fps_mode != FPS_Single) {
+            if (k == r_index) glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE);
+            if (k == g_index) glColorMask(GL_FALSE, GL_TRUE, GL_FALSE, GL_FALSE);
+            if (k == b_index) glColorMask(GL_FALSE, GL_FALSE, GL_TRUE, GL_FALSE);
+        }
+        glDrawArrays(GL_QUADS, 0, 4);
+
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+        glDisable(GL_TEXTURE_1D);
+            
+        glPopMatrix();
+    }
+    glColorMask(savedMask[0], savedMask[1], savedMask[2], savedMask[3]);
+    glClearColor(savedClear[0], savedClear[1], savedClear[2], savedClear[3]);
 }
 
 /* virtual */

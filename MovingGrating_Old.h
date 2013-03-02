@@ -1,6 +1,7 @@
 #ifndef MovingGrating_H
 #define MovingGrating_H
-#include "StimPlugin.h"
+#include "GridPlugin.h"
+
 class GLWindow;
 
 /** \brief A plugin that draws a moving 'grating' or set of bars.
@@ -15,28 +16,31 @@ class GLWindow;
 
     For a full description of this plugin's parameters, it is recommended you see the \subpage plugin_params "Plugin Parameter Documentation"  for more details.
 */ 
-class MovingGrating : public StimPlugin
+class MovingGrating : public GridPlugin
 {
 	friend class GLWindow;
 
-    float spatial_freq, ///< spatial frequency, in cycles/pixel.  So .01 is 100 pixel bar width
-          temp_freq;    ///< temporary frequency.  How many full cycles/sec cross a given point
-    float angle; ///< in degrees, how much the bars are rotated
-	float dangle; ///< delta-angle.  every tframes modify the angle by this amount
+    float period;
+    float speed;
+    float angle;
+    float totalTranslation;
+
+	float dangle;
 	int tframes;
 
-	float min_color,max_color; ///< actual intensities used scaled to this range. This param should be clamped between [0,1]
+    float xscale,yscale;
+	
+	float min_color,max_color,max_color2; ///< actual intensities used scaled to this range. This param should be clamped between [0,1]
+	int reversal;
+
+	/// return the scaled intensity (input [0,1] scaled to [min_color,max_color]).  also may apply 'reversal' mode, if active
+	float scaleIntensity(float c) const;
 	
 	double (*waveFunc)(double);
 	
-    double phase;
-    
-    GLuint tex;
-        
 protected:
     MovingGrating(); ///< can only be constructed by our friend class
-    ~MovingGrating();
-    
+
     void drawFrame();
     bool init();
 	/* virtual */ bool applyNewParamsAtRuntime();

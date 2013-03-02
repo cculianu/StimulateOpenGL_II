@@ -35,7 +35,7 @@ protected:
     inline void setColor(int x, int y, float r, float g, float b) {colors[x][y*6+9]=r;colors[x][y*6+10]=g;colors[x][y*6+11]=b;}
 
 public:
-    virtual void stop(); ///< reimplementation deletes the grid data
+    void stop(); ///< reimplementation deletes the grid data
 
 private:
     GLfloat **colors;
