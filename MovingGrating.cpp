@@ -119,15 +119,20 @@ void MovingGrating::drawFrame()
         }
         
         if (spatial_freq < 0.) spatial_freq = -spatial_freq;
-        
-        if (!fv.size())
-            frameVars->push(double(frameNum), phase, spatial_freq, angle);
-        
-            
+                    
         if ((frameNum > 0) && tframes > 0 && !(frameNum % tframes)) {		
             if (ftChangeEvery < 1) ftAssertions[FT_Change] = true;		
             angle = angle + dangle;
         }
+
+        if (angle > 360.0) {
+            angle = fmodf(angle, 360.0f);
+        } else if (angle < -360.0) {
+            angle = fmodf(-angle, 360.0f);
+            angle = -angle;
+        }
+
+        if (!fv.size()) frameVars->push(double(frameNum), phase, spatial_freq, angle);        
 
         const float w = width()*2, h = height()*2, hw=w/2., hh=h/2.;
         
