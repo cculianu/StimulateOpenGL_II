@@ -84,7 +84,7 @@ bool Movie::initFromParams(bool skipfboinit)
 	loopsleft = 0;
 	getParam("loops", *const_cast<int *>(&loopsleft));
 	loopforever = (loopsleft < 1);
-
+    
 	QFile f (file);
 	f.open(QIODevice::ReadOnly);
 	if (!f.isOpen()) {
@@ -282,7 +282,6 @@ QByteArray Movie::popOneFrame()
 	return frame;
 }
 	
-/// test code for 8-bit images where *WE* do the triple-fps blending ourselves..
 void Movie::drawFrame()
 {   
 	if (pendingStop) {
@@ -467,13 +466,15 @@ bool Movie::preloadNextTexToFBO()
 		// generate a mipmap for quality? nah -- mipmaps not supprted anyway for GL_TEXTURE_RECTANGLE_ARB path
 		//glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texs[i]);
 		//glGenerateMipmapEXT(GL_TEXTURE_RECTANGLE_ARB);
-	}
+	} else {
+        //Debug() << "preloadFBO fbo#"<<i<<" got null frame";
+    }
 	glPopAttrib();
 	// Re-enable rendering to the window
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);	
 	
 	elapsed = getTime() - t0;
-	
+	//Debug() << "preloadFBO fbo#" << i << " took " << (elapsed*1e3) << " msec";
 	//qDebug("preloadNextTexToFBO %g ms", elapsed*1000.0);
 
 	return !frame.isNull();
@@ -566,8 +567,11 @@ void ReaderThread::run()
 			QByteArray cachedImg;
 			if (m->imgCache.contains(imgct))
 				cachedImg = *(m->imgCache.object(imgct));
+            
 			m->readFramesMutex.unlock();
-			
+
+            //Debug() << "reader " << threadid << " framect=" << framenum << " imgct=" << imgct;
+
 			if (movieEnded) {
 				stop = true;
 				break;
@@ -578,10 +582,13 @@ void ReaderThread::run()
 				m->readFramesMutex.lock();
 				m->readFrames[framenum] = cachedImg;
 				m->readFramesMutex.unlock();
-				
+
+                //Debug() << "reader " << threadid << " " << imgct << " was cached";
+
 			} else {
 				// img not in cache, so read it from the disk file and enqueue it, and also cache it
-				bool readok = false;
+                bool readok = false;
+                
 				
 				// jump the reader to current image
 				readok=reader->randomAccessRead(&img, imgct+1);
@@ -599,10 +606,11 @@ void ReaderThread::run()
 					m->readFrames[framenum] = *pixels; // shallow copy..
 					m->imgCache.insert(imgct, pixels, pixels->size()); // img cache owns object, will delete when emptying..
 					m->readFramesMutex.unlock();
+
 				}
 				
 			}
-			
+			//Debug () << "reader " << threadid << " " << imgct << " read in " << ((getTime()-t0)*1000.) << " msec";
 			//qDebug("thread %d, frame %d imgnr %d took %g msec to read from %s", (int)threadid, (int)framenum, imgct, ((getTime()-t0)*1000.),				   cachedImg.isNull() ? "file" : "cache");
 
 		}
