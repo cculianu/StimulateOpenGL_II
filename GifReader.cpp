@@ -1131,7 +1131,7 @@ bool GifReader::read(QImage *image)
     return false;
 }
 
-bool GifReader::randomAccessRead(QImage *image, int imgnum)
+bool GifReader::randomAccessRead(QImage *image, int imgnum, int *cfs)
 {
 	if (imgnum < 1 || imgnum > imageCount())
 		return false;
@@ -1155,6 +1155,7 @@ bool GifReader::randomAccessRead(QImage *image, int imgnum)
 	}
 	device()->seek(imageOffsets[imgnum-1]);
 	buffer.resize(imageLengths[imgnum-1]);
+    if (cfs) *cfs = buffer.size();
 	if ( device()->read((char *)buffer.data(), buffer.size()) < buffer.size() ) {
 		device()->seek(oldPos);
 		return false;

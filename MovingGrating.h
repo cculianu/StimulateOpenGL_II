@@ -42,6 +42,8 @@ protected:
 	/* virtual */ bool applyNewParamsAtRuntime();
 private:
 	bool initFromParams();
+    
+    void redefineTexture(float min, float max, bool is_sub_img);
 };
 
 

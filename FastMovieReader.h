@@ -23,7 +23,7 @@ class GenericMovieReader : public QImageIOHandler
 {
 public:
 	virtual ~GenericMovieReader();
-	virtual bool randomAccessRead(QImage *image, int imgnum /* first image is 1, last is imageCount() */) = 0;
+	virtual bool randomAccessRead(QImage *image, int imgnum /* first image is 1, last is imageCount() */, int *compressedFrameSize = 0) = 0;
 	virtual QByteArray name() const = 0;
 	virtual QSize size() const = 0;
 };
@@ -43,7 +43,7 @@ public:
     bool read(QImage *image);
     bool write(const QImage &image);
 	
-	bool randomAccessRead(QImage *image, int imgnum /* first image is 1, last is imageCount() */);
+	bool randomAccessRead(QImage *image, int imgnum /* first image is 1, last is imageCount() */, int *compressedFrameSize);
 	
     QByteArray name() const { return fileName.toUtf8(); }
 		

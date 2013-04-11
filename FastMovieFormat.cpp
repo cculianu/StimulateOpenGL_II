@@ -245,13 +245,21 @@ FM_Context * FM_Open(const char *filename, std::string *errmsg, bool rebuildInde
 		fclose(f); 
 		return 0; 
 	}
-	
+
 	FM_Context *c = new FM_Context;
 	c->isOutput = false;
 	c->file = f;
 	c->imgOffsets.reserve(h.nFrames);
 	c->width = h.width;
 	c->height = h.height;
+    
+    { // figure out file size
+        off_t savedOff = ftello(f);
+        fseeko(f, 0, SEEK_END);
+        c->fileLengthBytes = ftello(f);
+        fseeko(f, savedOff, SEEK_SET);
+    }
+    
 	if (!h.indexRecordOffset) {
 		if (rebuildIndex) {
 			if (!Reindex(c, h.nFrames, 0, 0, errmsg)) {
@@ -316,7 +324,7 @@ bool         FM_IsFMV(const char *filename)
 }
 
 /// read a frame from the .fmv file
-FM_Image * FM_ReadFrame(FM_Context *c, unsigned frame_id /* first frame is frame 0 */, std::string *errmsg)
+FM_Image * FM_ReadFrame(FM_Context *c, unsigned frame_id /* first frame is frame 0 */, std::string *errmsg, int *cfs)
 {
 	char frame_idstr[32];
 	sprintf(frame_idstr, "%u", frame_id);
@@ -332,6 +340,11 @@ FM_Image * FM_ReadFrame(FM_Context *c, unsigned frame_id /* first frame is frame
 		return 0;
 	}
 
+    if ( cfs ) {
+        int64_t nextImgOff = ((frame_id+1) < c->imgOffsets.size()) ? c->imgOffsets[frame_id+1] : c->fileLengthBytes;
+        *cfs = nextImgOff - int64_t(c->imgOffsets[frame_id]);
+    }
+    
 	FM_Image *ret = new FM_Image;
 	if ( fread(&ret->desc, sizeof(ret->desc), 1, c->file) != 1
 		 || ret->desc.magic != FM_IMAGE_DESCRIPTOR_MAGIC) {

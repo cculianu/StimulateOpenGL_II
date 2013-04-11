@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: March 2, 2013
+Last Updated: April 11, 2013
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -497,6 +497,11 @@ specified, then the movie is rendered in the center of the plugin window.
 
 The other margin parameters (`tmargin', `rmargin') are ignored.
 
+Note about looping: This plugin doesn't use the global looping mechanism defined
+by 'nLoops' because of the way it is written. Instead, looping is defined by the
+'loops' parameter (0 means loops indefinitely, the defaults). DO NOT USE `nLoops'
+WITH THIS PLUGIN!
+
 Use the Matlab `@FastMovieWriter' class to generate .fmv files (which are
 the preferred format and faster than .GIF files), or the `@GifWriter' class to 
 generate acceptable GIF movies from within Matlab.
@@ -512,6 +517,9 @@ loops
        Synopsis:         Specifies the number of times to play the movie 
                          through.  A value of 1 means play the movie once, 2
                          twice, etc.  0 means play the movie infinitely.
+                         Warning do not use nLoops for this plugin, instead
+                         use loops (since tFrames and nFrames is meaningless for 
+                         the movie plugin).
        Datatype:         integer
        Possible values:  0 - +2147483647
        Default value:    0 (loop infinitely)

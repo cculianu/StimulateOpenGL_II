@@ -91,12 +91,12 @@ QSize FastMovieReader::size() const {
 	return QSize();
 }
 
-bool FastMovieReader::randomAccessRead(QImage *image, int imgnum)
+bool FastMovieReader::randomAccessRead(QImage *image, int imgnum, int *compFrameSize)
 {
 	--imgnum; // internally img numbers are 0-based
 	if (!image && !ctx && !open() && (imgnum < 0 || imgnum >= (int)ctx->imgOffsets.size())) return false;
 	if (ctx) {
-		FM_Image *img = FM_ReadFrame(ctx, imgnum);
+		FM_Image *img = FM_ReadFrame(ctx, imgnum, 0, compFrameSize);
 		if (!img) return false;
 		if (img->desc.fmt != FM_LUMINOSITY && img->desc.bitdepth != 8) {
 			Error() << "FastMovie fmt and bitdepth are not 0 and 8, respectively!";

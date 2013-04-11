@@ -51,39 +51,70 @@ bool MovingGrating::initFromParams()
 	return true;	
 }
 
+void MovingGrating::redefineTexture(float min, float max, bool is_sub_img)
+{
+    GLfloat pix[TEXWIDTH];
+    for (int i = 0; i < TEXWIDTH; ++i) {
+        pix[i] = (waveFunc(GLfloat(i)/GLfloat(TEXWIDTH)*2.0*M_PI)+1.0)/2.0 * (max-min) + min;
+        if (pix[i] < 0.f) pix[i] = 0.f;
+        if (pix[i] > 1.f) pix[i] = 1.f;
+    }
+    glBindTexture(GL_TEXTURE_1D, tex);
+    if (is_sub_img) {
+        glTexSubImage1D(GL_TEXTURE_1D, 0, 0, TEXWIDTH, GL_LUMINANCE, GL_FLOAT, pix);
+    } else {
+        glTexImage1D(GL_TEXTURE_1D, 0, GL_LUMINANCE, TEXWIDTH, 0, GL_LUMINANCE, GL_FLOAT, pix);
+    }
+}
+
 bool MovingGrating::init()
 {
 	if (!initFromParams()) return false;
 	phase = 0.0;
 	
-	frameVars->setVariableNames(QString("frameNum phase spatial_freq angle").split(" "));
-	frameVars->setVariableDefaults(QVector<double>() << 0. << 0. << spatial_freq <<  angle);
+	frameVars->setVariableNames(QString("frameNum phase spatial_freq angle min_color max_color").split(" "));
+	frameVars->setVariableDefaults(QVector<double>() << 0. << 0. << spatial_freq <<  angle << min_color << max_color);
 
     if (!tex) {
         glGenTextures(1, &tex);
     }
-    GLfloat pix[TEXWIDTH];
-    for (int i = 0; i < TEXWIDTH; ++i) {
-        pix[i] = (waveFunc(GLfloat(i)/GLfloat(TEXWIDTH)*2.0*M_PI)+1.0)/2.0 * (max_color-min_color) + min_color;
-        if (pix[i] < 0.f) pix[i] = 0.f;
-        if (pix[i] > 1.f) pix[i] = 1.f;
-    }
-    glBindTexture(GL_TEXTURE_1D, tex);
-    glTexImage1D(GL_TEXTURE_1D, 0, GL_LUMINANCE, TEXWIDTH, 0, GL_LUMINANCE, GL_FLOAT, pix);
-        
+    redefineTexture(min_color, max_color, false);        
 	return true;    
 }
 
+static inline bool feqf(const float f1, const float f2) {
+    static const float epsilon = 0.001f;
+    return fabsf(f1-f2) < epsilon;
+}
 
 void MovingGrating::drawFrame()
 {
     const int nIters = int(fps_mode)+1;
+    QVector<QVector<double> > fvs_cached;
+    fvs_cached.reserve(nIters);
+    float min_min_color = have_fv_input_file ? 1e6 : min_color;
+    
+    // pre-cache frame vars here if we use frame vars so we can figure out
+    // what clear color to use..
+    for (int k = 0; have_fv_input_file && k < nIters; ++k) {
+        fvs_cached.push_back(frameVars->readNext());
+        QVector<double> & fv (fvs_cached.back());
+        if (fv.size() < 2 && frameNum) {
+            break;
+        }
+        if (fv.size() > 4 && fv[4] < min_min_color) min_min_color = fv[4];
+    }
+    if (have_fv_input_file && min_min_color > 1.f)
+        min_min_color = min_color;
+    
     const double dT = (1.0/double(stimApp()->refreshRate()))/double(nIters);
+    float new_min_color = min_color, new_max_color = max_color;
     GLboolean savedMask[4];
     GLfloat savedClear[4];
     glGetBooleanv(GL_COLOR_WRITEMASK, savedMask);
     glGetFloatv(GL_COLOR_CLEAR_VALUE, savedClear);
-    glClearColor(min_color, min_color, min_color, 1.0);
+    // TODO: make the glClear() here take into account possibly changing min_color values??
+    glClearColor(min_min_color, min_min_color, min_min_color, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
     
     for (int k = 0; k < nIters; ++k) {
@@ -91,7 +122,8 @@ void MovingGrating::drawFrame()
         
         QVector<double> fv;
         if (have_fv_input_file) {
-            fv = frameVars->readNext();
+            //fv = frameVars->readNext();
+            if (k < fvs_cached.size()) fv = fvs_cached[k];
             if (fv.size() < 2 && frameNum) {
                 // at end of file?
                 Warning() << name() << "'s frame_var file ended input, pausing plugin.";
@@ -112,6 +144,8 @@ void MovingGrating::drawFrame()
             phase = fv[1];
             if (fv.size() > 2) spatial_freq = fv[2];
             if (fv.size() > 3) angle = fv[3];
+            if (fv.size() > 4) new_min_color = fv[4];
+            if (fv.size() > 5) new_max_color = fv[5];
         } else {
             // advance phase here..
             phase += dT * temp_freq;
@@ -132,7 +166,15 @@ void MovingGrating::drawFrame()
             angle = -angle;
         }
 
-        if (!fv.size()) frameVars->push(double(frameNum), phase, spatial_freq, angle);        
+        if (!feqf(min_color, new_min_color) || !feqf(max_color,new_max_color)) {
+            min_color = new_min_color;
+            max_color = new_max_color;
+            //const double t0 = Util::getTime();
+            redefineTexture(min_color, max_color, true);
+            //Debug() << "redefine texture time (subimage) = " << ((Util::getTime()-t0)*1e3) << " msec";
+        }
+
+        if (!fv.size()) frameVars->push(double(frameNum), phase, spatial_freq, angle, min_color, max_color);
 
         const float w = width()*2, h = height()*2, hw=w/2., hh=h/2.;
         

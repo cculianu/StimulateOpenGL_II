@@ -67,6 +67,11 @@ private:
 	
 	QMutex readFramesMutex;
 	QMap<int,QByteArray> readFrames;
+    QMap<int,int> cfsMap;
+    
+    
+    // stats -- compressed frame size min, max, avg
+    int cfsMin, cfsMax, cfsAvg, cfsNAvg;
 
 	QList<QThread *> threads;
 	QSemaphore sem;

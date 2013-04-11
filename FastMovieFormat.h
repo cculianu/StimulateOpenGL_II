@@ -99,6 +99,7 @@ struct FM_Context
 {
 	FILE *file;
 	std::vector<uint64_t> imgOffsets;
+    uint64_t fileLengthBytes;
 	bool isOutput; 
 	unsigned width, height;
 	
@@ -141,7 +142,7 @@ bool         FM_AddFrame(FM_Context *ctx, const void *pixels,
 /// open .fmv file for input. returns pointer to context on success
 FM_Context * FM_Open(const char *filename, std::string *errmsg = 0, bool rebuildIndexIfMissing = false);
 /// read a frame from the .fmv file, caller should delete returned pointer
-FM_Image *   FM_ReadFrame(FM_Context *ctx, unsigned frame_id /* first frame is frame 0 */, std::string *errmsg = 0);
+FM_Image *   FM_ReadFrame(FM_Context *ctx, unsigned frame_id /* first frame is frame 0 */, std::string *errmsg = 0, int *compFrameSize = 0);
 /// returns true if the filename is openable and readable as an .fmv file!
 bool         FM_IsFMV(const char *filename);
 

@@ -132,10 +132,13 @@ void GLWindow::drawEndStateBlankScreen(StimPlugin *p, bool isBlankBG) {
 		glClearColor(graylevel, graylevel, graylevel, 1.0f);
 		if (blend) glDisable(GL_BLEND);
 		glClear(GL_COLOR_BUFFER_BIT);
-		if (p->delay > 0 && (delayCtr > 0 || !p->initted) && !paused)
-			p->currentFTState = StimPlugin::FT_Off;		
-		else
-			p->currentFTState = StimPlugin::FT_End;
+	/* Apr. 10 Change: FT_Off on plugin load always
+     if (p->delay > 0 && (delayCtr > 0 || !p->initted) && !paused)
+    */
+        p->currentFTState = StimPlugin::FT_Off;
+	/*	else
+            p->currentFTState = StimPlugin::FT_End;
+     */
 		p->drawFTBox();
 		if (blend) glEnable(GL_BLEND);
 		glClearColor(color[0], color[1], color[2], color[3]);	

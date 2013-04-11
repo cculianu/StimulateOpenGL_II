@@ -64,6 +64,7 @@ bool Movie::initFromParams(bool skipfboinit)
 	nSubFrames = ((int)fps_mode)+1;
 	imgCache.clear();
 	imgCache.setMaxCost(IMAGE_CACHE_SIZE);
+    cfsMin = INT_MAX; cfsMax = INT_MIN; cfsAvg = 0; cfsNAvg = 0;
 	
 	if ( !getParam("file", file) ) {
 		Error() << "`file' parameter missing!";
@@ -268,6 +269,24 @@ QByteArray Movie::popOneFrame()
 			++poppedframect;
 			sem.release(1);
 		}
+        int cfs = cfsMap[poppedframect%(animationNumFrames?animationNumFrames:1)];
+        if (cfs > 0) {
+            if (cfsMin > cfs) cfsMin = cfs;
+            if (cfsMax < cfs) cfsMax = cfs;
+            
+            { // compute avg
+                long long a = static_cast<int64_t>(cfsAvg) * static_cast<int64_t>(cfsNAvg);
+                if (cfsNAvg >= 30) {
+                    a -= cfsAvg;
+                    --cfsNAvg;
+                }
+                a += cfs;
+                ++cfsNAvg;
+                cfsAvg = a / cfsNAvg;
+            }
+        }
+
+        customStatusBarString.sprintf("Compr. fsize min/max/avg: %d/%d/%d",cfsMin,cfsMax,cfsAvg);
 		readFramesMutex.unlock();
 	}
 	if (endedExit) {
@@ -317,6 +336,7 @@ void Movie::cleanup()
 {
 	stopAllThreads();
 	readFrames.clear();
+    cfsMap.clear();
 	imgCache.clear();
 	cleanupFBOs();
 }
@@ -590,8 +610,10 @@ void ReaderThread::run()
                 bool readok = false;
                 
 				
+                int cfs = 0;
+                
 				// jump the reader to current image
-				readok=reader->randomAccessRead(&img, imgct+1);
+				readok=reader->randomAccessRead(&img, imgct+1, &cfs);
 				
 				// next, copy bits to our queue...
 				if (readok) {
@@ -603,6 +625,7 @@ void ReaderThread::run()
 					memcpy(p, img.bits(), pixels->size());
 					
 					m->readFramesMutex.lock();
+                    m->cfsMap[imgct] = cfs;
 					m->readFrames[framenum] = *pixels; // shallow copy..
 					m->imgCache.insert(imgct, pixels, pixels->size()); // img cache owns object, will delete when emptying..
 					m->readFramesMutex.unlock();
