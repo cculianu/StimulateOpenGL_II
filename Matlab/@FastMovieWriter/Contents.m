@@ -12,14 +12,23 @@
 %     finish saving the movie and close the file.
 %
 % FUNCTION REFERENCE
+%
 %    myobj = FastMovieWriter(outputfilename)
+%    myobj = FastMovieWriter(outputfilename,compression_level)
 %
 %                Constructor.  Constructs a new @FastMovieWriter instance 
 %                and opens outputfilename for writing.  Call AddFrame
 %                to add frames to the output file and Finalize to finsh 
 %                saving the animated file. Preferably you should name the
 %                output files using a .fmv filename extension, but this 
-%                is not enforced.
+%                is not enforced.  The optional compression_level argument
+%                specifies how hard to try and compress the movie frame. 
+%                The default is 9 (maximal compression).  A value of 0
+%                means no compression and is fast, especially for 
+%                high-entropy frame data where compression is useless.  
+%                Note that the AddFrame call itself can also take a 
+%                compression_level argument as well, which overrides the 
+%                default compression level set for the class.
 %
 %    myobj = AddFrame(myobj, frame[, compressionLevel])
 %
@@ -29,7 +38,9 @@
 %                defines the compression level to use for the internal zLib
 %                compressor for the frame.  Valid values are 0 thru 9,
 %                where 0 is no compression, 1 is fast compression, and 9 is
-%                slower maximal compression. Default is 9.
+%                slower maximal compression. Default is 9, or the value 
+%                specified in the FastMovieWriter constructer 
+%                (see FastMovieWriter function reference).
 %
 %
 %   myobj = Finalize(myobj)
