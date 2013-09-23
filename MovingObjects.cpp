@@ -538,11 +538,11 @@ void MovingObjects::drawFrame()
 
 void MovingObjects::reinitObj(ObjData & o, ObjType otype)
 {
-	Shapes::Shape *oldshape = o.shape;
+	Shapes::Shape * const oldshape = o.shape;
 	o.shape = 0;
-	ObjType oldtype = o.type;
+	const ObjType oldtype = o.type;
 	o.type = otype;
-	if (!oldshape || oldtype != o.type) {
+	if (!oldshape || otype != oldtype || otype == BoxType /* <--- HACK for bug in Emails 9/23/2013 */) {
 		initObj(o);
 	} else {
 		o.shape = newShape(o.type);
