@@ -4,6 +4,7 @@
 #include <QGLWidget>
 #include <QList>
 #include "Util.h"
+#include "StimGL_SpikeGL_Integration.h"
 class StimPlugin;
 class QTimer;
 class StimApp;
@@ -117,6 +118,8 @@ private:
 	
 	bool debugLogFrames;
 	Util::Vec3 clearColor;
+	
+	StimGL_SpikeGL_Integration::FrameShare fshare;
 };
 
 #endif

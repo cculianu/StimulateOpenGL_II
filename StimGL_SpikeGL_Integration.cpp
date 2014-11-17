@@ -3,6 +3,7 @@
 #include "Version.h"
 #include <QTcpSocket>
 #include <QHostAddress>
+#include <QSharedMemory>
 
 #define LINELEN 4096
 #define GREETING_STRING "HELLO I'M SPIKEGL"
@@ -264,4 +265,62 @@ namespace StimGL_SpikeGL_Integration
 		else
 			emit gotPluginParamsNotification(p, pp);
     }       
+
+	
+	FrameShare::FrameShare() 
+	{
+		qsm = new QSharedMemory(QString("%1").arg(FRAME_SHARE_SHM_MAGIC));
+		shm = 0;
+		createdByThisInstance = false;
+		if (!qsm->isAttached() && !qsm->attach() && qsm->create(FRAME_SHARE_SHM_SIZE)) {
+			if (lock()) {
+				shm = (volatile FrameShareShm *)qsm->data();
+				memset((void *)shm, 0, FRAME_SHARE_SHM_SIZE);
+				shm->magic = FRAME_SHARE_SHM_MAGIC;
+				unlock();
+				createdByThisInstance = true;
+			} else {
+				Error() << "INTERNAL ERROR: Could not lock frame share shm after create!";
+			}
+		}
+		if (!qsm->isAttached())
+			Error() << "INTERNAL ERROR: 'frame share' shared memory segment cannot be attached/created due to the following reason: " << qsm->errorString();
+		else  {
+			shm = const_cast<volatile FrameShareShm *>(reinterpret_cast<FrameShareShm *>(qsm->data()));
+			if (qsm->size() != FRAME_SHARE_SHM_SIZE) {
+				Error() << "INTERNAL ERROR: 'frame share' shared memory segment attached correctly but it has an incorrect size. Detaching.";
+				detach();
+				shm = 0;
+			} else if (shm->magic != FRAME_SHARE_SHM_MAGIC) {
+				Error() << "INTERNAL ERROR: 'frame share' shared memory segment attached correctly but it appears corrupted. Detaching.";
+				detach();
+				shm = 0;
+			} 
+		}
+	}
+	
+	FrameShare::~FrameShare() 
+	{ 
+		detach();
+		delete qsm, qsm = 0;
+	}
+	
+	void FrameShare::detach()
+	{
+		if (qsm->isAttached()) qsm->detach();
+		shm = 0;
+	}
+	
+	bool FrameShare::lock() 
+	{
+		return qsm->lock();
+	}
+	
+	bool FrameShare::unlock()
+	{
+		return qsm->unlock();
+	}
+	
+	int FrameShare::size() const { return qsm->size(); }
+	
 }

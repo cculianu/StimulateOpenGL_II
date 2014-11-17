@@ -523,21 +523,53 @@ static unsigned long dataTypeToSize(GLenum datatype) {
 
 bool StimPlugin::readBackBuffer(QByteArray & dest, const Vec2i & o, const Vec2i & cs, GLenum datatype)
 {
-	if (int(dest.size()) < int(cs.w*cs.h*3*dataTypeToSize(datatype))) {
+	return readBackBuffer(dest.data(), dest.size(), o, cs, GL_RGB, datatype);
+}
+
+static unsigned long formatNumComps(GLenum format) {
+	switch(format) {
+		case GL_LUMINANCE:
+		case GL_RED:
+		case GL_GREEN:
+		case GL_BLUE:
+		case GL_ALPHA:
+			return 1;
+		case GL_LUMINANCE_ALPHA:
+			return 2;
+		case GL_RGB:
+		case GL_BGR:
+			return 3;
+		case GL_BGRA:
+		case GL_RGBA:
+			return 4;
+		default:
+			Error() << "Unsupported format `" << format << "' in formatNumComps!";
+	}
+	return 0;
+}
+
+bool StimPlugin::readBackBuffer(void *dest, unsigned dest_size, const Vec2i & o, const Vec2i & cs, GLenum format, GLenum datatype)
+{
+	return readXBuffer(GL_BACK, dest, dest_size, o, cs, format, datatype);
+}
+
+bool StimPlugin::readXBuffer(GLenum mode, void *dest, unsigned dest_size, const Vec2i & o, const Vec2i & cs, GLenum format, GLenum datatype)
+{
+	if (int(dest_size) < int(cs.w*cs.h*formatNumComps(format)*dataTypeToSize(datatype))) {
 		Error() << "StimPugin::readBackBuffer was given a destination buffer that is too small!";
 		return false;
 	}
 	GLint bufwas;
 	glGetIntegerv(GL_READ_BUFFER, &bufwas);
-	glReadBuffer(GL_BACK);
+	glReadBuffer(mode == GL_FRONT ? GL_FRONT : GL_BACK);
 	///          orgn x,y  width of read (x,y)
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glPixelStorei(GL_PACK_ROW_LENGTH, cs.w);
-	glReadPixels(o.x, o.y, cs.w, cs.h, GL_RGB, datatype, dest.data());
+	glReadPixels(o.x, o.y, cs.w, cs.h, format, datatype, dest);
 	glPixelStorei(GL_PACK_ALIGNMENT, 0); // set them back
 	glPixelStorei(GL_PACK_ROW_LENGTH, 0);// etc...
 	glReadBuffer(bufwas);	
-	return true;
+	return true;	
 }
 
 void StimPlugin::useBGColor() const

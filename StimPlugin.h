@@ -440,6 +440,11 @@ private:
 	/// static helper function for getFrameDump(). Low-level function to just dump the backbuffer to a bytearray given
 	/// an origin and a cropregion.
 	static bool readBackBuffer(QByteArray & dest, const Vec2i & cropOrigin, const Vec2i & cropRegionSize, GLenum datatype);
+	/// more generic version of above
+	static bool readBackBuffer(void *dest, unsigned dest_size, const Vec2i & o, const Vec2i & cs, GLenum format, GLenum datatype);
+	/// more generic version of above
+	static bool readXBuffer(GLenum mode, void *dest, unsigned dest_size, const Vec2i & o, const Vec2i & cs, GLenum format, GLenum datatype);
+
 		
 	/// Reads params, does some setup from them.  Called from start() and applyNewParamsAtRuntime_Base()
 	bool initFromParams();

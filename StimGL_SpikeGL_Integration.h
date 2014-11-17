@@ -5,6 +5,7 @@
 #include <QVariant>
 #include <QTcpServer>
 #include <QObject>
+class QSharedMemory;
 
 namespace StimGL_SpikeGL_Integration 
 {
@@ -76,6 +77,39 @@ namespace StimGL_SpikeGL_Integration
         QTcpServer srv;
         int timeout_msecs;
     };
+	
+#define FRAME_SHARE_SHM_MAGIC 0xf33d53c5
+#ifdef Q_OS_DARWIN
+#define FRAME_SHARE_SHM_SIZE (4*1024*1024)	///< size limits in OSX Darwin kernel for max shm size..
+#else
+#define FRAME_SHARE_SHM_SIZE (8*1024*1024)	///< on other OS's, use 8MB for the shm, which should be enough..
+#endif
+	extern "C" struct FrameShareShm {
+		unsigned magic; ///< set by whichever program creates the Shm first for sanity checking..
+		int enabled; ///< set to true by SpikeGL when it "wants" frames from StimGL.. if true StimGL will write frames into data and set w,h,fmt,sz_bytes appropriately...
+		unsigned frame_num; ///< the frame count.. written-to by StimGL
+		int fmt, w, h, sz_bytes; ///< the format and other info on the frame data, written by StimGL
+		int reserved[9]; ///< reserved for future implementations and to align the data a bit..
+		char data[0]; ///< the frame data, written-to by StimGL
+	};
+	
+	class FrameShare {
+	public:
+		FrameShare();
+		~FrameShare();
+		
+		volatile FrameShareShm *shm;
+		bool createdByThisInstance;
+		
+		void detach(); ///< detaches, side-effects is it sets shm to NULL
+		
+		int size() const; ///< returns the size of the shm, in bytes 
+		bool lock();
+		bool unlock();
+	private:
+		QSharedMemory *qsm;
+	};
+	
 } // end namespace StimGL_SpikeGL_Integration
 
 

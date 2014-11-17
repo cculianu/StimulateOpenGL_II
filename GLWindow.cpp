@@ -22,6 +22,12 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
        delayFPS(0.), debugLogFrames(false), clearColor(0.5,0.5,0.5)
 
 {
+	if (fshare.shm) {
+		Log() << "GLWindow: " << (fshare.createdByThisInstance ? "Created" : "Attatched to pre-existing") <<  " SpikeGL 'frame share' memory segment, size: " << (double(fshare.size())/1024.0/1024.0) << "MB.";
+	} else {
+		Error() << "INTERNAL ERROR: Could not attach to SpikeGL 'frame share' shared memory segment! FIXME!";
+	}
+	
 	blockPaint = false;
     QSize s(w, h);
     setMaximumSize(s);
@@ -408,6 +414,18 @@ void GLWindow::paintGL()
     } else {
         // don't swap buffers here to avoid frame ghosts in 'A' Mode on Windows.. We get frame ghosts in Windows in 'A' mode when paused or not running because we didn't draw a new frame if paused, and so swapping the buffers causes previous frames to appear onscreen
     }
+	
+	if (fshare.shm && fshare.lock()) {
+		if (fshare.shm->enabled) {
+			fshare.shm->frame_num = lastHWFC;
+			fshare.shm->w = width();
+			fshare.shm->h = height();
+			unsigned sz = width()*height()*4;
+			fshare.shm->sz_bytes = sz < FRAME_SHARE_SHM_SIZE ? sz : FRAME_SHARE_SHM_SIZE;
+			StimPlugin::readXBuffer(GL_FRONT, (void *)fshare.shm->data, fshare.shm->sz_bytes, Vec2i(0,0), Vec2i(width(),height()), GL_RGBA, GL_UNSIGNED_BYTE);
+		}
+		fshare.unlock();
+	}
 
 #ifdef Q_OS_WIN
 	    //timer->start(timerpd);
