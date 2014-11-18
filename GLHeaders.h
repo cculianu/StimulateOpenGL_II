@@ -121,6 +121,18 @@
 #ifndef GL_INVALID_FRAMEBUFFER_OPERATION_EXT
 #define GL_INVALID_FRAMEBUFFER_OPERATION_EXT 0x0506
 #endif
+#ifndef GL_PIXEL_PACK_BUFFER
+#define GL_PIXEL_PACK_BUFFER              0x88EB
+#endif
+#ifndef GL_READ_ONLY
+#define GL_READ_ONLY                      0x88B8
+#endif
+#ifndef GL_STREAM_READ
+#define GL_STREAM_READ                    0x88E1
+#endif
+#ifndef GL_DYNAMIC_READ
+#define GL_DYNAMIC_READ                   0x88E9
+#endif
 extern "C" {
  GLAPI void APIENTRY glDeleteFramebuffersEXT (GLsizei, const GLuint *);
  GLAPI void APIENTRY glGenFramebuffersEXT (GLsizei, GLuint *);
@@ -128,6 +140,14 @@ extern "C" {
  GLAPI void APIENTRY glFramebufferTexture2DEXT (GLenum, GLenum, GLenum, GLuint, GLint);
  GLAPI void APIENTRY glGenerateMipmapEXT (GLenum);
  GLAPI void APIENTRY glBindFramebufferEXT (GLenum, GLuint);
+	
+ // PBO-stuff
+ GLAPI void APIENTRY glGenBuffers(GLsizei n, GLuint *buffers);
+ GLAPI void APIENTRY glDeleteBuffers(GLsizei n, const GLuint *buffers);
+ GLAPI void APIENTRY glBindBuffer(GLenum target, GLuint buffer);
+ GLAPI void APIENTRY glBufferData(GLenum target, GLsizei size, const GLvoid * data, GLenum usage);
+ GLAPI void * APIENTRY glMapBuffer(GLenum target, GLenum access);	
+ GLAPI GLboolean APIENTRY glUnmapBuffer(GLenum target);
 }
 
 //#endif // __GNUC__

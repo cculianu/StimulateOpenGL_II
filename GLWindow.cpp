@@ -415,8 +415,11 @@ void GLWindow::paintGL()
     } else {
         // don't swap buffers here to avoid frame ghosts in 'A' Mode on Windows.. We get frame ghosts in Windows in 'A' mode when paused or not running because we didn't draw a new frame if paused, and so swapping the buffers causes previous frames to appear onscreen
     }
-
-	/*if (fshare.shm && fshare.lock()) {
+#ifdef Q_OS_WIN
+#define FS_USE_REGULAR_READ_PIXELS
+#endif
+#ifdef FS_USE_REGULAR_READ_PIXELS
+	if (fshare.shm && fshare.lock()) {
 		if (fshare.shm->enabled) {
 			fshare.shm->frame_num = lastHWFC;
 			 fshare.shm->w = width();
@@ -429,7 +432,7 @@ void GLWindow::paintGL()
 		}
 		fshare.unlock();
 	}
-	*/
+#else
 	if (fshare.shm) {
 		if (fshare.shm->enabled) {
 			const unsigned w = width(), h = height(), sz = w*h*4;
@@ -470,7 +473,8 @@ void GLWindow::paintGL()
 			glReadBuffer(bufwas);
 		}
 	}
-
+#endif
+	
 #ifdef Q_OS_WIN
 	    //timer->start(timerpd);
 	    update();

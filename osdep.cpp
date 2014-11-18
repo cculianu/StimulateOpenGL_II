@@ -648,6 +648,69 @@ unsigned  setCurrentThreadAffinityMask(unsigned mask)
 		} else
 			fun(a,b,i);
 	}
+	
+	// PBO-stuff
+	GLAPI void APIENTRY glGenBuffers(GLsizei n, GLuint *buffers)
+	{
+		typedef void (APIENTRY *Fun_t) (GLsizei, GLuint *);
+		static Fun_t fun = 0;
+		if (!fun) fun = (Fun_t)wglGetProcAddress("glGenBuffersARB");
+		if (!fun) {
+			Error() << "glGenBuffersARB not found";        
+		} else
+			fun(n,buffers);
+	}
+	GLAPI void APIENTRY glDeleteBuffers(GLsizei n, const GLuint *buffers)
+	{
+		typedef void (APIENTRY *Fun_t) (GLsizei, const GLuint *);
+		static Fun_t fun = 0;
+		if (!fun) fun = (Fun_t)wglGetProcAddress("glDeleteBuffersARB");
+		if (!fun) {
+			Error() << "glDeleteBuffersARB not found";        
+		} else
+			fun(n,buffers);	
+	}
+	GLAPI void APIENTRY glBindBuffer(GLenum target, GLuint buffer)
+	{
+		typedef void (APIENTRY *Fun_t) (GLenum, GLuint);
+		static Fun_t fun = 0;
+		if (!fun) fun = (Fun_t)wglGetProcAddress("glBindBufferARB");
+		if (!fun) {
+			Error() << "glBindBufferARB not found";        
+		} else
+			fun(target,buffer);
+	}
+	GLAPI void APIENTRY glBufferData(GLenum target, GLsizei size, const GLvoid * data, GLenum usage)
+	{
+		typedef void (APIENTRY *Fun_t) (GLenum, GLsizei, const GLvoid *, GLenum);
+		static Fun_t fun = 0;
+		if (!fun) fun = (Fun_t)wglGetProcAddress("glBufferDataARB");
+		if (!fun) {
+			Error() << "glBufferDataARB not found";        
+		} else
+			fun(target,size,data,usage);
+	}
+	GLAPI void * APIENTRY glMapBuffer(GLenum target, GLenum access)
+	{
+		typedef void * (APIENTRY *Fun_t) (GLenum, GLenum);
+		static Fun_t fun = 0;
+		if (!fun) fun = (Fun_t)wglGetProcAddress("glMapBufferARB");
+		if (!fun) {
+			Error() << "glMapBufferARB not found";
+			return 0;
+		} 
+		return fun(target,access);
+	}
+	GLAPI GLboolean APIENTRY glUnmapBuffer(GLenum target)
+	{
+		typedef GLboolean (APIENTRY *Fun_t) (GLenum);
+		static Fun_t fun = 0;
+		if (!fun) fun = (Fun_t)wglGetProcAddress("glUnmapBufferARB");
+		if (!fun) {
+			Error() << "glUnmapBufferARB not found";
+			return 0;
+		}
+		return fun(target);	
+	}
 //#endif	
 #endif
-	
