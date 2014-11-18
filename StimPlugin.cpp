@@ -555,6 +555,7 @@ bool StimPlugin::readBackBuffer(void *dest, unsigned dest_size, const Vec2i & o,
 
 bool StimPlugin::readXBuffer(GLenum mode, void *dest, unsigned dest_size, const Vec2i & o, const Vec2i & cs, GLenum format, GLenum datatype)
 {
+	//double t0 = getTime();
 	if (int(dest_size) < int(cs.w*cs.h*formatNumComps(format)*dataTypeToSize(datatype))) {
 		Error() << "StimPugin::readBackBuffer was given a destination buffer that is too small!";
 		return false;
@@ -568,7 +569,8 @@ bool StimPlugin::readXBuffer(GLenum mode, void *dest, unsigned dest_size, const 
 	glReadPixels(o.x, o.y, cs.w, cs.h, format, datatype, dest);
 	glPixelStorei(GL_PACK_ALIGNMENT, 0); // set them back
 	glPixelStorei(GL_PACK_ROW_LENGTH, 0);// etc...
-	glReadBuffer(bufwas);	
+	glReadBuffer(bufwas);
+	//Debug() << "readXBuffer time: " << ((getTime()-t0)*1000.0) << "ms";
 	return true;	
 }
 

@@ -120,6 +120,7 @@ private:
 	Util::Vec3 clearColor;
 	
 	StimGL_SpikeGL_Integration::FrameShare fshare;
+	GLuint fs_w, fs_h, fs_pbo, fs_lastHWFC;
 };
 
 #endif
