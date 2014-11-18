@@ -120,7 +120,8 @@ private:
 	Util::Vec3 clearColor;
 	
 	StimGL_SpikeGL_Integration::FrameShare fshare;
-	GLuint fs_w, fs_h, fs_pbo, fs_lastHWFC;
+	static const int N_PBOS = 2; ///< number of frameshare PBOs to use
+	GLuint fs_w, fs_h, fs_pbo[N_PBOS], fs_pbo_ix, fs_lastHWFC[N_PBOS];
 };
 
 #endif

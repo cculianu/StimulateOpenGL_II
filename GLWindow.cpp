@@ -19,9 +19,10 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 															(frameless ? Qt::FramelessWindowHint : (Qt::WindowFlags)0))), 
        aMode(false), running(0), paused(false), tooFastWarned(false),  
        lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.), delayCtr(0), delayt0(0.), 
-       delayFPS(0.), debugLogFrames(false), clearColor(0.5,0.5,0.5), fs_w(0), fs_h(0), fs_pbo(0)
+       delayFPS(0.), debugLogFrames(false), clearColor(0.5,0.5,0.5), fs_w(0), fs_h(0), fs_pbo_ix(0)
 
 {
+    memset(fs_pbo, 0, sizeof fs_pbo);
 	if (fshare.shm) {
 		Log() << "GLWindow: " << (fshare.createdByThisInstance ? "Created" : "Attatched to pre-existing") <<  " SpikeGL 'frame share' memory segment, size: " << (double(fshare.size())/1024.0/1024.0) << "MB.";
 	} else {
@@ -56,7 +57,7 @@ GLWindow::~GLWindow() {
     // be sure to remove all plugins while we are still a valid GLWindow instance, to avoid a crash bug
     while (pluginsList.count())
         delete pluginsList.front(); // StimPlugin * should auto-remove itself from list so list will shrink..
-	
+    if (fs_pbo[0]) { glDeleteBuffers(N_PBOS, fs_pbo); memset(fs_pbo, 0, sizeof fs_pbo); }
 }
 
 void GLWindow::setClearColor(const QString & c)
@@ -415,9 +416,6 @@ void GLWindow::paintGL()
     } else {
         // don't swap buffers here to avoid frame ghosts in 'A' Mode on Windows.. We get frame ghosts in Windows in 'A' mode when paused or not running because we didn't draw a new frame if paused, and so swapping the buffers causes previous frames to appear onscreen
     }
-#ifdef Q_OS_WIN
-#define FS_USE_REGULAR_READ_PIXELS
-#endif
 #ifdef FS_USE_REGULAR_READ_PIXELS
 	if (fshare.shm && fshare.lock()) {
 		if (fshare.shm->enabled) {
@@ -435,42 +433,52 @@ void GLWindow::paintGL()
 #else
 	if (fshare.shm) {
 		if (fshare.shm->enabled) {
+			//const double t0(getTime());
 			const unsigned w = width(), h = height(), sz = w*h*4;
-			if (!fs_pbo || fs_w != w || fs_h != h) {
-				if (fs_pbo) glDeleteBuffers(1, &fs_pbo);
-				glGenBuffers(1, &fs_pbo);
-				glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo);
-				glBufferData(GL_PIXEL_PACK_BUFFER, w*h*4, 0, GL_DYNAMIC_READ);
-				glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+			if (!fs_pbo[0] || fs_w != w || fs_h != h) {
+				if (fs_pbo[0]) glDeleteBuffers(N_PBOS, fs_pbo);
+				glGenBuffers(N_PBOS, fs_pbo);
+				fs_pbo_ix = 0;
+				for (int i = 0; i < N_PBOS; ++i) {
+					glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[i]);
+					glBufferData(GL_PIXEL_PACK_BUFFER, w*h*4, 0, GL_DYNAMIC_READ);
+				}
 				fs_w = w, fs_h = h;
-			} else if (0) {
+			} else if (fs_pbo_ix >= N_PBOS) {
+				const int ix = fs_pbo_ix % N_PBOS;
 				// data from last frame should be ready
-				glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo);
-				double t0 = getTime();
+				glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[ix]);
+				//double t0 = getTime();
 				const void *fs_mem = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
-				Debug() << "glMapBuffer took: " << (getTime()-t0)*1000. << "ms";
+				//Debug() << "glMapBuffer of pbo# " << ix << " took: " << (getTime()-t0)*1000. << "ms";
 				if (fs_mem && fshare.lock()) {
-					fshare.shm->frame_num = fs_lastHWFC;
+					fshare.shm->frame_num = fs_lastHWFC[ix];
 					fshare.shm->w = w;
 					fshare.shm->h = h;
+					fshare.shm->fmt = GL_BGRA;
 					fshare.shm->sz_bytes = sz < FRAME_SHARE_SHM_SIZE ? sz : FRAME_SHARE_SHM_SIZE;
 					memcpy((void *)fshare.shm->data, fs_mem, sz);
 					fshare.unlock();
-					t0 = getTime();
+					//t0 = getTime();
 					glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-					Debug() << "glUnmapBuffer took: " << (getTime()-t0)*1000. << "ms";
+					//Debug() << "glUnmapBuffer of pbo#" << ix << " took: " << (getTime()-t0)*1000. << "ms";
 				}
 			}
-			glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo);
+			glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[fs_pbo_ix%N_PBOS]);
 			GLint bufwas;
 			glGetIntegerv(GL_READ_BUFFER, &bufwas);
 			glReadBuffer(GL_FRONT);
-			double t0 = getTime();
-			glReadPixels(0,0,w,h,GL_RGBA,GL_UNSIGNED_BYTE,0);
-			Debug() << "glReadPixels took: " << (getTime()-t0)*1000. << "ms";
-			fs_lastHWFC = lastHWFC;
+			//double t0 = getTime();
+			glReadPixels(0,0,w,h,GL_BGRA,GL_UNSIGNED_BYTE,0);
+			//Debug() << "glReadPixels of pbo#" << (fs_pbo_ix%2) << " took: " << (getTime()-t0)*1000. << "ms";
+			fs_lastHWFC[fs_pbo_ix%N_PBOS] = lastHWFC;
 			glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 			glReadBuffer(bufwas);
+			++fs_pbo_ix;
+
+			//Debug() << "Entire fshare routine took: " << ((getTime()-t0)*1000.) << "ms";
+		} else { // !fshare.shm->enabled
+			fs_pbo_ix = 0; // make sure to zero out the fs_pbo_ix always because we want to "get rid of" old/stale PBOs when user toggles enable/disable 
 		}
 	}
 #endif
