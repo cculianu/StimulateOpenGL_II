@@ -90,7 +90,7 @@ namespace StimGL_SpikeGL_Integration
 		unsigned frame_num; ///< the frame count.. written-to by StimGL
 		int fmt, w, h, sz_bytes; ///< the format and other info on the frame data, written by StimGL
 		int reserved[9]; ///< reserved for future implementations and to align the data a bit..
-		char data[0]; ///< the frame data, written-to by StimGL
+		char data[1]; ///< the frame data, written-to by StimGL.. real size is obviously bigger than 1!
 	};
 	
 	class FrameShare {
