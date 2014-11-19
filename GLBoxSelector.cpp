@@ -97,7 +97,7 @@ bool GLBoxSelector::draw(GLenum which_colorbuffer)
 		glDrawArrays(GL_QUADS, 0, 4); 
 		
 		// next, draw everything BUT the box with a flicker/gray area...
-		glColor4f(.3, .3, .4, .25);
+		glColor4f(.3f, .3f, .4f, .25f);
 		glPolygonMode(GL_FRONT,GL_FILL);
 		glLineWidth(1.f);
 		glLineStipple(1,0xffff);
