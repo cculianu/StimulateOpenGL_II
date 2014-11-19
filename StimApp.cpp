@@ -202,6 +202,7 @@ void StimApp::calibratedRefresh(unsigned rate) { (void) rate; }
 
 StimApp::~StimApp()
 {
+	if (glWindow) glWindow->criticalCleanup();
     Log() << "Deleting Tcp server and closing connections..";
     delete server;
     saveSettings();

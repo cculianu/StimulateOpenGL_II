@@ -89,7 +89,9 @@ namespace StimGL_SpikeGL_Integration
 		int enabled; ///< set to true by SpikeGL when it "wants" frames from StimGL.. if true StimGL will write frames into data and set w,h,fmt,sz_bytes appropriately...
 		unsigned frame_num; ///< the frame count.. written-to by StimGL
 		int fmt, w, h, sz_bytes; ///< the format and other info on the frame data, written by StimGL
-		int reserved[9]; ///< reserved for future implementations and to align the data a bit..
+		int do_box_select; ///< SpikeGL writes to this to tell StimGL to do the box selection stuff
+		unsigned stimgl_pid; ///< StimGL writes to this to tell SpikeGL its PID.  If 0, StimGL definitely isn't running
+		int reserved[7]; ///< reserved for future implementations and to align the data a bit..
 		char data[1]; ///< the frame data, written-to by StimGL.. real size is obviously bigger than 1!
 	};
 	

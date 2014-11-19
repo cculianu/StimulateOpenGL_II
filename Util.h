@@ -11,6 +11,7 @@ class StimApp;
 #include <QVector>
 #include <QRegExp>
 #include <math.h>
+#include <QStringList>
 
 #define STR1(x) #x
 #define STR(x) STR1(x)
@@ -112,6 +113,9 @@ extern bool glCheckFBStatus();
 
 /// returns the number of seconds since this machine last rebooted
 extern unsigned getUpTime();
+	
+/// returns the PID of the current process.
+extern unsigned getPid();
 
 /// `Pins' the current thread to a particular set of processors, that is, makes it only run on a particular set of processors.
 /// returns 0 on error, or the previous mask on success.
@@ -126,7 +130,20 @@ extern QString joinCSV(const QVector<double> & vals, const QString & comma = ", 
 	
 /// Creates a unique filename based on prefix.  Appends date to the filename and potentially a unique integer.  Used by FrameVars class and other code.
 extern QString makeUniqueFileName(const QString & prefix, const QString & ext);	
-
+	
+/// rotate right 'moves' bits. Different from >> shift operator in that it rotates in bits from right side to left side
+template<class T>
+T ror(T x, unsigned int moves)
+{
+	return (x >> moves) | (x << (sizeof(T)*8 - moves));
+}
+/// rotate left 'moves' bits. Different from << shift operator in that it rotates in bits from left side to right side
+template<class T>
+T rol(T x, unsigned int moves)
+{
+	return (x << moves) | (x >> (sizeof(T)*8 - moves));
+}
+	
 /// Super class of Debug, Warning, Error classes.  
 class Log 
 {
@@ -214,9 +231,23 @@ struct Vec2T {
 	Vec2T<T> operator+(const Vec2T<T> & v) const { return Vec2T<T>(x+v.x,y+v.y); }
 	T dot(const Vec2T<T> & v) const { return x*v.x + y*v.y; }
 	T magnitude() const { return sqrt(x*x + y*y); }
+	T distance(const Vec2T<T> &v) const { return ((*this)-v).magnitude(); }
 	Vec2T<T> normalized() const { 
 		const T m (magnitude());
 		return Vec2T<T>(x/m, y/m);
+	}
+	QString toString() const { return QString("%1,%2").arg(v1).arg(v2); }
+	bool fromString(const QString &s) {
+		QStringList nums = s.split(",",QString::SkipEmptyParts);
+		if (nums.size() == 2) {
+			Vec2T<T> dummy;
+			bool ok;
+			dummy.v1 = (T)nums[0].toDouble(&ok);
+			if (ok) dummy.v2 = (T)nums[1].toDouble(&ok);
+			if (ok) (*this) = dummy;
+			return ok;
+		}
+		return false;
 	}
 };
 
@@ -254,6 +285,22 @@ struct Vec3T {
 		Vec3T<T> n(normal.normalized()); // only needed if N isn't normalized already
 		return (*this) - (n * ( 2.0 * dot(n) ));
 	}
+	T distance(const Vec3T<T> &v) const { return ((*this)-v).magnitude(); }
+
+	QString toString() const { return QString("%1,%2,%3").arg(v1).arg(v2).arg(v3); }
+	bool fromString(const QString &s) {
+		QStringList nums = s.split(",",QString::SkipEmptyParts);
+		if (nums.size() == 3) {
+			Vec3T<T> dummy;
+			bool ok;
+			dummy.v1 = (T)nums[0].toDouble(&ok);
+			if (ok) dummy.v2 = (T)nums[1].toDouble(&ok);
+			if (ok) dummy.v3 = (T)nums[2].toDouble(&ok);
+			if (ok) (*this) = dummy;
+			return ok;
+		}
+		return false;
+	}
 };
 	
 template <typename T=double>
@@ -267,6 +314,23 @@ struct Vec4T
 	Vec4T(T v1 = 0, T v2 = 0, T v3 = 0, T v4 = 0) : v1(v1), v2(v2), v3(v3), v4(v4) {}
 	T & operator[](int i) { if (i == 0) return x; else if (i==1) return y; else if (i == 2) return z; return w; }
 	const T & operator[](int i) const { if (i == 0) return x; else if (i==1) return y; else if (i == 2) return z; return w; }
+	T distance(const Vec4T<T> &v) const { return ((*this)-v).magnitude(); }
+	
+	QString toString() const { return QString("%1,%2,%3,%4").arg(v1).arg(v2).arg(v3).arg(v4); }
+	bool fromString(const QString &s) {
+		QStringList nums = s.split(",",QString::SkipEmptyParts);
+		if (nums.size() == 4) {
+			Vec4T<T> dummy;
+			bool ok;
+			dummy.v1 = (T)nums[0].toDouble(&ok);
+			if (ok) dummy.v2 = (T)nums[1].toDouble(&ok);
+			if (ok) dummy.v3 = (T)nums[2].toDouble(&ok);
+			if (ok) dummy.v4 = (T)nums[3].toDouble(&ok);
+			if (ok) (*this) = dummy;
+			return ok;
+		}
+		return false;
+	}
 };
 	
 typedef Vec2T<double> Vec2d;
@@ -283,6 +347,9 @@ typedef Vec3T<double> Vec3;
 typedef Vec4T<int> Vec4i;
 typedef Vec3T<int> Vec3i;
 typedef Vec4T<double> Vec4;
+	
+typedef Vec3T<float> Vec3f;
+typedef Vec4T<float> Vec4f;
 	
 extern const Vec3 Vec3Zero; // default 0 vec -- useful as a default argument to functions
 extern const Vec3 Vec3Unit; // default unit vec -- useful as a default argument to functions

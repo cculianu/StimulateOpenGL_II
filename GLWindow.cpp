@@ -24,11 +24,15 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 {
     memset(fs_pbo, 0, sizeof fs_pbo);
 	if (fshare.shm) {
+		fshare.shm->do_box_select = 0; ///< clear possibly-stale value
+		fshare.shm->stimgl_pid = Util::getPid();
 		Log() << "GLWindow: " << (fshare.createdByThisInstance ? "Created" : "Attatched to pre-existing") <<  " SpikeGL 'frame share' memory segment, size: " << (double(fshare.size())/1024.0/1024.0) << "MB.";
 	} else {
 		Error() << "INTERNAL ERROR: Could not attach to SpikeGL 'frame share' shared memory segment! FIXME!";
 	}
 	
+	boxSelector = new GLBoxSelector(this);
+	boxSelector->loadSettings();
 	blockPaint = false;
     QSize s(w, h);
     setMaximumSize(s);
@@ -44,7 +48,7 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 #endif
 
     setFormat(f);
-    setMouseTracking(false);
+    //setMouseTracking(false);
     timer = new QTimer(this);
     Connect(timer, SIGNAL(timeout()), this, SLOT(updateGL()));
     timer->setSingleShot(true);
@@ -57,7 +61,12 @@ GLWindow::~GLWindow() {
     // be sure to remove all plugins while we are still a valid GLWindow instance, to avoid a crash bug
     while (pluginsList.count())
         delete pluginsList.front(); // StimPlugin * should auto-remove itself from list so list will shrink..
-    if (fs_pbo[0]) { glDeleteBuffers(N_PBOS, fs_pbo); memset(fs_pbo, 0, sizeof fs_pbo); }
+	criticalCleanup();
+}
+
+void GLWindow::criticalCleanup() { 
+	if (fshare.shm) fshare.shm->stimgl_pid = 0; 
+	if (fs_pbo[0]) { glDeleteBuffers(N_PBOS, fs_pbo); memset(fs_pbo, 0, sizeof fs_pbo); }
 }
 
 void GLWindow::setClearColor(const QString & c)
@@ -106,11 +115,13 @@ void GLWindow::initializeGL()
     glDisable( GL_LIGHT0 );
     glDisable( GL_STENCIL_TEST );
     glDisable( GL_DITHER );
-    glDrawBuffer( GL_BACK_LEFT );
+    glDrawBuffer( GL_BACK );
 
     glClearColor( clearColor.r, clearColor.g, clearColor.b, 1.0 ); //set the clearing color to be gray
     glShadeModel( GL_FLAT );
     glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
+	
+	boxSelector->init();
 }
 
 // setup viewport, projection etc.:
@@ -123,6 +134,8 @@ void GLWindow::resizeGL(int w, int h)
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity();
     glOrtho( 0.0, (GLdouble)w, 0.0, (GLdouble) h, -1e6, 1e6 );
+	
+	fs_rect = fs_rect_saved = boxSelector->getBox();
 }
 
 
@@ -392,6 +405,8 @@ void GLWindow::paintGL()
 
     if (doBufSwap) {// doBufSwap is normally true either if we don't have aMode or if we have a plugin and it is running and not paused
 
+		boxSelector->draw();
+
 		swapBuffers();// should wait for vsync...   
 
 		if (running && running->delay > 0 && delayFPS <= 0. && delayt0 > 0. && 0==delayCtr && !paused) {
@@ -414,27 +429,33 @@ void GLWindow::paintGL()
 		
 
     } else {
+		// TODO FIXME XXX.. what to do about ghosting here if we aren't swapping buffers?! HALP!!
+		if (boxSelector->draw(GL_FRONT)) 
+			glFlush(); // flush required when drawing to the front buffer..
+		
         // don't swap buffers here to avoid frame ghosts in 'A' Mode on Windows.. We get frame ghosts in Windows in 'A' mode when paused or not running because we didn't draw a new frame if paused, and so swapping the buffers causes previous frames to appear onscreen
     }
-#ifdef FS_USE_REGULAR_READ_PIXELS
+/*#ifdef FS_USE_REGULAR_READ_PIXELS
 	if (fshare.shm && fshare.lock()) {
 		if (fshare.shm->enabled) {
 			fshare.shm->frame_num = lastHWFC;
-			 fshare.shm->w = width();
-			 fshare.shm->h = height();
-			 unsigned sz = width()*height()*4;
+			 fshare.shm->w = fs_rect.v3;
+			 fshare.shm->h = fs_rect.v4;
+			 fshare.shm->fmt = GL_BGRA;
+			 unsigned sz = fs_rect.v3*fs_rect.v4*4;
 			 fshare.shm->sz_bytes = sz < FRAME_SHARE_SHM_SIZE ? sz : FRAME_SHARE_SHM_SIZE;
-			double t0 = getTime();
-			 StimPlugin::readXBuffer(GL_FRONT, (void *)fshare.shm->data, fshare.shm->sz_bytes, Vec2i(0,0), Vec2i(width(),height()), GL_RGBA, GL_UNSIGNED_BYTE);
-			Debug() << "readXBuffer took " << (getTime()-t0)*1000. << "ms";
+			//double t0 = getTime();
+			 StimPlugin::readXBuffer(GL_FRONT, (void *)fshare.shm->data, fshare.shm->sz_bytes, Vec2i(fs_rect.v1,fs_rect.v2), Vec2i(fs_rect.v3,fs_rect.v4), GL_BGRA, GL_UNSIGNED_BYTE);
+			//Debug() << "readXBuffer took " << (getTime()-t0)*1000. << "ms";
 		}
 		fshare.unlock();
 	}
 #else
+*/
 	if (fshare.shm) {
 		if (fshare.shm->enabled) {
 			//const double t0(getTime());
-			const unsigned w = width(), h = height(), sz = w*h*4;
+			const unsigned w = fs_rect.v3, h = fs_rect.v4, sz = w*h*4;
 			if (!fs_pbo[0] || fs_w != w || fs_h != h) {
 				if (fs_pbo[0]) glDeleteBuffers(N_PBOS, fs_pbo);
 				glGenBuffers(N_PBOS, fs_pbo);
@@ -444,7 +465,7 @@ void GLWindow::paintGL()
 					glBufferData(GL_PIXEL_PACK_BUFFER, w*h*4, 0, GL_DYNAMIC_READ);
 				}
 				fs_w = w, fs_h = h;
-			} else if (fs_pbo_ix >= N_PBOS) {
+			} else if (fs_pbo_ix >= (unsigned)N_PBOS) {
 				const int ix = fs_pbo_ix % N_PBOS;
 				// data from last frame should be ready
 				glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[ix]);
@@ -469,7 +490,7 @@ void GLWindow::paintGL()
 			glGetIntegerv(GL_READ_BUFFER, &bufwas);
 			glReadBuffer(GL_FRONT);
 			//double t0 = getTime();
-			glReadPixels(0,0,w,h,GL_BGRA,GL_UNSIGNED_BYTE,0);
+			glReadPixels(fs_rect.x,fs_rect.y,w,h,GL_BGRA,GL_UNSIGNED_BYTE,0);
 			//Debug() << "glReadPixels of pbo#" << (fs_pbo_ix%2) << " took: " << (getTime()-t0)*1000. << "ms";
 			fs_lastHWFC[fs_pbo_ix%N_PBOS] = lastHWFC;
 			glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
@@ -480,8 +501,20 @@ void GLWindow::paintGL()
 		} else { // !fshare.shm->enabled
 			fs_pbo_ix = 0; // make sure to zero out the fs_pbo_ix always because we want to "get rid of" old/stale PBOs when user toggles enable/disable 
 		}
+		if (fshare.shm->do_box_select) {
+			fshare.lock();
+			fshare.shm->do_box_select = 0;
+			fshare.unlock();
+			fs_rect_saved = fs_rect = boxSelector->getBox();
+			boxSelector->setEnabled(true);
+			boxSelector->setHidden(false);
+			activateWindow();
+			raise();
+			Log() << "SpikeGL requested a 'frame-share' clipping rectangle definition...\n";
+			Log() << "Use the mouse cursor to adjust the rectangle, ENTER to accept it, or ESC to cancel."; 
+		}
 	}
-#endif
+//#endif
 	
 #ifdef Q_OS_WIN
 	    //timer->start(timerpd);
@@ -640,9 +673,36 @@ void GLWindow::keyPressEvent(QKeyEvent *event)
         QTimer::singleShot(1, stimApp(), SLOT(alignGLWindow())); // ends up deleting this object, so we don't want to run this from this event handler, thus we'll enqueue it.
         break;
 
-    case Qt::Key_Escape: 
-        //stimApp()->unloadStim();
-        QTimer::singleShot(1, stimApp(), SLOT(unloadStim())); // may end up possibly deleting this object?
+	case Qt::Key_Enter: 
+	case Qt::Key_Return:
+			if (!boxSelector->isHidden() && boxSelector->isEnabled()) {
+				fs_rect = boxSelector->getBox();
+				if (fs_rect.x >= 0 && fs_rect.y >= 0 
+					&& (fs_rect.x+fs_rect.v3) <= width()
+					&& (fs_rect.y+fs_rect.v4) <= height()
+					&& fs_rect.v3 > 10 && fs_rect.v4 > 10) {
+					Log() << "User defined new 'frame share' clipping rectangle at " << fs_rect.x << "," << fs_rect.y << " size: " << fs_rect.v3 << "x" << fs_rect.v4;
+					boxSelector->setHidden(true);
+					boxSelector->setEnabled(false);
+					boxSelector->saveSettings();
+				} else {
+					Warning() << "User-defined 'frame share' clipping rectangle is invalid or too small.. try again!";
+					fs_rect = fs_rect_saved;
+					boxSelector->setBox(fs_rect);
+				}
+			}
+			break;
+	case Qt::Key_Escape: 
+		if (!boxSelector->isHidden() && boxSelector->isEnabled()) {
+			// undo!
+			fs_rect = fs_rect_saved;
+			boxSelector->setBox(fs_rect);
+			boxSelector->setHidden(true); boxSelector->setEnabled(false);
+			Warning() << "User cancelled 'frame share' clipping definition, reverting to previous rectangle.";
+		} else {
+			//stimApp()->unloadStim();
+			QTimer::singleShot(1, stimApp(), SLOT(unloadStim())); // may end up possibly deleting this object?
+		}
 
         break;
     }

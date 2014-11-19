@@ -24,6 +24,7 @@
 #ifdef Q_WS_MACX
 #include <agl.h>
 #include <gl.h>
+#include <unistd.h>
 #endif
 
 #ifdef Q_OS_LINUX
@@ -571,6 +572,17 @@ unsigned  setCurrentThreadAffinityMask(unsigned mask)
 }
 #endif
 
+	
+unsigned getPid()
+{
+#ifdef Q_OS_WIN
+	return (unsigned)GetCurrentProcessId();
+#else
+	return (unsigned)getpid();
+#endif
+}
+	
+	
 }
 	
 	

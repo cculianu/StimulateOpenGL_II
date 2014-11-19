@@ -5,6 +5,8 @@
 #include <QList>
 #include "Util.h"
 #include "StimGL_SpikeGL_Integration.h"
+#include "GLBoxSelector.h"
+
 class StimPlugin;
 class QTimer;
 class StimApp;
@@ -31,6 +33,8 @@ class GLWindow : public QGLWidget
 
      GLWindow(unsigned width = 800, unsigned height = 600, bool frameless = false);
 
+	 void criticalCleanup();
+	
 public:
      ~GLWindow();
 
@@ -122,6 +126,9 @@ private:
 	StimGL_SpikeGL_Integration::FrameShare fshare;
 	static const int N_PBOS = 2; ///< number of frameshare PBOs to use
 	GLuint fs_w, fs_h, fs_pbo[N_PBOS], fs_pbo_ix, fs_lastHWFC[N_PBOS];
+	
+	GLBoxSelector *boxSelector;
+	Util::Vec4i fs_rect, fs_rect_saved; /// frame share rectangle with origin,size
 };
 
 #endif
