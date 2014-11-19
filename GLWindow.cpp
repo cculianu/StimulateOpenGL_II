@@ -435,23 +435,6 @@ void GLWindow::paintGL()
 		
         // don't swap buffers here to avoid frame ghosts in 'A' Mode on Windows.. We get frame ghosts in Windows in 'A' mode when paused or not running because we didn't draw a new frame if paused, and so swapping the buffers causes previous frames to appear onscreen
     }
-/*#ifdef FS_USE_REGULAR_READ_PIXELS
-	if (fshare.shm && fshare.lock()) {
-		if (fshare.shm->enabled) {
-			fshare.shm->frame_num = lastHWFC;
-			 fshare.shm->w = fs_rect.v3;
-			 fshare.shm->h = fs_rect.v4;
-			 fshare.shm->fmt = GL_BGRA;
-			 unsigned sz = fs_rect.v3*fs_rect.v4*4;
-			 fshare.shm->sz_bytes = sz < FRAME_SHARE_SHM_SIZE ? sz : FRAME_SHARE_SHM_SIZE;
-			//double t0 = getTime();
-			 StimPlugin::readXBuffer(GL_FRONT, (void *)fshare.shm->data, fshare.shm->sz_bytes, Vec2i(fs_rect.v1,fs_rect.v2), Vec2i(fs_rect.v3,fs_rect.v4), GL_BGRA, GL_UNSIGNED_BYTE);
-			//Debug() << "readXBuffer took " << (getTime()-t0)*1000. << "ms";
-		}
-		fshare.unlock();
-	}
-#else
-*/
 	if (fshare.shm) {
 		if (fshare.shm->enabled) {
 			//const double t0(getTime());
@@ -514,7 +497,7 @@ void GLWindow::paintGL()
 			Log() << "Use the mouse cursor to adjust the rectangle, ENTER to accept it, or ESC to cancel."; 
 		}
 	}
-//#endif
+
 	
 #ifdef Q_OS_WIN
 	    //timer->start(timerpd);
