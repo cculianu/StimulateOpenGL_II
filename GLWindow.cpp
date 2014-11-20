@@ -669,6 +669,7 @@ void GLWindow::keyPressEvent(QKeyEvent *event)
 					Log() << "User defined new 'frame share' clipping rectangle at " << fs_rect.x << "," << fs_rect.y << " size: " << fs_rect.v3 << "x" << fs_rect.v4;
 					boxSelector->setHidden(true);
 					boxSelector->setEnabled(false);
+					unsetCursor();
 					boxSelector->saveSettings();
 				} else {
 					Warning() << "User-defined 'frame share' clipping rectangle is invalid or too small.. try again!";
@@ -683,6 +684,7 @@ void GLWindow::keyPressEvent(QKeyEvent *event)
 			fs_rect = fs_rect_saved;
 			boxSelector->setBox(fs_rect);
 			boxSelector->setHidden(true); boxSelector->setEnabled(false);
+			unsetCursor();
 			Warning() << "User cancelled 'frame share' clipping definition, reverting to previous rectangle.";
 		} else {
 			//stimApp()->unloadStim();
