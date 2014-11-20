@@ -231,7 +231,9 @@ void GLWindow::paintGL()
         double tFrames = 1.0/getHWRefreshRate();
         if (diff > tFrames*2.) tooSlow = true;
         /*else if (diff2 < tFrames) tooFast = true;*/
-    }
+		lastHWFC = getHWFrameCount();
+    } else
+		lastHWFC = getHWFrameCount();
 
     if (tooFast) {
         if (!tooFastWarned) {

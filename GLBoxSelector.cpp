@@ -51,10 +51,8 @@ bool GLBoxSelector::draw(GLenum which_colorbuffer)
 		bool wasEnabled = glIsEnabled(GL_LINE_STIPPLE);
 		bool hadBlend = glIsEnabled(GL_BLEND);
 		bool hadSmooth = glIsEnabled(GL_LINE_SMOOTH);
-		
-		if (!hadBlend) glEnable(GL_BLEND);
-		if (!hadSmooth) glEnable(GL_LINE_SMOOTH);
-		
+		GLint hadca, hadva, hadta;
+				
 		glGetIntegerv(GL_POLYGON_MODE, saved_polygonmode);                 
 		// save some values
 		glGetFloatv(GL_CURRENT_COLOR, savedColor);
@@ -63,18 +61,46 @@ bool GLBoxSelector::draw(GLenum which_colorbuffer)
 		glGetFloatv(GL_LINE_WIDTH, &savedWidth);
 		glGetIntegerv(GL_BLEND_SRC, &saved_sfactor);
 		glGetIntegerv(GL_BLEND_DST, &saved_dfactor);
+		glGetIntegerv(GL_COLOR_ARRAY, &hadca);
+		glGetIntegerv(GL_VERTEX_ARRAY, &hadva);
+		glGetIntegerv(GL_TEXTURE_COORD_ARRAY, &hadta);
+		if (!hadva) glEnableClientState(GL_VERTEX_ARRAY);
+		if (hadta) glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+		if (hadca) glDisableClientState(GL_COLOR_ARRAY);
+		if (!hadSmooth) glEnable(GL_LINE_SMOOTH);
+		if (!hadBlend) glEnable(GL_BLEND);
+
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 		
-		if (!wasEnabled) glEnable(GL_LINE_STIPPLE);
+		// next, draw everything BUT the box with a flicker/gray area...
+		glColor4f(.3f, .3f, .4f, .25f);
+		if (wasEnabled) glDisable(GL_LINE_STIPPLE);
+		glPolygonMode(GL_FRONT,GL_FILL);
+		glLineWidth(1.f);
+		glLineStipple(1,0xffff);
+		
+		const float verticesNonBox[] = {
+			0.f,0.f, 1.f,0.f, 1.f,box.v2, 0.f,box.v2,  // bottom strip
+			0.f,box.v2, box.v1,box.v2, box.v1,1.f, 0.f,1.f, // left strip
+			box.v1,box.v4, 1.f,box.v4, 1.f,1.f, box.v1,1.f, // top strip
+			box.v3,box.v2, 1.f,box.v2, 1.f,box.v4, box.v3,box.v4 // right strip
+		};
+		
+		glVertexPointer(2, GL_FLOAT, 0, verticesNonBox);
+		glDrawArrays(GL_QUADS,0,16);
+		
+		
+		glEnable(GL_LINE_STIPPLE);
 		glPolygonMode(GL_FRONT, GL_LINE);
 		// outline.. use normal alphas
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glLineWidth(4.0f);
 		unsigned short pat = 0xcccc;
 		int shift = static_cast<unsigned int>(Util::getTime() * 32.0) % 16;
 		pat = ror(pat,shift);
 			
 		glLineStipple(1, pat);
-		const float vertices[] = {
+		const float verticesBox[] = {
 			box.v1, box.v2,
 			box.v3, box.v2,
 			box.v3, box.v4,
@@ -83,35 +109,12 @@ bool GLBoxSelector::draw(GLenum which_colorbuffer)
 		float dummy, colorscale = modff((Util::getTime() * 16.) / M_PI, &dummy);
 		const float s = (sinf(colorscale)+1.f)/2.f, c = (sinf(colorscale*1.123)+1.f)/2.f,
 		            d = (sinf(colorscale*.8123)+1.f)/2.f;
-		GLint hadca, hadva, hadta;
-		glGetIntegerv(GL_COLOR_ARRAY, &hadca);
-		glGetIntegerv(GL_VERTEX_ARRAY, &hadva);
-		glGetIntegerv(GL_TEXTURE_COORD_ARRAY, &hadta);
-		if (!hadva) glEnableClientState(GL_VERTEX_ARRAY);
-		if (hadta) glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-		if (hadca) glDisableClientState(GL_COLOR_ARRAY);
 
 		// draw surrounding box
 		glColor4f(c, s, d, .75);
-		glVertexPointer(2, GL_FLOAT, 0, vertices);
+		glVertexPointer(2, GL_FLOAT, 0, verticesBox);
 		glDrawArrays(GL_QUADS, 0, 4); 
-		
-		// next, draw everything BUT the box with a flicker/gray area...
-		glColor4f(.3f, .3f, .4f, .25f);
-		glPolygonMode(GL_FRONT,GL_FILL);
-		glLineWidth(1.f);
-		glLineStipple(1,0xffff);
-		
-		const float vertices2[] = {
-			0.f,0.f, 1.f,0.f, 1.f,box.v2, 0.f,box.v2,  // bottom strip
-			0.f,box.v2, box.v1,box.v2, box.v1,1.f, 0.f,1.f, // left strip
-			box.v1,box.v4, 1.f,box.v4, 1.f,1.f, box.v1,1.f, // top strip
-			box.v3,box.v2, 1.f,box.v2, 1.f,box.v4, box.v3,box.v4 // right strip
-		};
-		
-		glVertexPointer(2, GL_FLOAT, 0, vertices2);
-		glDrawArrays(GL_QUADS,0,16);
-		
+				
 		// restore saved OpenGL state
 		if (hadta) glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 		if (hadca) glEnableClientState(GL_COLOR_ARRAY);
