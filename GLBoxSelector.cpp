@@ -80,7 +80,7 @@ bool GLBoxSelector::draw(GLenum which_colorbuffer)
 		glLineWidth(1.f);
 		glLineStipple(1,0xffff);
 		
-		const float verticesNonBox[] = {
+		const GLfloat verticesNonBox[] = {
 			0.f,0.f, 1.f,0.f, 1.f,box.v2, 0.f,box.v2,  // bottom strip
 			0.f,box.v2, box.v1,box.v2, box.v1,1.f, 0.f,1.f, // left strip
 			box.v1,box.v4, 1.f,box.v4, 1.f,1.f, box.v1,1.f, // top strip
@@ -92,7 +92,7 @@ bool GLBoxSelector::draw(GLenum which_colorbuffer)
 		
 		
 		glEnable(GL_LINE_STIPPLE);
-		glPolygonMode(GL_FRONT, GL_LINE);
+		//glPolygonMode(GL_FRONT, GL_LINE);
 		// outline.. use normal alphas
 		glLineWidth(4.0f);
 		unsigned short pat = 0xcccc;
@@ -100,11 +100,12 @@ bool GLBoxSelector::draw(GLenum which_colorbuffer)
 		pat = ror(pat,shift);
 			
 		glLineStipple(1, pat);
-		const float verticesBox[] = {
+		const GLfloat verticesBox[] = {
 			box.v1, box.v2,
 			box.v3, box.v2,
 			box.v3, box.v4,
-			box.v1, box.v4
+			box.v1, box.v4,
+			box.v1, box.v2,
 		};
 		float dummy, colorscale = modff((Util::getTime() * 16.) / M_PI, &dummy);
 		const float s = (sinf(colorscale)+1.f)/2.f, c = (sinf(colorscale*1.123)+1.f)/2.f,
@@ -113,7 +114,7 @@ bool GLBoxSelector::draw(GLenum which_colorbuffer)
 		// draw surrounding box
 		glColor4f(c, s, d, .75);
 		glVertexPointer(2, GL_FLOAT, 0, verticesBox);
-		glDrawArrays(GL_QUADS, 0, 4); 
+		glDrawArrays(GL_LINE_LOOP, 0, 5); 
 				
 		// restore saved OpenGL state
 		if (hadta) glEnableClientState(GL_TEXTURE_COORD_ARRAY);
