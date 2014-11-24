@@ -5,6 +5,7 @@
 #include <QHostAddress>
 #include <QSharedMemory>
 #include <QApplication>
+#include <QMessageBox>
 
 #define LINELEN 4096
 #define GREETING_STRING "HELLO I'M SPIKEGL"
@@ -323,5 +324,18 @@ namespace StimGL_SpikeGL_Integration
 	}
 	
 	int FrameShare::size() const { return qsm->size(); }
+
+	bool FrameShare::warnUserAlreadyRunning() const
+	{
+		QMessageBox::StandardButton but = QMessageBox::critical
+		(0, 
+		 "Duplicate Instance Running",
+		 QString("After attaching to the 'frame share shm' segment, it appears another "
+		 		 "instance of %1 may already be attached to this segment (or if "
+		 		 "not, it quit uncleanly).\n\n"
+				 "Do you wish to continue using the frame share mechanism anyway?").arg(qApp->applicationName()), 
+		 QMessageBox::Yes|QMessageBox::No, QMessageBox::No);
+		return (but == QMessageBox::Yes);
+	}
 	
 }

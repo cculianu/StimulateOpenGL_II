@@ -125,7 +125,7 @@ private:
 	
 	StimGL_SpikeGL_Integration::FrameShare fshare;
 	static const int N_PBOS = 2; ///< number of frameshare PBOs to use
-	GLuint fs_w, fs_h, fs_pbo[N_PBOS], fs_pbo_ix, fs_lastHWFC[N_PBOS];
+	GLuint fs_w, fs_h, fs_pbo[N_PBOS], fs_pbo_ix, fs_lastHWFC[N_PBOS], fs_bytesz[N_PBOS];
 	
 	GLBoxSelector *boxSelector;
 	Util::Vec4i fs_rect, fs_rect_saved; /// frame share rectangle with origin,size

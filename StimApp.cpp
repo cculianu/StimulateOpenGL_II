@@ -76,6 +76,8 @@ StimApp::StimApp(int & argc, char ** argv)
         QMessageBox::critical(0, "Invariant Violation", "Only 1 instance of StimApp allowed per application!");
         std::exit(1);
     }
+	setApplicationName("StimGL");
+	setApplicationVersion(VERSION_STR);
 #ifndef Q_OS_WIN
     refresh = 120;
 #endif

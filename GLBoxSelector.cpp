@@ -115,7 +115,25 @@ bool GLBoxSelector::draw(GLenum which_colorbuffer)
 		glColor4f(c, s, d, .75);
 		glVertexPointer(2, GL_FLOAT, 0, verticesBox);
 		glDrawArrays(GL_LINE_LOOP, 0, 5); 
-				
+		
+		// draw interior 'grid'
+		glLineWidth(1.f);
+		glLineStipple(1,0xaaaa);
+		
+		const GLfloat gw = (box.v3-box.v1)/3.f, gh = (box.v4-box.v2)/3.f;
+		const GLfloat verticesGrid[] = {
+			box.v1+gw, box.v2,
+			box.v1+gw, box.v4,
+			box.v1+(gw*2.f), box.v2,
+			box.v1+(gw*2.f), box.v4,
+			box.v1, box.v2+gh,
+			box.v3, box.v2+gh,
+			box.v1, box.v2+(2.f*gh),
+			box.v3, box.v2+(2.f*gh),
+		};
+		glVertexPointer(2, GL_FLOAT, 0, verticesGrid);
+		glDrawArrays(GL_LINES, 0, 8);
+		
 		// restore saved OpenGL state
 		if (hadta) glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 		if (hadca) glEnableClientState(GL_COLOR_ARRAY);

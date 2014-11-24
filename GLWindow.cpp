@@ -23,10 +23,21 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 
 {
     memset(fs_pbo, 0, sizeof fs_pbo);
+	memset(fs_bytesz, 0, sizeof fs_bytesz);
 	if (fshare.shm) {
-		fshare.shm->do_box_select = 0; ///< clear possibly-stale value
-		fshare.shm->stimgl_pid = Util::getPid();
 		Log() << "GLWindow: " << (fshare.createdByThisInstance ? "Created" : "Attatched to pre-existing") <<  " SpikeGL 'frame share' memory segment, size: " << (double(fshare.size())/1024.0/1024.0) << "MB.";
+		fshare.lock();
+		const bool already_running = fshare.shm->stimgl_pid;
+		fshare.unlock();
+		if (!already_running || fshare.warnUserAlreadyRunning()) {
+			fshare.lock();
+			fshare.shm->do_box_select = 0; ///< clear possibly-stale value
+			fshare.shm->stimgl_pid = Util::getPid();
+			fshare.unlock();
+		} else {
+			Warning() << "Possible duplicate instance of StimGL, disabling 'frame share' in this instance.";
+			fshare.detach();	
+		}
 	} else {
 		Error() << "INTERNAL ERROR: Could not attach to SpikeGL 'frame share' shared memory segment! FIXME!";
 	}
@@ -65,7 +76,7 @@ GLWindow::~GLWindow() {
 }
 
 void GLWindow::criticalCleanup() { 
-	if (fshare.shm) fshare.shm->stimgl_pid = 0; 
+	if (fshare.shm) { fshare.lock(); fshare.shm->stimgl_pid = 0; fshare.unlock(); }
 	if (fs_pbo[0]) { glDeleteBuffers(N_PBOS, fs_pbo); memset(fs_pbo, 0, sizeof fs_pbo); }
 }
 
@@ -204,7 +215,8 @@ void GLWindow::paintGL()
 	
     tThisFrame = getTime();
     bool tooFast = false, tooSlow = false, signalDIOOn = false;
-
+	const float win_width = width(), win_height = height();
+	
     if (timer->isActive()) return; // this was a spurious paint event
     unsigned timerpd = 1000/MAX(stimApp()->refreshRate(),120)/2;
     if (stimApp()->busy()) timerpd = 0;
@@ -440,16 +452,17 @@ void GLWindow::paintGL()
 	if (fshare.shm) {
 		if (fshare.shm->enabled) {
 			//const double t0(getTime());
-			const unsigned w = fs_rect.v3, h = fs_rect.v4, sz = w*h*4;
-			if (!fs_pbo[0] || fs_w != w || fs_h != h) {
+			const bool dfw = fshare.shm->dump_full_window;
+			const unsigned w = dfw ? win_width : fs_rect.v3, h = dfw ? win_height : fs_rect.v4, sz = w*h*4;
+			if (!fs_pbo[0] || fs_w != win_width || fs_h != win_height) {
 				if (fs_pbo[0]) glDeleteBuffers(N_PBOS, fs_pbo);
 				glGenBuffers(N_PBOS, fs_pbo);
 				fs_pbo_ix = 0;
 				for (int i = 0; i < N_PBOS; ++i) {
 					glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[i]);
-					glBufferData(GL_PIXEL_PACK_BUFFER, w*h*4, 0, GL_DYNAMIC_READ);
+					glBufferData(GL_PIXEL_PACK_BUFFER, win_width*win_height*4, 0, GL_DYNAMIC_READ);
 				}
-				fs_w = w, fs_h = h;
+				fs_w = win_width, fs_h = win_height;
 			} else if (fs_pbo_ix >= (unsigned)N_PBOS) {
 				const int ix = fs_pbo_ix % N_PBOS;
 				// data from last frame should be ready
@@ -462,22 +475,29 @@ void GLWindow::paintGL()
 					fshare.shm->w = w;
 					fshare.shm->h = h;
 					fshare.shm->fmt = GL_BGRA;
-					fshare.shm->sz_bytes = sz < FRAME_SHARE_SHM_SIZE ? sz : FRAME_SHARE_SHM_SIZE;
-					memcpy((void *)fshare.shm->data, fs_mem, sz);
+					static const unsigned fssds(FRAME_SHARE_SHM_DATA_SIZE);
+					fshare.shm->sz_bytes = fs_bytesz[ix] < fssds ? fs_bytesz[ix] : fssds;
+					fshare.shm->box_x = fs_rect.x/win_width;
+					fshare.shm->box_y = fs_rect.y/win_height;
+					fshare.shm->box_w = fs_rect.v3/win_width;
+					fshare.shm->box_h = fs_rect.v4/win_height;
+					memcpy((void *)fshare.shm->data, fs_mem, fshare.shm->sz_bytes);
 					fshare.unlock();
 					//t0 = getTime();
 					glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
 					//Debug() << "glUnmapBuffer of pbo#" << ix << " took: " << (getTime()-t0)*1000. << "ms";
 				}
 			}
-			glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[fs_pbo_ix%N_PBOS]);
+			const int ix(fs_pbo_ix % N_PBOS);
+			glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[ix]);
 			GLint bufwas;
 			glGetIntegerv(GL_READ_BUFFER, &bufwas);
 			glReadBuffer(GL_FRONT);
 			//double t0 = getTime();
-			glReadPixels(fs_rect.x,fs_rect.y,w,h,GL_BGRA,GL_UNSIGNED_BYTE,0);
+			glReadPixels(dfw?0:fs_rect.x,dfw?0:fs_rect.y,w,h,GL_BGRA,GL_UNSIGNED_BYTE,0);
 			//Debug() << "glReadPixels of pbo#" << (fs_pbo_ix%2) << " took: " << (getTime()-t0)*1000. << "ms";
-			fs_lastHWFC[fs_pbo_ix%N_PBOS] = lastHWFC;
+			fs_lastHWFC[ix] = lastHWFC;
+			fs_bytesz[ix] = sz;
 			glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 			glReadBuffer(bufwas);
 			++fs_pbo_ix;

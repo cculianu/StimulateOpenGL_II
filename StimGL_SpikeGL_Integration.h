@@ -78,12 +78,13 @@ namespace StimGL_SpikeGL_Integration
         int timeout_msecs;
     };
 	
-#define FRAME_SHARE_SHM_MAGIC 0xf33d53c5
+#define FRAME_SHARE_SHM_MAGIC 0xf33d53c6
 #ifdef Q_OS_DARWIN
 #define FRAME_SHARE_SHM_SIZE (4*1024*1024)	///< size limits in OSX Darwin kernel for max shm size..
 #else
 #define FRAME_SHARE_SHM_SIZE (8*1024*1024)	///< on other OS's, use 8MB for the shm, which should be enough..
 #endif
+#define FRAME_SHARE_SHM_DATA_SIZE (FRAME_SHARE_SHM_SIZE-reinterpret_cast<unsigned long>(&reinterpret_cast<StimGL_SpikeGL_Integration::FrameShareShm *>(0)->data))
 	extern "C" struct FrameShareShm {
 		unsigned magic; ///< set by whichever program creates the Shm first for sanity checking..
 		int enabled; ///< set to true by SpikeGL when it "wants" frames from StimGL.. if true StimGL will write frames into data and set w,h,fmt,sz_bytes appropriately...
@@ -91,7 +92,10 @@ namespace StimGL_SpikeGL_Integration
 		int fmt, w, h, sz_bytes; ///< the format and other info on the frame data, written by StimGL
 		int do_box_select; ///< SpikeGL writes to this to tell StimGL to do the box selection stuff
 		unsigned stimgl_pid; ///< StimGL writes to this to tell SpikeGL its PID.  If 0, StimGL definitely isn't running
-		int reserved[7]; ///< reserved for future implementations and to align the data a bit..
+		unsigned spikegl_pid; ///< SpikeGL writes to this to tell StimGL its PID.  If 0, SpikeGL definitely isn't running
+		float box_x, box_y, box_w, box_h; ///< StimGL writes to this to tell SpikeGL the exact area of the overlay box relative to the overall StimGL window, coordinate range of values is always 0->1
+		int dump_full_window; ///< SpikeGL writes to this to tell StimGL to not use the overlay box area and instead dump entire StimGL window, if true
+		int reserved[17]; ///< reserved for future implementations and to align the data a bit..
 		char data[1]; ///< the frame data, written-to by StimGL.. real size is obviously bigger than 1!
 	};
 	
@@ -108,11 +112,12 @@ namespace StimGL_SpikeGL_Integration
 		int size() const; ///< returns the size of the shm, in bytes 
 		bool lock();
 		bool unlock();
+		
+		bool warnUserAlreadyRunning() const; ///< returns true if the user accepted the situation and hit Yes, or false if they hit No
 	private:
 		QSharedMemory *qsm;
 	};
 	
 } // end namespace StimGL_SpikeGL_Integration
-
 
 #endif
