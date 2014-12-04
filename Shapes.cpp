@@ -113,6 +113,7 @@ void GradientShape::setGradient(bool enabled, GradType t, float freq, float angl
 void GradientShape::setupDl(GLuint & dl, bool use_grad_tex)
 {
 	const GLuint old_gtex = gtex;
+	gtex = 0;
 	if (use_grad_tex && &dl == &dl_grad) {
 		gtex = tcache->getAndRetain(grad_type, grad_min, grad_max);
 		dl = dlGradGetAndRetain(Vec4f(grad_type,grad_freq,grad_angle,grad_offset));
