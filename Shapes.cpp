@@ -116,7 +116,7 @@ void GradientShape::setupDl(GLuint & dl, bool use_grad_tex)
 	gtex = 0;
 	if (use_grad_tex && &dl == &dl_grad) {
 		gtex = tcache->getAndRetain(grad_type, grad_min, grad_max);
-		dl = dlGradGetAndRetain(Vec4f(grad_type,grad_freq,grad_angle,grad_offset));
+		dl = dlGradGetAndRetain(Vec4f(gtex,grad_freq,grad_angle,grad_offset));
 		//Debug() << "setupDl(): gradient tex=true, dl=" << dl << " dlrefct=" << dlRefcts[dl];
 	}
 	else if (!dl) {

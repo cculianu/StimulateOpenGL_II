@@ -133,7 +133,7 @@ protected:
 	static DLRefctMap dlRefcts; /// maps dl_grad display lists to counters.. implementing shared display lists
 	static DLMap dls;
 	static DLRev dlsRev;
-	static GLuint dlGradGetAndRetain(const Vec4f & props);
+	static GLuint dlGradGetAndRetain(const Vec4f & props); ///< props are tex_id,freq,angle,offset!
 	static void dlGradRelease(GLuint dl);
 	static void dlGradRetain(GLuint dl);
 	
