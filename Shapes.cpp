@@ -77,7 +77,6 @@ GradientShape::GradientShape() : grad_type(GradSine), grad_freq(1.f), grad_angle
 				switch (GradType(texIdx)) {
 					case GradSquare:
 						f = x < 0.5f ? 0.0f : 1.0f;
-						f = f*(grad_max-grad_min) + grad_min;
 						break;
 					case GradSaw: {
 						static const float swfact = (1.0f/0.95f);
@@ -85,24 +84,23 @@ GradientShape::GradientShape() : grad_type(GradSine), grad_freq(1.f), grad_angle
 						if (f >= 1.0f) {
 							f = 1.0f-((f-1.0f)/(swfact-1.0f));
 						}
-						f = f*(grad_max-grad_min) + grad_min;
 					}
 						break;
 					case GradTri:
 						f = x*2.0f;
 						if (f > 1.0) f = 1.0f-(f-1.0f);
-						f = f*(grad_max-grad_min) + grad_min;
 						break;
 					case GradSine:
-						f = (sinf(x*(2.0*M_PI))+1.0)/2.0 * (grad_max-grad_min) + grad_min;
+						f = (sinf(x*(2.0*M_PI))+1.0)/2.0;
 						break;
 					case GradCosine:
 					default:
-						f = (cosf(x*(2.0*M_PI))+1.0)/2.0 * (grad_max-grad_min) + grad_min;
+						f = (cosf(x*(2.0*M_PI))+1.0)/2.0;
 						break;
 				}
 				if (f < 0.f) f = 0.f;
 				if (f > 1.f) f = 1.f;			
+				f = f*(grad_max-grad_min) + grad_min;
 				pix[i] = f;
 			}
 			glBindTexture(GL_TEXTURE_1D, tex_grad[texIdx]);
