@@ -84,6 +84,9 @@ GradientShape::GradientShape() : grad_freq(1.f), grad_angle(0.f), grad_offset(0.
 						}
 					}
 						break;
+					case GradSine:
+						f = (sinf(x*(2.0*M_PI))+1.0)/2.0 * (max-min) + min;
+						break;
 					case GradCosine:
 					default:
 						f = (cosf(x*(2.0*M_PI))+1.0)/2.0 * (max-min) + min;
@@ -321,7 +324,7 @@ void Ellipse::setupDl(GLuint & displayList, bool use_grad_tex)
 	glNewList(displayList, GL_COMPILE);
 	if (use_grad_tex) {
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-		glBindTexture(GL_TEXTURE_1D, tex_grad[0]);
+		glBindTexture(GL_TEXTURE_1D, tex_grad[GradSine]);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -388,7 +391,7 @@ void Rectangle::setupDl(GLuint & displayList, bool use_grad_tex)
 	glNewList(displayList, GL_COMPILE);
 	if (use_grad_tex) {
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-		glBindTexture(GL_TEXTURE_1D, tex_grad[0]);
+		glBindTexture(GL_TEXTURE_1D, tex_grad[GradSine]);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);

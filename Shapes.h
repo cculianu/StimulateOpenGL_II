@@ -85,7 +85,7 @@ public:
 	void setGradient(bool enabled, float freq, float angle, float offset);
 	
 protected:
-	enum GradType { GradSine=0, GradCosine=GradSine, GradSaw, GradSquare, N_GradTypes };
+	enum GradType { GradCosine=0, GradSine, GradSaw, GradSquare, N_GradTypes };
 	
 	static GLuint tex_grad[N_GradTypes]; /**< A 1D texture of a grayscale gradient that goes from 1.0 -> 0.0 */
 	
