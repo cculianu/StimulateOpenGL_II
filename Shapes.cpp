@@ -56,88 +56,31 @@ void Shape::copyProperties(const Shape *o)
 }
 
 	
-/* static */ GLuint GradientShape::tex_grad[N_GradTypes] = { 0 };
-/* static */ int    GradientShape::tex_grad_ct = 0;
+/* static */ GradientShape::TexCache * GradientShape::tcache(0);
+/* static */ int GradientShape::tcache_ct(0);
 /* static */ GradientShape::DLRefctMap GradientShape::dlRefcts; /// maps dl_grad display lists to counters.. implementing shared display lists
 /* static */ GradientShape::DLMap GradientShape::dls;
 /* static */ GradientShape::DLRev GradientShape::dlsRev;
-/* static */ float GradientShape::grad_min(0.0f), GradientShape::grad_max(1.0f);
 
-GradientShape::GradientShape() : grad_type(GradSine), grad_freq(1.f), grad_angle(0.f), grad_offset(0.f), dl_grad(0)
+GradientShape::GradientShape() : gtex(0), grad_type(GradSine), grad_freq(1.f), grad_angle(0.f), grad_offset(0.f), grad_min(0.f), grad_max(1.f), dl_grad(0)
 {
-	if (!tex_grad[0]) {
-		static const int TEXWIDTH = 256;
-		Log() << "Plugin has " << int(N_GradTypes) << " gradient functions, generating a textures for each of size " << TEXWIDTH << "...";
-		glGenTextures(N_GradTypes, tex_grad);
-		GLfloat pix[TEXWIDTH];
-		for (int texIdx = 0; texIdx < N_GradTypes; ++texIdx) {
-			GLfloat f;
-			for (int i = 0; i < TEXWIDTH; ++i) {
-				const GLfloat x(GLfloat(i)/GLfloat(TEXWIDTH)); 
-				switch (GradType(texIdx)) {
-					case GradSquare:
-						f = x < 0.5f ? 0.0f : 1.0f;
-						break;
-					case GradSaw: {
-						static const float swfact = (1.0f/0.95f);
-						f = x*swfact;
-						if (f >= 1.0f) {
-							f = 1.0f-((f-1.0f)/(swfact-1.0f));
-						}
-					}
-						break;
-					case GradTri:
-						f = x*2.0f;
-						if (f > 1.0) f = 1.0f-(f-1.0f);
-						break;
-					case GradSine:
-						f = (sinf(x*(2.0*M_PI))+1.0)/2.0;
-						break;
-					case GradCosine:
-					default:
-						f = (cosf(x*(2.0*M_PI))+1.0)/2.0;
-						break;
-				}
-				if (f < 0.f) f = 0.f;
-				if (f > 1.f) f = 1.f;			
-				f = f*(grad_max-grad_min) + grad_min;
-				pix[i] = f;
-			}
-			glBindTexture(GL_TEXTURE_1D, tex_grad[texIdx]);
-			glTexImage1D(GL_TEXTURE_1D, 0, GL_LUMINANCE, TEXWIDTH, 0, GL_LUMINANCE, GL_FLOAT, pix);
-		}
-		glBindTexture(GL_TEXTURE_1D, 0); // unbind
-		tex_grad_ct = 1;
-	} else
-		++tex_grad_ct;
+	if (!tcache) tcache = new TexCache, tcache_ct = 0;
+	++tcache_ct;
 }	
 GradientShape::~GradientShape()
 {
-	if (--tex_grad_ct <= 0) {
-		if (tex_grad[0]) glDeleteTextures(N_GradTypes, tex_grad);
-		for (int i = 0; i < N_GradTypes; ++i) tex_grad[i] = 0;
-		tex_grad_ct = 0;
-	}
+	if (tcache) tcache->release(gtex); 
+	gtex = 0;
 	if (dl_grad) dlGradRelease(dl_grad);
 	dl_grad = 0;
+	if (tcache && --tcache_ct <= 0) {
+		Debug() << "Gradient tex cache delete (cache current size: " << tcache->size() << " max size was: " << tcache->maxSize() << ")...";
+		delete tcache; 
+		tcache = 0;
+		tcache_ct = 0;
+	}
 }
 	
-void GradientShape::setMinMax(float min, float max)
-{
-	if (min > max) { float t = min; min = max; max = t; }
-	if (min < 0.f) min = 0.f;
-	else if (min > 1.f) min = 1.f;
-	if (max < 0.f) max = 0.f;
-	else if (max > 1.f) max = 1.f;
-	if (tex_grad_ct) {
-		Error() << "INTERNAL ERROR: setMinMax(" << min << "," << max << ") called with static textures already created! Fix me!";
-	}
-	if (fabsf(min-max) < 0.1) {
-		Warning() << "GradientShape::setMinMax() called with a very tiny range: (" << min << "," << max << ").  Fix your config file!";
-	}
-	grad_min = min;
-	grad_max = max;
-}
 	
 void GradientShape::copyProperties(const Shape *from)
 {
@@ -145,24 +88,33 @@ void GradientShape::copyProperties(const Shape *from)
 	const GradientShape *g;
 	if ((g = dynamic_cast<const GradientShape *>(from))) {
 		if ( (dl_grad?1:0) != (g->dl_grad?1:0)
-			|| Vec4f(grad_type, grad_freq, grad_angle, grad_offset) != Vec4f(g->grad_type, g->grad_freq, g->grad_angle, g->grad_offset))
-		setGradient(!!g->dl_grad, g->grad_type, g->grad_freq, g->grad_angle, g->grad_offset);
+			|| Vec4f(grad_type, grad_freq, grad_angle, grad_offset) != Vec4f(g->grad_type, g->grad_freq, g->grad_angle, g->grad_offset)
+			|| Vec3f(grad_type, grad_min, grad_max) != Vec3f(g->grad_type, g->grad_min, g->grad_max) 
+			)
+		setGradient(!!g->dl_grad, g->grad_type, g->grad_freq, g->grad_angle, g->grad_offset, g->grad_min, g->grad_max);
 	}
 }
 
-void GradientShape::setGradient(bool enabled, GradType t, float freq, float angle, float offset)
+void GradientShape::setGradient(bool enabled, GradType t, float freq, float angle, float offset, float min, float max)
 {
 	grad_freq = freq;
 	grad_angle = angle;
 	grad_offset = offset;
 	grad_type = t;
+	if (min > max) { float tmp = min; min = max; max = tmp; }
+	if (min < 0.f) min = 0.f; if (min > 1.f) min = 1.f;
+	if (max < 0.f) max = 0.f; if (max > 1.f) max = 1.f;
+	grad_min = min;
+	grad_max = max;
 	if (enabled) setupDl(dl_grad, true);
 	else if (dl_grad) { dlGradRelease(dl_grad); dl_grad = 0; }
 }
 
 void GradientShape::setupDl(GLuint & dl, bool use_grad_tex)
 {
+	const GLuint old_gtex = gtex;
 	if (use_grad_tex && &dl == &dl_grad) {
+		gtex = tcache->getAndRetain(grad_type, grad_min, grad_max);
 		dl = dlGradGetAndRetain(Vec4f(grad_type,grad_freq,grad_angle,grad_offset));
 		//Debug() << "setupDl(): gradient tex=true, dl=" << dl << " dlrefct=" << dlRefcts[dl];
 	}
@@ -172,6 +124,7 @@ void GradientShape::setupDl(GLuint & dl, bool use_grad_tex)
 			Warning() << "setupDl(): gradient tex=false, but generating list for dl_grad! FIXME!";
 		}
 	}
+	if (old_gtex) tcache->release(old_gtex);
 	// continue on in subclass..
 }
 	
@@ -225,6 +178,119 @@ void GradientShape::drawEnd()
 /*static*/ void GradientShape::dlGradRetain(GLuint dl)
 {
 	if (dl) dlRefcts[dl] = dlRefcts[dl] + 1;
+}
+
+void GradientShape::TexCache::release(GLuint tex)
+{
+	if (!tex) return;
+	RefctMap::iterator it = ref.find(tex);
+	if (it != ref.end()) {
+		if (--it.value() <= 0) {
+			TexPropMap::iterator it2 = texProp.find(tex);
+			if (it2 != texProp.end())  propTex.remove(it2.value());
+			texProp.erase(it2);
+			ref.erase(it);
+			//Debug() << "Deleting texture " << tex;
+			glDeleteTextures(1, &tex);
+		}
+	} else {
+		Debug() << "GradientShape::TexCache::texRelease was given a tex_id `" << tex << "' but it doesn't exist in the cache!";
+	}
+}
+
+void GradientShape::TexCache::release(GradType t, float min, float max)
+{
+	if (min > max) { float t = min; min = max; max = t; }
+	if (min < 0.f) min = 0.f; else if (min > 1.f) min = 1.f;
+	if (max < 0.f) max = 0.f; else if (max > 1.f) max = 1.f;
+	if (int(t) < 0 || int(t) > N_GradTypes) t = (GradType)0;
+	PropTexMap::const_iterator it = propTex.find(Vec3f(float(int(t)), min, max));
+	if (it != propTex.end()) release(it.value());
+}
+	
+GLuint GradientShape::TexCache::getAndRetain(GradType t, float min, float max)
+{
+	GLuint ret = 0;
+	if (min > max) { float t = min; min = max; max = t; }
+	if (min < 0.f) min = 0.f; else if (min > 1.f) min = 1.f;
+	if (max < 0.f) max = 0.f; else if (max > 1.f) max = 1.f;
+	if (int(t) < 0 || int(t) > N_GradTypes) t = (GradType)0;
+	const Vec3f prop(float(int(t)),min,max);
+	PropTexMap::const_iterator it = propTex.find(prop);
+	if (it != propTex.end()) {
+		RefctMap::iterator it2 = ref.find(it.value());
+		if (it2 != ref.end()) {
+			++it2.value();
+			ret = it.value();
+		} else {
+			Error() << "INTERNAL ERROR IN GradientShape::TexCache::texGetAndRetain() -- prop is in propTex but not in ref! FIXME!";
+		}
+		//if (ret) Debug() << "GradientShape::TexCache::getAndRetain(" << int(t) << "," << min << "," << max << ") found cached texture with id " << ret << " refct: " << (it2.value()-1);
+	} else { // create new..
+		//Debug() << "propTex size: " << propTex.size();
+		if ((ret = createTex(t, min, max))) {
+			propTex[prop] = ret;
+			texProp[ret] = prop;
+			ref[ret] = 1;
+			if (size_max < unsigned(ref.size())) size_max = ref.size();
+		} else {
+			Error() << "Got a 0 from GradientShape::TexCache::createTex()!";
+		}
+	}
+	return ret;
+}
+	
+GradientShape::TexCache::~TexCache()
+{
+	for(RefctMap::const_iterator it = ref.begin(); it != ref.end(); ++it) {
+		GLuint t = it.key();
+		if (t) glDeleteTextures(1, &t);
+	}
+	ref.clear(); propTex.clear(); texProp.clear();
+}
+	
+GLuint GradientShape::TexCache::createTex(GradType t, float min, float max)
+{
+	static const int TEXWIDTH = 256;
+	GLuint tex = 0;
+	glGenTextures(1, &tex);
+	GLfloat pix[TEXWIDTH], f;
+	for (int i = 0; tex && i < TEXWIDTH; ++i) {
+		const GLfloat x(GLfloat(i)/GLfloat(TEXWIDTH)); 
+		switch (t) {
+			case GradSquare:
+				f = x < 0.5f ? 0.0f : 1.0f;
+				break;
+			case GradSaw: {
+				static const float swfact = (1.0f/0.95f);
+				f = x*swfact;
+				if (f >= 1.0f) {
+					f = 1.0f-((f-1.0f)/(swfact-1.0f));
+				}
+			}
+				break;
+			case GradTri:
+				f = x*2.0f;
+				if (f > 1.0) f = 1.0f-(f-1.0f);
+				break;
+			case GradSine:
+				f = (sinf(x*(2.0*M_PI))+1.0)/2.0;
+				break;
+			case GradCosine:
+			default:
+				f = (cosf(x*(2.0*M_PI))+1.0)/2.0;
+				break;
+		}
+		if (f < 0.f) f = 0.f;
+		if (f > 1.f) f = 1.f;			
+		f = f*(max-min) + min;
+		pix[i] = f;
+	}
+	glBindTexture(GL_TEXTURE_1D, tex);
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_LUMINANCE, TEXWIDTH, 0, GL_LUMINANCE, GL_FLOAT, pix);
+	glBindTexture(GL_TEXTURE_1D, 0); // unbind
+	Debug() << "GradientShape::TexCache::createTex created tex " << tex << " of size " << TEXWIDTH << " type: " << int(t) << " min: " << min << " max: " << max;
+	return tex;
 }
 	
 void Rectangle::copyProperties(const Shape *o)
@@ -349,7 +415,7 @@ void Ellipse::setupDl(GLuint & displayList, bool use_grad_tex)
 	glNewList(displayList, GL_COMPILE);
 	if (use_grad_tex) {
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-		glBindTexture(GL_TEXTURE_1D, tex_grad[grad_type]);
+		glBindTexture(GL_TEXTURE_1D, gtex);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -416,7 +482,7 @@ void Rectangle::setupDl(GLuint & displayList, bool use_grad_tex)
 	glNewList(displayList, GL_COMPILE);
 	if (use_grad_tex) {
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-		glBindTexture(GL_TEXTURE_1D, tex_grad[grad_type]);
+		glBindTexture(GL_TEXTURE_1D, gtex);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);

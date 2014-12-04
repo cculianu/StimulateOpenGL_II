@@ -74,30 +74,58 @@ protected:
 	virtual void drawEnd();
 	static GLuint tex_grad;
 };
+
 	
 class GradientShape : public Shape {
 public:
 	
 	enum GradType { GradCosine=0, GradSine, GradSaw, GradTri, GradSquare, N_GradTypes };
-	
+		
 	GradientShape();
 	virtual ~GradientShape();
 	
 	/*virtual*/ void copyProperties(const Shape *from);
 
-	void setGradient(bool enabled, GradType t, float freq, float angle, float offset);
-
-	static void setMinMax(float min, float max);
+	void setGradient(bool enabled, GradType t, float freq, float angle, float offset, float min, float max);
 
 protected:
 	
-	static GLuint tex_grad[N_GradTypes]; /**< A 1D texture of a grayscale gradient that goes from 1.0 -> 0.0 */	
-	static float grad_min, grad_max;
+	struct TexCache {
+		
+		GLuint getAndRetain(GradType type, float min, float max);
+		void release(GLuint tex_id);
+		void release(GradType type, float min, float max);
+		
+		TexCache() : size_max(0) {}
+		~TexCache();
+		
+		unsigned size() const { return ref.size(); }
+		unsigned maxSize() const { return size_max; }
+		
+	private:
+		typedef QMap<GLuint, int> RefctMap;
+		typedef QMap<GLuint, Vec3f> TexPropMap;
+		typedef QMap<Vec3f, GLuint> PropTexMap;
+		
+		GLuint createTex(GradType type, float min, float max);
+		
+		RefctMap ref;
+		TexPropMap texProp;
+		PropTexMap propTex;
+		unsigned size_max; ///< debug stat...
+	};
+	
+	static TexCache *tcache;
+	static int tcache_ct;
+	
+	GLuint gtex;
 	
 	GradType grad_type;
 	float grad_freq,  ///< default 1.0
 	      grad_angle,  ///< default 0.0
 	      grad_offset; ///< default 0.0
+	
+	float grad_min, grad_max;
 	
 	typedef QMap<GLuint, int> DLRefctMap; 
 	typedef QMap<GLuint,Vec4f> DLMap;

@@ -662,30 +662,6 @@ jittermag
        Possible values:   -2147483648 - +2147483647
        Default value:     2
 
-gradMin *or* gradientMin
-       Synopsis:          Specifies the minimum intensity to use for the 
-                          gradient function (see objGrad* params below).
-                          Objects that have the gradient feature enabled will
-                          be rendered using a gradient (as defined by objGrad*
-                          parameters), whose intensity will vary between
-                          0,1 by default, or gradMin,gradMax if the gradMin & 
-                          gradMax parameters are specified.
-       Datatype:          float
-       Possible values:   0.0-1.0
-       Default value:     0.0
-
-gradMax *or* gradientMax
-       Synopsis:          Specifies the maximum intensity to use for the
-                          gradient function (see objGrad* params below).
-                          Objects that have the gradient feature enabled will
-                          be rendered using a gradient (as defined by objGrad*
-                          parameters), whose intensity will vary between
-                          0,1 by default, or gradMin,gradMax if the gradMin & 
-                          gradMax parameters are specified.
-       Datatype:          float
-       Possible values:   0.0-1.0
-       Default value:     1.0
-
 lightAmbient
        Synopsis:          Applies to 3D objects that make use of lighting 
                           (currently only the sphere).  The greyscale intensity 
@@ -869,6 +845,36 @@ objGradAngleN | objGradPhiN (for objects 2 through numObj)
         Datatype:         float
         Possible values:  -inf - +inf 
         Default value:    first object: 0.0 
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objGradMin *or* objGradientMin
+       Synopsis:          Specifies the minimum intensity to use for the 
+                          gradient function for this object.  The gradient
+                          function will be applied but only in the range 
+                          (objGradMin,objGradMax).  This feature allows the
+                          user to restrict the intensities used for
+                          the gradient within a specific range. 
+                          As always, intensities of 0 are completely black
+                          and 1 is completely white.
+       Datatype:          float
+       Possible values:   0.0-1.0
+       Default value:     0.0 (black)
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objGradMax *or* objGradientMax
+       Synopsis:          Specifies the maximum intensity to use for the 
+                          gradient function for this object.  The gradient
+                          function will be applied but only in the range 
+                          (objGradMin,objGradMax).  This feature allows the
+                          user to restrict the intensities used for
+                          the gradient within a specific range. 
+                          As always, intensities of 0 are completely black
+                          and 1 is completely white.
+       Datatype:          float
+       Possible values:   0.0-1.0
+       Default value:     1.0 (full white)
                           subsequent objects: take on the value of the first
                           object by default (unless specified, of course).
 

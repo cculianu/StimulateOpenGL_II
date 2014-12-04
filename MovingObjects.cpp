@@ -68,6 +68,8 @@ void MovingObjects::ObjData::initDefaults() {
 	grad_offset = grad_angle = 0.f;
 	grad_freq = 1.0f;
 	grad_type = (Shapes::GradientShape::GradType)0;
+	grad_min = 0.f;
+	grad_max = 1.f;
 	
 	debugLvl = 0;
 }
@@ -239,6 +241,18 @@ bool MovingObjects::initObjectFromParams(ObjData & o, ConfigSuppressesFrameVar &
 		|| getParam("objGradOffset", o.grad_offset)
 		|| getParam("objGradPhase", o.grad_offset)) 
 		o.has_gradient = true;
+	if (getParam("objGradientMin", o.grad_min)
+		|| getParam("objGradMin", o.grad_min))
+		o.has_gradient = true;
+	if (getParam("objGradientMax", o.grad_max)
+		|| getParam("objGradMax", o.grad_max))
+		o.has_gradient = true;
+	if (o.grad_min >= o.grad_max
+		|| o.grad_min < 0.f || o.grad_max > 1.f) {
+		Warning() << "Invalid objGradMin/objGradMax parameters (" << o.grad_min << "," << o.grad_max << ") for object #" << o.objNum << ", defaulting to (0,1)."; 
+		o.grad_min = 0; o.grad_max = 1.0;
+	}
+
 	
 	if (feqf(o.grad_freq,0.0f)) o.has_gradient = false;
 	if (!o.has_gradient) o.grad_freq = 0.f;
@@ -376,11 +390,9 @@ bool MovingObjects::init()
 	if (getParam("gradientMax", grad_max) || getParam("gradMax", grad_max))
 		have_gminmax = true;
 	if (have_gminmax) {
-		Log() << "Gradient textures will be created with config-file-specified min,max = " << grad_min << "," << grad_max;
-	} else {
-		Log() << "Gradient textures will be created with default min,max = " << grad_min << "," << grad_max;
-	}
-	Shapes::GradientShape::setMinMax(grad_min, grad_max);
+		Error() << "gradientMin/gradientMax parameter is no longer supported! Instead, use the objGradMin/objGradMax parameters to specify gradient min/max on a per-object basis!";
+		return false;
+	} 
 	
 	initObjs();
 	
@@ -528,7 +540,7 @@ void MovingObjects::initObj(ObjData & o) {
 	}
 	Shapes::GradientShape *gs = 0;
 	if ((gs = dynamic_cast<Shapes::GradientShape *>(o.shape)))
-		gs->setGradient(o.has_gradient,o.grad_type,o.grad_freq,o.grad_angle,o.grad_offset);
+		gs->setGradient(o.has_gradient,o.grad_type,o.grad_freq,o.grad_angle,o.grad_offset,o.grad_min,o.grad_max);
 	o.shape->position = o.pos_o;
 	o.shape->noMatrixAttribPush = true; ///< performance hack	
 }

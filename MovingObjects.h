@@ -58,7 +58,7 @@ private:
 		      shininess, ambient, diffuse, emission, specular; // intensity value
 		
 		Shapes::GradientShape::GradType grad_type;
-		float grad_offset, grad_angle, grad_freq; ///< for Boxes or Ellipsoids that have a gradient. Only paid attention to if has_gradient is true.
+		float grad_offset, grad_angle, grad_freq, grad_min, grad_max; ///< for Boxes or Ellipsoids that have a gradient. Only paid attention to if has_gradient is true.
 		bool has_gradient; ///< if this is true, the above 3 params are used (Boxes and Ellipses only)
 		
 		int debugLvl;		
