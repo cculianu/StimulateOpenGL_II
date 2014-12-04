@@ -35,10 +35,11 @@ class StimApp;
 #define RAD2DEG(x) (x*(180.0/M_PI))
 #endif
 
-#define EPSILON 0.0000001
+#define EPSILON  0.0000001
+#define EPSILONf 0.000001f
 // since == isn't reliable for floats, use this instead
 #define eqf(x,y) (fabs(x-y) < EPSILON)
-
+#define feqf(x,y) (fabsf(x-y) < EPSILONf)
 /// Various global utility functions used application-wide.
 namespace Util 
 {
@@ -227,6 +228,7 @@ struct Vec2T {
 	template <typename U> Vec2T<T> operator/(const U & u) const { return Vec2T<T>(x/u,y/u); }
 	template <typename U> Vec2T<T> operator+(const U & u) const { return Vec2T<T>(x+u,y+u); }
 	template <typename U> Vec2T<T> operator-(const U & u) const { return Vec2T<T>(x-u,y-u); }
+	bool operator==(const Vec2T<T> & o) const { return eqf(x,o.x) && eqf(y,o.y); }
 	Vec2T<T> operator-(const Vec2T<T> & v) const { return Vec2T<T>(x-v.x,y-v.y); }
 	Vec2T<T> operator+(const Vec2T<T> & v) const { return Vec2T<T>(x+v.x,y+v.y); }
 	T dot(const Vec2T<T> & v) const { return x*v.x + y*v.y; }
@@ -235,6 +237,10 @@ struct Vec2T {
 	Vec2T<T> normalized() const { 
 		const T m (magnitude());
 		return Vec2T<T>(x/m, y/m);
+	}
+	Vec2T<T> rotated(float radians) const {
+		return Vec2T<T>(static_cast<T>(x*cos(-radians)-y*sin(-radians)),
+						static_cast<T>(x*sin(-radians)+y*cos(-radians)));
 	}
 	QString toString() const { return QString("%1,%2").arg(v1).arg(v2); }
 	bool fromString(const QString &s) {
@@ -251,6 +257,15 @@ struct Vec2T {
 	}
 };
 
+template <> 
+inline bool Vec2T<float>::operator==(const Vec2T<float> & o) const { return feqf(x,o.x) && feqf(y,o.y); }
+
+template<>
+inline Vec2T<float> Vec2T<float>::rotated(float radians) const {
+	return Vec2T<float>(static_cast<float>(x*cosf(-radians)-y*sinf(-radians)),
+					    static_cast<float>(x*sinf(-radians)+y*cosf(-radians)));
+}
+	
 template <typename T=double> 
 struct Vec3T {
 	union { 
@@ -269,6 +284,7 @@ struct Vec3T {
 	template <typename U> Vec3T<T> operator/(const U & u) const { return Vec3T<T>(x/u,y/u,z/u); }
 	template <typename U> Vec3T<T> operator+(const U & u) const { return Vec3T<T>(x+u,y+u,z+u); }
 	template <typename U> Vec3T<T> operator-(const U & u) const { return Vec3T<T>(x-u,y-u,z-u); }
+	bool operator==(const Vec3T<T> & o) const { return eqf(x,o.x) && eqf(y,o.y) && eqf(z,o.z); }
 	
 	T dot(const Vec3T<T> & v) const { return x*v.x + y*v.y + z*v.z; }
 	Vec3T<T> cross(const Vec3T<T> & v) const {
@@ -302,7 +318,10 @@ struct Vec3T {
 		return false;
 	}
 };
-	
+
+template <>
+inline bool Vec3T<float>::operator==(const Vec3T<float> & o) const { return feqf(x,o.x) && feqf(y,o.y) && feqf(z,o.z); }
+
 template <typename T=double>
 struct Vec4T 
 {
@@ -315,7 +334,8 @@ struct Vec4T
 	T & operator[](int i) { if (i == 0) return x; else if (i==1) return y; else if (i == 2) return z; return w; }
 	const T & operator[](int i) const { if (i == 0) return x; else if (i==1) return y; else if (i == 2) return z; return w; }
 	T distance(const Vec4T<T> &v) const { return ((*this)-v).magnitude(); }
-	
+	bool operator==(const Vec4T<T> & o) const { return eqf(x,o.x) && eqf(y,o.y) && eqf(z,o.z) && eqf(w,o.w); }
+
 	QString toString() const { return QString("%1,%2,%3,%4").arg(v1).arg(v2).arg(v3).arg(v4); }
 	bool fromString(const QString &s) {
 		QStringList nums = s.split(",",QString::SkipEmptyParts);
@@ -332,7 +352,10 @@ struct Vec4T
 		return false;
 	}
 };
-	
+
+template <>
+inline bool Vec4T<float>::operator==(const Vec4T<float> & o) const { return feqf(x,o.x) && feqf(y,o.y) && feqf(z,o.z) && feqf(w,o.w); }
+
 typedef Vec2T<double> Vec2d;
 typedef Vec2T<float> Vec2f;
 typedef Vec2T<int> Vec2i;

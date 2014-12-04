@@ -63,6 +63,11 @@ void MovingObjects::ObjData::initDefaults() {
 	diffuse = DEFAULT_DIFFUSE;
 	emission = DEFAULT_EMISSION;
 	specular = DEFAULT_SPECULAR;
+	
+	has_gradient = false;
+	grad_offset = grad_angle = 0.f;
+	grad_freq = 1.0f;
+	
 	debugLvl = 0;
 }
 
@@ -199,7 +204,25 @@ bool MovingObjects::initObjectFromParams(ObjData & o, ConfigSuppressesFrameVar &
 	getParam( "objSpecular", o.specular);   ChkAndClampParam("objSpecular", o.specular, -1., 1., i);
 	
 	if (!getParam( "objDebug", o.debugLvl)) o.debugLvl = 0;
-	getParam( "objSpin", o.spin );	
+	getParam( "objSpin", o.spin );
+	
+	if (getParam("objGradient", o.grad_freq)
+		|| getParam("objGrad", o.grad_freq)) 
+		o.has_gradient = true;
+	if (getParam("objGradientAngle", o.grad_angle)
+		|| getParam("objGradientPhi", o.grad_angle)
+		|| getParam("objGradAngle", o.grad_angle)
+		|| getParam("objGradPhi", o.grad_angle)) {
+		o.grad_angle = DEG2RAD(o.grad_angle);
+		o.has_gradient = true;
+	}
+	if (getParam("objGradientOffset", o.grad_offset)
+		|| getParam("objGradientPhase", o.grad_offset)
+		|| getParam("objGradOffset", o.grad_offset)
+		|| getParam("objGradPhase", o.grad_offset)) 
+		o.has_gradient = true;
+	
+	if (eqf(o.grad_freq,0.0)) o.has_gradient = false;
 	
 	return true;
 }
@@ -467,6 +490,9 @@ void MovingObjects::initObj(ObjData & o) {
 	} else {  // box, etc
 		o.shape = new Shapes::Rectangle(o.len_vec[0].x, o.len_vec[0].y);
 	}
+	Shapes::GradientShape *gs = 0;
+	if ((gs = dynamic_cast<Shapes::GradientShape *>(o.shape)))
+		gs->setGradient(o.has_gradient,o.grad_freq,o.grad_angle,o.grad_offset);
 	o.shape->position = o.pos_o;
 	o.shape->noMatrixAttribPush = true; ///< performance hack	
 }

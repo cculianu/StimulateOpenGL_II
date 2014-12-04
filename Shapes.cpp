@@ -10,9 +10,11 @@
 #include "GLHeaders.h"
 #include <memory>
 #include "MovingObjects.h"
+#include <math.h>
+#include "Util.h"
 
 namespace Shapes {
-
+	
 Shape::Shape() 
 	: position(Vec3Zero), scale(Vec2Unit), color(Vec3Gray), angle(0.), noMatrixAttribPush(false)
 {}
@@ -51,6 +53,125 @@ void Shape::copyProperties(const Shape *o)
 	noMatrixAttribPush = o->noMatrixAttribPush;
 }
 
+	
+/* static */ GLuint GradientShape::tex_grad = 0;
+/* static */ int    GradientShape::tex_grad_ct = 0;
+/* static */ GradientShape::DLRefctMap GradientShape::dlRefcts; /// maps dl_grad display lists to counters.. implementing shared display lists
+/* static */ GradientShape::DLMap GradientShape::dls;
+
+GradientShape::GradientShape() : grad_freq(1.f), grad_angle(0.f), grad_offset(0.f), dl_grad(0)
+{
+	if (!tex_grad) {
+		glGenTextures(1, &tex_grad);
+		static const int TEXWIDTH = 512;
+		GLfloat pix[TEXWIDTH], min = 0.f, max = 1.f;
+		for (int i = 0; i < TEXWIDTH; ++i) {
+			GLfloat f = (cos((GLfloat(i)/GLfloat(TEXWIDTH))*(2.0*M_PI))+1.0)/2.0 * (max-min) + min;
+			if (f < 0.f) f = 0.f;
+				if (f > 1.f) f = 1.f;			
+					pix[i] = f;
+					}
+		glBindTexture(GL_TEXTURE_1D, tex_grad);
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_LUMINANCE, TEXWIDTH, 0, GL_LUMINANCE, GL_FLOAT, pix);
+		glBindTexture(GL_TEXTURE_1D, 0); // unbind
+		tex_grad_ct = 1;
+	} else
+		++tex_grad_ct;
+}	
+GradientShape::~GradientShape()
+{
+	if (--tex_grad_ct <= 0) {
+		if (tex_grad) glDeleteTextures(1, &tex_grad);
+		tex_grad = 0;
+		tex_grad_ct = 0;
+	}
+	if (dl_grad) dlGradRelease(dl_grad);
+	dl_grad = 0;
+}
+	
+void GradientShape::copyProperties(const Shape *from)
+{
+	Shape::copyProperties(from);
+	const GradientShape *g;
+	if ((g = dynamic_cast<const GradientShape *>(from))) {
+		if (!!dl_grad != !!g->dl_grad
+			&& !(Vec3f(grad_freq, grad_angle, grad_offset) == Vec3f(g->grad_freq, g->grad_angle, g->grad_offset)))
+		setGradient(!!g->dl_grad, g->grad_freq, g->grad_angle, g->grad_offset);
+	}
+}
+
+void GradientShape::setGradient(bool enabled, float freq, float angle, float offset)
+{
+	grad_freq = freq;
+	grad_angle = angle;
+	grad_offset = offset;
+	if (enabled) setupDl(dl_grad, true);
+	else if (dl_grad) { dlGradRelease(dl_grad); dl_grad = 0; }
+}
+
+void GradientShape::setupDl(GLuint & dl, bool use_grad_tex)
+{
+	if (use_grad_tex && &dl == &dl_grad) {
+		dl = dlGradGetAndRetain(Vec3f(grad_freq,grad_angle,grad_offset));
+		//Debug() << "setupDl(): gradient tex=true, dl=" << dl << " dlrefct=" << dlRefcts[dl];
+	}
+	else if (!dl) {
+		dl = glGenLists(1);
+		if (&dl == &dl_grad) {
+			Warning() << "setupDl(): gradient tex=false, but generating list for dl_grad! FIXME!";
+		}
+	}
+	// continue on in subclass..
+}
+	
+/* virtual */
+void GradientShape::drawBegin()
+{
+	Shape::drawBegin();
+	if (dl_grad) glEnable(GL_TEXTURE_1D);
+	// continued in subclass
+}
+	
+/* virtual */
+void GradientShape::drawEnd()
+{
+	// continues from subclass..
+	if (dl_grad) glDisable(GL_TEXTURE_1D);
+	Shape::drawEnd();
+}
+	
+/*static*/ GLuint GradientShape::dlGradGetAndRetain(const Vec3f & props)
+{
+	GLuint ret = 0;
+	for (DLMap::const_iterator it = dls.begin(); !ret && it != dls.end(); ++it) {
+		const Vec3f & p (it.value());
+		if (p == props) {
+			ret = it.key();
+		}
+	}
+	if (!ret) {
+		ret = glGenLists(1);
+		if (ret) dls[ret] = props;
+	}
+	dlGradRetain(ret);
+	return ret;
+}
+/*static*/ void GradientShape::dlGradRelease(GLuint dl)
+{
+	DLRefctMap::iterator it = dlRefcts.find(dl);
+	if (it != dlRefcts.end()) {
+		if (--(it.value()) <= 0) {
+			if (dl) glDeleteLists(dl, 1);
+			dlRefcts.erase(it);
+			dls.remove(dl);
+		}
+	}
+}
+/*static*/ void GradientShape::dlGradRetain(GLuint dl)
+{
+	if (dl) dlRefcts[dl] = dlRefcts[dl] + 1;
+}
+	
 void Rectangle::copyProperties(const Shape *o)
 {
 	Shape::copyProperties(o);
@@ -59,16 +180,19 @@ void Rectangle::copyProperties(const Shape *o)
 		width = r->width;
 		height = r->height;
 	}
+	// copy properties here because this ends up setting up a possible gradient display list based on our params, etc
+	GradientShape::copyProperties(o);	
 }
 
 void Ellipse::copyProperties(const Shape *o)
 {
-	Shape::copyProperties(o);
 	const Ellipse *e;
 	if ((e = dynamic_cast<const Ellipse *>(o))) {
 		xdiameter = e->xdiameter;
 		ydiameter = e->ydiameter;
 	}
+	// copy properties here because this ends up setting up a possible gradient display list based on our params, etc
+	GradientShape::copyProperties(o);
 }
 
 void Sphere::copyProperties(const Shape *o)
@@ -154,19 +278,34 @@ const unsigned Ellipse::numVertices = NUM_VERTICES_FOR_ELLIPSOIDS;
 Ellipse::Ellipse(double lx, double ly)
 	: xdiameter(lx), ydiameter(ly)
 {
-	if (!dl) {
-		const double incr = DEG2RAD(360.0) / numVertices;
-		double radian = 0.;
-		dl = glGenLists(1);
-		glNewList(dl, GL_COMPILE);
-			glBegin(GL_POLYGON);
-				for (unsigned i = 0; i < numVertices; ++i) {
-					glVertex2d(cos(radian)/2., sin(radian)/2.);
-					radian += incr;
-				}
-			glEnd();
-		glEndList();
-	}	
+	if (!dl) setupDl(dl, false);
+}
+
+void Ellipse::setupDl(GLuint & displayList, bool use_grad_tex)
+{
+	GradientShape::setupDl(displayList, use_grad_tex);
+	if (use_grad_tex && dlRefcts[displayList] > 1) return; // was already set up!
+	static const double incr = DEG2RAD(360.0) / numVertices;
+	double radian = 0.;
+	glNewList(displayList, GL_COMPILE);
+	if (use_grad_tex) {
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+		glBindTexture(GL_TEXTURE_1D, tex_grad);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);		
+	}
+	glBegin(GL_POLYGON);
+	for (unsigned i = 0; i < numVertices; ++i) {
+		if (use_grad_tex) 
+			glTexCoord1d(grad_offset + (grad_freq * ((1.0+cos(radian-grad_angle))/2.0)));
+		glVertex2d(cos(radian)/2., sin(radian)/2.);
+		radian += incr;
+	}
+	glEnd();
+	if (use_grad_tex) glBindTexture(GL_TEXTURE_1D, 0);
+	glEndList();	
 }
 	
 void Ellipse::draw() {
@@ -175,7 +314,8 @@ void Ellipse::draw() {
 	scale.x *= xdiameter;
 	scale.y *= ydiameter;
 	drawBegin();
-	glCallList(dl);
+	if (dl_grad) glCallList(dl_grad);
+	else glCallList(dl);
 	drawEnd();
 	scale = scale_saved;
 }
@@ -201,28 +341,54 @@ Rect Ellipse::AABB() const {
 Rectangle::Rectangle(double w, double h)
 : width(w), height(h)
 {
-	if (!dl) {
-		dl = glGenLists(1);
-		// put the unit square in a display list
-		glNewList(dl, GL_COMPILE);
-			glBegin(GL_QUADS);	
-				glVertex2d(-.5, -.5);
-				glVertex2d(.5, -.5);
-				glVertex2d(.5, .5);
-				glVertex2d(-.5, .5);
-			glEnd();
-		glEndList();
-	}
+	if (!dl) setupDl(dl, false);
 }
 
-
+void Rectangle::setupDl(GLuint & displayList, bool use_grad_tex)
+{
+	GradientShape::setupDl(displayList, use_grad_tex);
+	if (use_grad_tex && dlRefcts[displayList] > 1) return; // was already set up!
+	// put the unit square in a display list
+	glNewList(displayList, GL_COMPILE);
+	if (use_grad_tex) {
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+		glBindTexture(GL_TEXTURE_1D, tex_grad);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);		
+	}
+	Vec2f texCoords[4];
+	if (use_grad_tex) {
+		texCoords[0] = Vec2f(0.f,0.f).rotated(grad_angle); 
+		texCoords[1] = Vec2f(1.f,0.f).rotated(grad_angle);
+		texCoords[2] = Vec2f(1.f,1.f).rotated(grad_angle);
+		texCoords[3] = Vec2f(0.f,1.f).rotated(grad_angle); 
+	}
+	glBegin(GL_QUADS);	
+	if (use_grad_tex) glTexCoord1d( (grad_freq * texCoords[0].x) + grad_offset);
+	glVertex2d(-.5, -.5);
+	if (use_grad_tex) glTexCoord1d( (grad_freq * texCoords[1].x) + grad_offset);
+	glVertex2d(.5, -.5);
+	if (use_grad_tex) glTexCoord1d( (grad_freq * texCoords[2].x) + grad_offset);
+	glVertex2d(.5, .5);
+	if (use_grad_tex) glTexCoord1d( (grad_freq * texCoords[3].x) + grad_offset);
+	glVertex2d(-.5, .5);
+	glEnd();
+	if (use_grad_tex) glBindTexture(GL_TEXTURE_1D, 0);
+//	glVertex2d(-.5, -.5);
+//	if (use_grad_tex) glTexCoord1d(grad_freq * 0.f);
+	glEndList();	
+}
+	
 void Rectangle::draw() {
 	Vec2 scale_saved = scale;
 	// emulate the width and height thing with just a glScale.. muahahaha!
 	scale.x *= width;
 	scale.y *= height;
 	drawBegin();
-	glCallList(dl);
+	if (dl_grad) glCallList(dl_grad);
+	else         glCallList(dl);
 	drawEnd();
 	scale = scale_saved;
 }

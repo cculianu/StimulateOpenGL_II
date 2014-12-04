@@ -11,6 +11,7 @@
 #include "Util.h"
 #include <vector>
 #include "GLHeaders.h"
+#include <QMap>
 
 #define NUM_VERTICES_FOR_ELLIPSOIDS 128 /* number of vertices used to approximate ellipsoids (circles, ellipses)
 higher number is better resolution, but sacrifices performance. */
@@ -70,15 +71,53 @@ public:
 protected:
 	virtual void drawBegin();
 	virtual void drawEnd();
+	static GLuint tex_grad;
 };
 
-class Rectangle : public Shape {
+class GradientShape : public Shape {
+public:
+	GradientShape();
+	virtual ~GradientShape();
+	
+	/*virtual*/ void copyProperties(const Shape *from);
+
+	void setGradient(bool enabled, float freq, float angle, float offset);
+	
+protected:
+	static GLuint tex_grad; /**< A 1D texture of a grayscale gradient that goes from 1.0 -> 0.0 */
+	
+	float grad_freq,  ///< default 1.0
+	      grad_angle,  ///< default 0.0
+	      grad_offset; ///< default 0.0
+	
+	typedef QMap<GLuint, int> DLRefctMap; 
+	typedef QMap<GLuint,Vec3f> DLMap;
+	static DLRefctMap dlRefcts; /// maps dl_grad display lists to counters.. implementing shared display lists
+	static DLMap dls;
+	static GLuint dlGradGetAndRetain(const Vec3f & props);
+	static void dlGradRelease(GLuint dl);
+	static void dlGradRetain(GLuint dl);
+	
+	GLuint dl_grad; ///< if non-zero, child class should use this display list instead of the static one associated with the class
+
+	// child classes should call these if they reimplemen them!!
+	virtual void setupDl(GLuint & displayList, bool use_grad_tex);
+	virtual void drawBegin();
+	virtual void drawEnd();
+	
+private:
+	static int tex_grad_ct;
+};
+	
+class Rectangle : public GradientShape {
 	friend void CleanupStaticDisplayLists();
 public: 
 	double width, height;
 		
 protected:
 	static GLuint dl; ///< shared display list for all rectangles since it's just a unit square and we do our magic in the scaling
+
+	/*virtual*/ void setupDl(GLuint & displayList, bool use_grad_tex);
 	
 public:
 	Rectangle(double width = 1., double height = 1.);
@@ -98,7 +137,7 @@ public:
 	Square(double length = 1.) : Rectangle(length, length) {}
 };
 
-class Ellipse : public Shape {
+class Ellipse : public GradientShape {
 	friend void CleanupStaticDisplayLists();
 public:
 	double xdiameter,ydiameter;
@@ -106,7 +145,9 @@ public:
 
 protected:
 	static GLuint dl; ///< shared display list for _ALL_ ellipses since we use a unit circle at 0,0 with 128 vertices globally!
-	
+
+	/*virtual*/void setupDl(GLuint & displayList, bool use_grad_tex);
+
 public:
 	Ellipse(double diamX = 1., double diamY = 1.);
 	
@@ -116,6 +157,7 @@ public:
 	Rect AABB() const;
 	
 	void copyProperties(const Shape *from);
+private:
 };
 
 class Sphere : public Shape {

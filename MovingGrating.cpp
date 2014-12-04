@@ -82,7 +82,7 @@ bool MovingGrating::init()
 	return true;    
 }
 
-static inline bool feqf(const float f1, const float f2) {
+static inline bool my_feqf(const float f1, const float f2) {
     static const float epsilon = 0.001f;
     return fabsf(f1-f2) < epsilon;
 }
@@ -166,7 +166,7 @@ void MovingGrating::drawFrame()
             angle = -angle;
         }
 
-        if (!feqf(min_color, new_min_color) || !feqf(max_color,new_max_color)) {
+        if (!my_feqf(min_color, new_min_color) || !my_feqf(max_color,new_max_color)) {
             min_color = new_min_color;
             max_color = new_max_color;
             //const double t0 = Util::getTime();
