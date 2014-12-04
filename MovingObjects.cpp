@@ -67,6 +67,7 @@ void MovingObjects::ObjData::initDefaults() {
 	has_gradient = false;
 	grad_offset = grad_angle = 0.f;
 	grad_freq = 1.0f;
+	grad_type = (Shapes::GradientShape::GradType)0;
 	
 	debugLvl = 0;
 }
@@ -205,9 +206,26 @@ bool MovingObjects::initObjectFromParams(ObjData & o, ConfigSuppressesFrameVar &
 	
 	if (!getParam( "objDebug", o.debugLvl)) o.debugLvl = 0;
 	getParam( "objSpin", o.spin );
-	
-	if (getParam("objGradient", o.grad_freq)
-		|| getParam("objGrad", o.grad_freq)) 
+
+	QString gt = "sine";
+	if (getParam("objGradient", gt)	|| getParam("objGrad", gt)) {
+		o.has_gradient = true;
+		gt = gt.trimmed().toLower();
+		if (gt.startsWith("sin")) o.grad_type = Shapes::GradientShape::GradSine;
+		if (gt.startsWith("cos")) o.grad_type = Shapes::GradientShape::GradCosine;
+		if (gt.startsWith("tri")) o.grad_type = Shapes::GradientShape::GradTri;
+		if (gt.startsWith("saw")) o.grad_type = Shapes::GradientShape::GradSaw;
+		if (gt.startsWith("squ")) o.grad_type = Shapes::GradientShape::GradSquare;
+		if (gt.startsWith("non") || gt.startsWith("dis") || gt.startsWith("0") 
+			|| gt.startsWith("false") || gt.startsWith("off")) 
+			o.grad_type = Shapes::GradientShape::N_GradTypes;
+	}
+	if (getParam("objGradientFreq", o.grad_freq)
+		|| getParam("objGradFreq", o.grad_freq)
+		|| getParam("objGradientN", o.grad_freq)
+		|| getParam("objGradN", o.grad_freq) 
+		|| getParam("objGradientNum", o.grad_freq)
+		|| getParam("objGradNum", o.grad_freq))
 		o.has_gradient = true;
 	if (getParam("objGradientAngle", o.grad_angle)
 		|| getParam("objGradientPhi", o.grad_angle)
@@ -224,6 +242,10 @@ bool MovingObjects::initObjectFromParams(ObjData & o, ConfigSuppressesFrameVar &
 	
 	if (feqf(o.grad_freq,0.0f)) o.has_gradient = false;
 	if (!o.has_gradient) o.grad_freq = 0.f;
+	if (o.grad_type>=Shapes::GradientShape::N_GradTypes) {
+		o.grad_type = Shapes::GradientShape::GradSine;
+		o.has_gradient = false;
+	}
 	
 	return true;
 }
@@ -493,7 +515,7 @@ void MovingObjects::initObj(ObjData & o) {
 	}
 	Shapes::GradientShape *gs = 0;
 	if ((gs = dynamic_cast<Shapes::GradientShape *>(o.shape)))
-		gs->setGradient(o.has_gradient,o.grad_freq,o.grad_angle,o.grad_offset);
+		gs->setGradient(o.has_gradient,o.grad_type,o.grad_freq,o.grad_angle,o.grad_offset);
 	o.shape->position = o.pos_o;
 	o.shape->noMatrixAttribPush = true; ///< performance hack	
 }

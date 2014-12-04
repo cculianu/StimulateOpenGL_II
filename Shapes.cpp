@@ -62,7 +62,7 @@ void Shape::copyProperties(const Shape *o)
 /* static */ GradientShape::DLMap GradientShape::dls;
 /* static */ GradientShape::DLRev GradientShape::dlsRev;
 
-GradientShape::GradientShape() : grad_freq(1.f), grad_angle(0.f), grad_offset(0.f), dl_grad(0)
+GradientShape::GradientShape() : grad_type(GradSine), grad_freq(1.f), grad_angle(0.f), grad_offset(0.f), dl_grad(0)
 {
 	if (!tex_grad[0]) {
 		glGenTextures(N_GradTypes, tex_grad);
@@ -83,6 +83,10 @@ GradientShape::GradientShape() : grad_freq(1.f), grad_angle(0.f), grad_offset(0.
 							f = 1.0f-((f-1.0f)/(swfact-1.0f));
 						}
 					}
+						break;
+					case GradTri:
+						f = x*2.0f;
+						if (f > 1.0) f = 1.0f-(f-1.0f);
 						break;
 					case GradSine:
 						f = (sinf(x*(2.0*M_PI))+1.0)/2.0 * (max-min) + min;
@@ -121,16 +125,17 @@ void GradientShape::copyProperties(const Shape *from)
 	const GradientShape *g;
 	if ((g = dynamic_cast<const GradientShape *>(from))) {
 		if ( (dl_grad?1:0) != (g->dl_grad?1:0)
-			|| Vec3f(grad_freq, grad_angle, grad_offset) != Vec3f(g->grad_freq, g->grad_angle, g->grad_offset))
-		setGradient(!!g->dl_grad, g->grad_freq, g->grad_angle, g->grad_offset);
+			|| Vec4f(grad_type, grad_freq, grad_angle, grad_offset) != Vec4f(g->grad_type, g->grad_freq, g->grad_angle, g->grad_offset))
+		setGradient(!!g->dl_grad, g->grad_type, g->grad_freq, g->grad_angle, g->grad_offset);
 	}
 }
 
-void GradientShape::setGradient(bool enabled, float freq, float angle, float offset)
+void GradientShape::setGradient(bool enabled, GradType t, float freq, float angle, float offset)
 {
 	grad_freq = freq;
 	grad_angle = angle;
 	grad_offset = offset;
+	grad_type = t;
 	if (enabled) setupDl(dl_grad, true);
 	else if (dl_grad) { dlGradRelease(dl_grad); dl_grad = 0; }
 }
@@ -138,7 +143,7 @@ void GradientShape::setGradient(bool enabled, float freq, float angle, float off
 void GradientShape::setupDl(GLuint & dl, bool use_grad_tex)
 {
 	if (use_grad_tex && &dl == &dl_grad) {
-		dl = dlGradGetAndRetain(Vec3f(grad_freq,grad_angle,grad_offset));
+		dl = dlGradGetAndRetain(Vec4f(grad_type,grad_freq,grad_angle,grad_offset));
 		//Debug() << "setupDl(): gradient tex=true, dl=" << dl << " dlrefct=" << dlRefcts[dl];
 	}
 	else if (!dl) {
@@ -166,7 +171,7 @@ void GradientShape::drawEnd()
 	Shape::drawEnd();
 }
 	
-/*static*/ GLuint GradientShape::dlGradGetAndRetain(const Vec3f & props)
+/*static*/ GLuint GradientShape::dlGradGetAndRetain(const Vec4f & props)
 {
 	GLuint ret = 0;
 	DLRev::const_iterator it = dlsRev.find(props);
@@ -324,7 +329,7 @@ void Ellipse::setupDl(GLuint & displayList, bool use_grad_tex)
 	glNewList(displayList, GL_COMPILE);
 	if (use_grad_tex) {
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-		glBindTexture(GL_TEXTURE_1D, tex_grad[GradSine]);
+		glBindTexture(GL_TEXTURE_1D, tex_grad[grad_type]);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -391,7 +396,7 @@ void Rectangle::setupDl(GLuint & displayList, bool use_grad_tex)
 	glNewList(displayList, GL_COMPILE);
 	if (use_grad_tex) {
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-		glBindTexture(GL_TEXTURE_1D, tex_grad[GradSine]);
+		glBindTexture(GL_TEXTURE_1D, tex_grad[grad_type]);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -646,10 +651,10 @@ bool Rect::intersects(const Rect & r) const {
 }
 
 
-uint qHash(const Util::Vec3T<float>& k)
+uint qHash(const Util::Vec4T<float>& k)
 {
 	QString s;
-	s.sprintf("%5.5f,%5.5f,%5.5f",k.x,k.y,k.z);
-	//Debug() << "qHash(Vec3f) produced string `" << s << "' for (" << k.toString() << ")";
+	s.sprintf("%5.5f,%5.5f,%5.5f,%5.5f",k.x,k.y,k.z,k.w);
+	//Debug() << "qHash(Vec4f) produced string `" << s << "' for (" << k.toString() << ")";
 	return qHash(s);
 }

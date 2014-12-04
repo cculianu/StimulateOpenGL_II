@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: April 11, 2013
+Last Updated: December 04, 2014
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -792,6 +792,76 @@ objColorN (for objects 2 through numObj)
         Datatype:         float
         Possible values:  0.0 - 1.0 (black to white)
         Default value:    first object: 0.0 (black)
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+objGrad
+  *or* 
+objGradN (for objects 2 through numObj)
+        Synopsis:         Specify the object gradient function to use. The object 
+                          gradient function is used for drawing a luminosity 
+                          gradient on the object. This option overrides object
+                          color. Gradients are vertical or horizonal 'bars'
+                          of varying intensity (as in the MovingGrating plugin)
+                          that can be used to fill in the object color.  Only
+                          applies to objects of type 'box' and 'ellipse'.
+        Datatype:         string
+        Possible values:  none (no gradient is applied), sine, cosine, square, 
+                          triangle, sawtooth
+        Default value:    first object: none (off)
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objGradFreq
+  *or* 
+objGradFreqN (for objects 2 through numObj)
+        Synopsis:         Specify the "width" (steepness) of the gradient 
+                          used. This is the object gradient function's frequency 
+                          argument which determines how long the period used in 
+                          the gradient function is.  A value of 1.0 is 
+                          equivalent to the object's width, so that 1 complete 
+                          waveform fits inside the object's width  (assuming 
+                          objGradAngle=0).  A value of 2.0 puts two complete 
+                          waveforms within the object, a value of .5 puts 1/2 of 
+                          a waveform within the object, etc.  A value of 0 turns
+                          off gradients for the object. 
+        Datatype:         float
+        Possible values:  0.0 - +inf (0 is a special value that turns off 
+                          the gradient and is equivalent to objGradient=none).
+        Default value:    first object: 1.0 
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objGradAngle
+  *or*
+objGradPhi
+  *or* 
+objGradAngleN | objGradPhiN (for objects 2 through numObj)
+        Synopsis:         Specify the angle, in degrees, of the gradient.  As 
+                          with all angles specified in MovingObjects, the angle 
+                          used increases in the counter-clockwise direction.  An 
+                          angle of 0 makes the gradient appear to have vertical 
+                          bars, an angle of 90 makes horizontal bars, and any 
+                          other angle makes diagonal bars rotated appropriately.
+        Datatype:         float
+        Possible values:  -inf - +inf 
+        Default value:    first object: 0.0 
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objGradPhase
+  *or*
+objGradPhaseN (for objects 2 through numObj)
+        Synopsis:         Specify the phase of the gradient. Meaningful values
+                          for the phase are between 0.0 and 1.0, with 1.0 being
+                          equivalent to 0.  So if you wanted the gradient for
+                          an object to be offset by 1/4 of its period, you would
+                          speficy a phase of 0.25.  1/2 would be 0.5, etc. Useful
+                          for controlling exactly how the gradient appears on the 
+                          object.                
+        Datatype:         float
+        Possible values:  -inf - +inf (0 - 1.0 are the only really meaningful 
+                          values)
+        Default value:    first object: 0.0 
                           subsequent objects: take on the value of the first
                           object by default (unless specified, of course).
                           

@@ -76,30 +76,32 @@ protected:
 };
 	
 class GradientShape : public Shape {
-public:
+public:	
+	enum GradType { GradCosine=0, GradSine, GradSaw, GradTri, GradSquare, N_GradTypes };
+
 	GradientShape();
 	virtual ~GradientShape();
 	
 	/*virtual*/ void copyProperties(const Shape *from);
 
-	void setGradient(bool enabled, float freq, float angle, float offset);
+	void setGradient(bool enabled, GradType t, float freq, float angle, float offset);
 	
 protected:
-	enum GradType { GradCosine=0, GradSine, GradSaw, GradSquare, N_GradTypes };
 	
 	static GLuint tex_grad[N_GradTypes]; /**< A 1D texture of a grayscale gradient that goes from 1.0 -> 0.0 */
 	
+	GradType grad_type;
 	float grad_freq,  ///< default 1.0
 	      grad_angle,  ///< default 0.0
 	      grad_offset; ///< default 0.0
 	
 	typedef QMap<GLuint, int> DLRefctMap; 
-	typedef QMap<GLuint,Vec3f> DLMap;
-	typedef QMap<Vec3f,GLuint> DLRev;
+	typedef QMap<GLuint,Vec4f> DLMap;
+	typedef QMap<Vec4f,GLuint> DLRev;
 	static DLRefctMap dlRefcts; /// maps dl_grad display lists to counters.. implementing shared display lists
 	static DLMap dls;
 	static DLRev dlsRev;
-	static GLuint dlGradGetAndRetain(const Vec3f & props);
+	static GLuint dlGradGetAndRetain(const Vec4f & props);
 	static void dlGradRelease(GLuint dl);
 	static void dlGradRetain(GLuint dl);
 	
@@ -213,6 +215,6 @@ void CleanupStaticDisplayLists();
 
 } // end namespace Shapes
 
-extern uint qHash(const Vec3f &);
+extern uint qHash(const Vec4f &);
 #endif
 
