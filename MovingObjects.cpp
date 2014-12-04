@@ -66,7 +66,7 @@ void MovingObjects::ObjData::initDefaults() {
 	
 	has_gradient = false;
 	grad_offset = grad_angle = 0.f;
-	grad_freq = 0.0f;
+	grad_freq = 1.0f;
 	
 	debugLvl = 0;
 }
