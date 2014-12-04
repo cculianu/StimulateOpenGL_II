@@ -56,7 +56,7 @@ void Shape::copyProperties(const Shape *o)
 }
 
 	
-/* static */ GLuint GradientShape::tex_grad = 0;
+/* static */ GLuint GradientShape::tex_grad[N_GradTypes] = { 0 };
 /* static */ int    GradientShape::tex_grad_ct = 0;
 /* static */ GradientShape::DLRefctMap GradientShape::dlRefcts; /// maps dl_grad display lists to counters.. implementing shared display lists
 /* static */ GradientShape::DLMap GradientShape::dls;
@@ -64,18 +64,38 @@ void Shape::copyProperties(const Shape *o)
 
 GradientShape::GradientShape() : grad_freq(1.f), grad_angle(0.f), grad_offset(0.f), dl_grad(0)
 {
-	if (!tex_grad) {
-		glGenTextures(1, &tex_grad);
+	if (!tex_grad[0]) {
+		glGenTextures(N_GradTypes, tex_grad);
 		static const int TEXWIDTH = 512;
 		GLfloat pix[TEXWIDTH], min = 0.f, max = 1.f;
-		for (int i = 0; i < TEXWIDTH; ++i) {
-			GLfloat f = (cos((GLfloat(i)/GLfloat(TEXWIDTH))*(2.0*M_PI))+1.0)/2.0 * (max-min) + min;
-			if (f < 0.f) f = 0.f;
-				if (f > 1.f) f = 1.f;			
-					pix[i] = f;
+		for (int texIdx = 0; texIdx < N_GradTypes; ++texIdx) {
+			GLfloat f;
+			for (int i = 0; i < TEXWIDTH; ++i) {
+				const GLfloat x(GLfloat(i)/GLfloat(TEXWIDTH)); 
+				switch (GradType(texIdx)) {
+					case GradSquare:
+						f = x < 0.5f ? 0.0f : 1.0f;
+						break;
+					case GradSaw: {
+						static const float swfact = (1.0f/0.95f);
+						f = x*swfact;
+						if (f >= 1.0f) {
+							f = 1.0f-((f-1.0f)/(swfact-1.0f));
+						}
 					}
-		glBindTexture(GL_TEXTURE_1D, tex_grad);
-		glTexImage1D(GL_TEXTURE_1D, 0, GL_LUMINANCE, TEXWIDTH, 0, GL_LUMINANCE, GL_FLOAT, pix);
+						break;
+					case GradCosine:
+					default:
+						f = (cosf(x*(2.0*M_PI))+1.0)/2.0 * (max-min) + min;
+						break;
+				}
+				if (f < 0.f) f = 0.f;
+				if (f > 1.f) f = 1.f;			
+				pix[i] = f;
+			}
+			glBindTexture(GL_TEXTURE_1D, tex_grad[texIdx]);
+			glTexImage1D(GL_TEXTURE_1D, 0, GL_LUMINANCE, TEXWIDTH, 0, GL_LUMINANCE, GL_FLOAT, pix);
+		}
 		glBindTexture(GL_TEXTURE_1D, 0); // unbind
 		tex_grad_ct = 1;
 	} else
@@ -84,8 +104,8 @@ GradientShape::GradientShape() : grad_freq(1.f), grad_angle(0.f), grad_offset(0.
 GradientShape::~GradientShape()
 {
 	if (--tex_grad_ct <= 0) {
-		if (tex_grad) glDeleteTextures(1, &tex_grad);
-		tex_grad = 0;
+		if (tex_grad[0]) glDeleteTextures(N_GradTypes, tex_grad);
+		for (int i = 0; i < N_GradTypes; ++i) tex_grad[i] = 0;
 		tex_grad_ct = 0;
 	}
 	if (dl_grad) dlGradRelease(dl_grad);
@@ -301,7 +321,7 @@ void Ellipse::setupDl(GLuint & displayList, bool use_grad_tex)
 	glNewList(displayList, GL_COMPILE);
 	if (use_grad_tex) {
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-		glBindTexture(GL_TEXTURE_1D, tex_grad);
+		glBindTexture(GL_TEXTURE_1D, tex_grad[0]);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -368,7 +388,7 @@ void Rectangle::setupDl(GLuint & displayList, bool use_grad_tex)
 	glNewList(displayList, GL_COMPILE);
 	if (use_grad_tex) {
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-		glBindTexture(GL_TEXTURE_1D, tex_grad);
+		glBindTexture(GL_TEXTURE_1D, tex_grad[0]);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
