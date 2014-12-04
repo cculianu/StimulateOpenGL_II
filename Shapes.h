@@ -76,19 +76,23 @@ protected:
 };
 	
 class GradientShape : public Shape {
-public:	
+public:
+	
 	enum GradType { GradCosine=0, GradSine, GradSaw, GradTri, GradSquare, N_GradTypes };
-
+	
 	GradientShape();
 	virtual ~GradientShape();
 	
 	/*virtual*/ void copyProperties(const Shape *from);
 
 	void setGradient(bool enabled, GradType t, float freq, float angle, float offset);
-	
+
+	static void setMinMax(float min, float max);
+
 protected:
 	
-	static GLuint tex_grad[N_GradTypes]; /**< A 1D texture of a grayscale gradient that goes from 1.0 -> 0.0 */
+	static GLuint tex_grad[N_GradTypes]; /**< A 1D texture of a grayscale gradient that goes from 1.0 -> 0.0 */	
+	static float grad_min, grad_max;
 	
 	GradType grad_type;
 	float grad_freq,  ///< default 1.0

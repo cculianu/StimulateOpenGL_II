@@ -662,6 +662,30 @@ jittermag
        Possible values:   -2147483648 - +2147483647
        Default value:     2
 
+gradMin *or* gradientMin
+       Synopsis:          Specifies the minimum intensity to use for the 
+                          gradient function (see objGrad* params below).
+                          Objects that have the gradient feature enabled will
+                          be rendered using a gradient (as defined by objGrad*
+                          parameters), whose intensity will vary between
+                          0,1 by default, or gradMin,gradMax if the gradMin & 
+                          gradMax parameters are specified.
+       Datatype:          float
+       Possible values:   0.0-1.0
+       Default value:     0.0
+
+gradMax *or* gradientMax
+       Synopsis:          Specifies the maximum intensity to use for the
+                          gradient function (see objGrad* params below).
+                          Objects that have the gradient feature enabled will
+                          be rendered using a gradient (as defined by objGrad*
+                          parameters), whose intensity will vary between
+                          0,1 by default, or gradMin,gradMax if the gradMin & 
+                          gradMax parameters are specified.
+       Datatype:          float
+       Possible values:   0.0-1.0
+       Default value:     1.0
+
 lightAmbient
        Synopsis:          Applies to 3D objects that make use of lighting 
                           (currently only the sphere).  The greyscale intensity 

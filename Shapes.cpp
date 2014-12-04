@@ -61,13 +61,16 @@ void Shape::copyProperties(const Shape *o)
 /* static */ GradientShape::DLRefctMap GradientShape::dlRefcts; /// maps dl_grad display lists to counters.. implementing shared display lists
 /* static */ GradientShape::DLMap GradientShape::dls;
 /* static */ GradientShape::DLRev GradientShape::dlsRev;
+/* static */ float GradientShape::grad_min(0.0f), GradientShape::grad_max(1.0f);
 
 GradientShape::GradientShape() : grad_type(GradSine), grad_freq(1.f), grad_angle(0.f), grad_offset(0.f), dl_grad(0)
 {
 	if (!tex_grad[0]) {
+		static const int TEXWIDTH = 256;
+		Log() << "Plugin has " << int(N_GradTypes) << " gradient functions, generating a textures for each of size " << TEXWIDTH << "...";
 		glGenTextures(N_GradTypes, tex_grad);
-		static const int TEXWIDTH = 512;
-		GLfloat pix[TEXWIDTH], min = 0.f, max = 1.f;
+		GLfloat pix[TEXWIDTH];
+		const float & min(grad_min), & max(grad_max);
 		for (int texIdx = 0; texIdx < N_GradTypes; ++texIdx) {
 			GLfloat f;
 			for (int i = 0; i < TEXWIDTH; ++i) {
@@ -117,6 +120,23 @@ GradientShape::~GradientShape()
 	}
 	if (dl_grad) dlGradRelease(dl_grad);
 	dl_grad = 0;
+}
+	
+void GradientShape::setMinMax(float min, float max)
+{
+	if (min > max) { float t = min; min = max; max = t; }
+	if (min < 0.f) min = 0.f;
+	else if (min > 1.f) min = 1.f;
+	if (max < 0.f) max = 0.f;
+	else if (max > 1.f) max = 1.f;
+	if (tex_grad_ct) {
+		Error() << "INTERNAL ERROR: setMinMax(" << min << "," << max << ") called with static textures already created! Fix me!";
+	}
+	if (fabsf(min-max) < 0.1) {
+		Warning() << "GradientShape::setMinMax() called with a very tiny range: (" << min << "," << max << ").  Fix your config file!";
+	}
+	grad_min = min;
+	grad_max = max;
 }
 	
 void GradientShape::copyProperties(const Shape *from)

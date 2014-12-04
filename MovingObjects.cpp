@@ -369,6 +369,19 @@ bool MovingObjects::init()
 	ChkAndClampParam("lightLinearAttenuation", lightLinearAttenuation, 0., 2e9);
 	ChkAndClampParam("lightQuadraticAttenuation", lightQuadraticAttenuation, 0., 2e9);
 	
+	float grad_min = 0.0f, grad_max = 1.0f;
+	bool have_gminmax = false;
+	if (getParam("gradientMin", grad_min) || getParam("gradMin", grad_min))
+		have_gminmax = true;
+	if (getParam("gradientMax", grad_max) || getParam("gradMax", grad_max))
+		have_gminmax = true;
+	if (have_gminmax) {
+		Log() << "Gradient textures will be created with config-file-specified min,max = " << grad_min << "," << grad_max;
+	} else {
+		Log() << "Gradient textures will be created with default min,max = " << grad_min << "," << grad_max;
+	}
+	Shapes::GradientShape::setMinMax(grad_min, grad_max);
+	
 	initObjs();
 	
 	int dummy;
