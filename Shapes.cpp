@@ -12,6 +12,8 @@
 #include "MovingObjects.h"
 #include <math.h>
 #include "Util.h"
+#include <QHash>
+
 
 namespace Shapes {
 	
@@ -58,6 +60,7 @@ void Shape::copyProperties(const Shape *o)
 /* static */ int    GradientShape::tex_grad_ct = 0;
 /* static */ GradientShape::DLRefctMap GradientShape::dlRefcts; /// maps dl_grad display lists to counters.. implementing shared display lists
 /* static */ GradientShape::DLMap GradientShape::dls;
+/* static */ GradientShape::DLRev GradientShape::dlsRev;
 
 GradientShape::GradientShape() : grad_freq(1.f), grad_angle(0.f), grad_offset(0.f), dl_grad(0)
 {
@@ -143,15 +146,15 @@ void GradientShape::drawEnd()
 /*static*/ GLuint GradientShape::dlGradGetAndRetain(const Vec3f & props)
 {
 	GLuint ret = 0;
-	for (DLMap::const_iterator it = dls.begin(); !ret && it != dls.end(); ++it) {
-		const Vec3f & p (it.value());
-		if (p == props) {
-			ret = it.key();
-		}
-	}
+	DLRev::const_iterator it = dlsRev.find(props);
+	if (it != dlsRev.end())
+		ret = it.value();
 	if (!ret) {
 		ret = glGenLists(1);
-		if (ret) dls[ret] = props;
+		if (ret) {
+			dls[ret] = props;
+			dlsRev[props] = ret;
+		}
 	}
 	dlGradRetain(ret);
 	return ret;
@@ -163,7 +166,11 @@ void GradientShape::drawEnd()
 		if (--(it.value()) <= 0) {
 			if (dl) glDeleteLists(dl, 1);
 			dlRefcts.erase(it);
-			dls.remove(dl);
+			DLMap::iterator dlm_it = dls.find(dl);
+			if (dlm_it != dls.end()) {
+				dlsRev.remove(dlm_it.value());
+				dls.erase(dlm_it);
+			}
 		}
 	}
 }
@@ -613,4 +620,13 @@ bool Rect::intersects(const Rect & r) const {
 			 || left() >= r.right()
 			 || top() <= r.bottom()
 			 || bottom() >= r.top());
+}
+
+
+uint qHash(const Util::Vec3T<float>& k)
+{
+	QString s;
+	s.sprintf("%5.5f,%5.5f,%5.5f",k.x,k.y,k.z);
+	//Debug() << "qHash(Vec3f) produced string `" << s << "' for (" << k.toString() << ")";
+	return qHash(s);
 }

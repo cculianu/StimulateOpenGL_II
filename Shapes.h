@@ -12,6 +12,7 @@
 #include <vector>
 #include "GLHeaders.h"
 #include <QMap>
+#include <QHash>
 
 #define NUM_VERTICES_FOR_ELLIPSOIDS 128 /* number of vertices used to approximate ellipsoids (circles, ellipses)
 higher number is better resolution, but sacrifices performance. */
@@ -73,7 +74,7 @@ protected:
 	virtual void drawEnd();
 	static GLuint tex_grad;
 };
-
+	
 class GradientShape : public Shape {
 public:
 	GradientShape();
@@ -92,8 +93,10 @@ protected:
 	
 	typedef QMap<GLuint, int> DLRefctMap; 
 	typedef QMap<GLuint,Vec3f> DLMap;
+	typedef QMap<Vec3f,GLuint> DLRev;
 	static DLRefctMap dlRefcts; /// maps dl_grad display lists to counters.. implementing shared display lists
 	static DLMap dls;
+	static DLRev dlsRev;
 	static GLuint dlGradGetAndRetain(const Vec3f & props);
 	static void dlGradRelease(GLuint dl);
 	static void dlGradRetain(GLuint dl);
@@ -208,5 +211,6 @@ void CleanupStaticDisplayLists();
 
 } // end namespace Shapes
 
+extern uint qHash(const Vec3f &);
 #endif
 
