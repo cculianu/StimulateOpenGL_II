@@ -94,8 +94,8 @@ void GradientShape::copyProperties(const Shape *from)
 	Shape::copyProperties(from);
 	const GradientShape *g;
 	if ((g = dynamic_cast<const GradientShape *>(from))) {
-		if (!!dl_grad != !!g->dl_grad
-			&& !(Vec3f(grad_freq, grad_angle, grad_offset) == Vec3f(g->grad_freq, g->grad_angle, g->grad_offset)))
+		if ( (dl_grad?1:0) != (g->dl_grad?1:0)
+			|| Vec3f(grad_freq, grad_angle, grad_offset) != Vec3f(g->grad_freq, g->grad_angle, g->grad_offset))
 		setGradient(!!g->dl_grad, g->grad_freq, g->grad_angle, g->grad_offset);
 	}
 }
@@ -284,7 +284,11 @@ Ellipse::Ellipse(double lx, double ly)
 void Ellipse::setupDl(GLuint & displayList, bool use_grad_tex)
 {
 	GradientShape::setupDl(displayList, use_grad_tex);
-	if (use_grad_tex && dlRefcts[displayList] > 1) return; // was already set up!
+	if (use_grad_tex && dlRefcts[displayList] > 1) {
+		//Debug() << "Ellipse::setupDl(): gradient dl " << dl << " already setup (has refct), aborting early..." ;
+		return; // was already set up!
+	} 
+	//else Debug() << "Ellipse::setupDl(): no performance improvement possible.. continuing on to dl setup...";
 	static const double incr = DEG2RAD(360.0) / numVertices;
 	double radian = 0.;
 	glNewList(displayList, GL_COMPILE);
@@ -347,7 +351,12 @@ Rectangle::Rectangle(double w, double h)
 void Rectangle::setupDl(GLuint & displayList, bool use_grad_tex)
 {
 	GradientShape::setupDl(displayList, use_grad_tex);
-	if (use_grad_tex && dlRefcts[displayList] > 1) return; // was already set up!
+	if (use_grad_tex && dlRefcts[displayList] > 1) {
+		//Debug() << "Rectangle::setupDl(): gradient dl " << dl << " already setup (has refct), aborting early..." ;
+		return; // was already set up!
+	} 
+	//else Debug() << "Rectangle::setupDl(): no performance improvement possible.. continuing on to dl setup...";
+	
 	// put the unit square in a display list
 	glNewList(displayList, GL_COMPILE);
 	if (use_grad_tex) {

@@ -229,6 +229,7 @@ struct Vec2T {
 	template <typename U> Vec2T<T> operator+(const U & u) const { return Vec2T<T>(x+u,y+u); }
 	template <typename U> Vec2T<T> operator-(const U & u) const { return Vec2T<T>(x-u,y-u); }
 	bool operator==(const Vec2T<T> & o) const { return eqf(x,o.x) && eqf(y,o.y); }
+	bool operator!=(const Vec2T<T> & o) const { return !((*this) == o); }
 	Vec2T<T> operator-(const Vec2T<T> & v) const { return Vec2T<T>(x-v.x,y-v.y); }
 	Vec2T<T> operator+(const Vec2T<T> & v) const { return Vec2T<T>(x+v.x,y+v.y); }
 	T dot(const Vec2T<T> & v) const { return x*v.x + y*v.y; }
@@ -285,6 +286,7 @@ struct Vec3T {
 	template <typename U> Vec3T<T> operator+(const U & u) const { return Vec3T<T>(x+u,y+u,z+u); }
 	template <typename U> Vec3T<T> operator-(const U & u) const { return Vec3T<T>(x-u,y-u,z-u); }
 	bool operator==(const Vec3T<T> & o) const { return eqf(x,o.x) && eqf(y,o.y) && eqf(z,o.z); }
+	bool operator!=(const Vec3T<T> & o) const { return !((*this) == o); }
 	
 	T dot(const Vec3T<T> & v) const { return x*v.x + y*v.y + z*v.z; }
 	Vec3T<T> cross(const Vec3T<T> & v) const {
@@ -335,6 +337,7 @@ struct Vec4T
 	const T & operator[](int i) const { if (i == 0) return x; else if (i==1) return y; else if (i == 2) return z; return w; }
 	T distance(const Vec4T<T> &v) const { return ((*this)-v).magnitude(); }
 	bool operator==(const Vec4T<T> & o) const { return eqf(x,o.x) && eqf(y,o.y) && eqf(z,o.z) && eqf(w,o.w); }
+	bool operator!=(const Vec4T<T> & o) const { return !((*this) == o); }
 
 	QString toString() const { return QString("%1,%2,%3,%4").arg(v1).arg(v2).arg(v3).arg(v4); }
 	bool fromString(const QString &s) {

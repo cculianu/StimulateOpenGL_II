@@ -66,7 +66,7 @@ void MovingObjects::ObjData::initDefaults() {
 	
 	has_gradient = false;
 	grad_offset = grad_angle = 0.f;
-	grad_freq = 1.0f;
+	grad_freq = 0.0f;
 	
 	debugLvl = 0;
 }
@@ -222,7 +222,8 @@ bool MovingObjects::initObjectFromParams(ObjData & o, ConfigSuppressesFrameVar &
 		|| getParam("objGradPhase", o.grad_offset)) 
 		o.has_gradient = true;
 	
-	if (eqf(o.grad_freq,0.0)) o.has_gradient = false;
+	if (feqf(o.grad_freq,0.0f)) o.has_gradient = false;
+	if (!o.has_gradient) o.grad_freq = 0.f;
 	
 	return true;
 }
