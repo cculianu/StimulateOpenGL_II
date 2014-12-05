@@ -72,22 +72,23 @@ public:
 protected:
 	virtual void drawBegin();
 	virtual void drawEnd();
-	static GLuint tex_grad;
 };
 
 	
 class GradientShape : public Shape {
 public:
 	
-	enum GradType { GradCosine=0, GradSine, GradSaw, GradTri, GradSquare, N_GradTypes };
+	enum GradType { None=0, Cos, Sin, Saw, Tri, Squ, N_GradTypes };
 		
 	GradientShape();
 	virtual ~GradientShape();
 	
 	/*virtual*/ void copyProperties(const Shape *from);
 
-	void setGradient(bool enabled, GradType t, float freq, float angle, float offset, float min, float max);
+	void setGradient(GradType t, float freq, float angle, float offset, float min, float max);
 
+	virtual int typeId() const = 0;
+	
 protected:
 	
 	struct TexCache {
@@ -137,26 +138,25 @@ protected:
 	static void dlGradRelease(GLuint dl);
 	static void dlGradRetain(GLuint dl);
 	
-	GLuint dl_grad; ///< if non-zero, child class should use this display list instead of the static one associated with the class
+	GLuint dl; ///< if non-zero, child class should use this display list instead of the static one associated with the class
 
-	// child classes should call these if they reimplemen them!!
-	virtual void setupDl(GLuint & displayList, bool use_grad_tex);
+	void setupDl();
+	virtual void defineDl() = 0;
+	// child classes should call these if they reimplement them!!
 	virtual void drawBegin();
 	virtual void drawEnd();
-	
 private:
 	static int tex_grad_ct;
 };
 	
 class Rectangle : public GradientShape {
-	friend void CleanupStaticDisplayLists();
 public: 
 	double width, height;
-		
+	
+	/*virtual*/ int typeId() const { return 1; }
+	
 protected:
-	static GLuint dl; ///< shared display list for all rectangles since it's just a unit square and we do our magic in the scaling
-
-	/*virtual*/ void setupDl(GLuint & displayList, bool use_grad_tex);
+	/*virtual*/ void defineDl();
 	
 public:
 	Rectangle(double width = 1., double height = 1.);
@@ -177,15 +177,15 @@ public:
 };
 
 class Ellipse : public GradientShape {
-	friend void CleanupStaticDisplayLists();
 public:
 	double xdiameter,ydiameter;
 	static const unsigned numVertices;
 
+	/*virtual*/ int typeId() const { return 2; }
+	
 protected:
-	static GLuint dl; ///< shared display list for _ALL_ ellipses since we use a unit circle at 0,0 with 128 vertices globally!
 
-	/*virtual*/void setupDl(GLuint & displayList, bool use_grad_tex);
+	/*virtual*/void defineDl();
 
 public:
 	Ellipse(double diamX = 1., double diamY = 1.);

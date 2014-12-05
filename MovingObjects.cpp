@@ -64,10 +64,9 @@ void MovingObjects::ObjData::initDefaults() {
 	emission = DEFAULT_EMISSION;
 	specular = DEFAULT_SPECULAR;
 	
-	has_gradient = false;
 	grad_offset = grad_angle = 0.f;
 	grad_freq = 1.0f;
-	grad_type = (Shapes::GradientShape::GradType)0;
+	grad_type = Shapes::GradientShape::None;
 	grad_min = 0.f;
 	grad_max = 1.f;
 	
@@ -211,16 +210,15 @@ bool MovingObjects::initObjectFromParams(ObjData & o, ConfigSuppressesFrameVar &
 
 	QString gt = "sine";
 	if (getParam("objGradient", gt)	|| getParam("objGrad", gt)) {
-		o.has_gradient = true;
 		gt = gt.trimmed().toLower();
-		if (gt.startsWith("sin")) o.grad_type = Shapes::GradientShape::GradSine;
-		if (gt.startsWith("cos")) o.grad_type = Shapes::GradientShape::GradCosine;
-		if (gt.startsWith("tri")) o.grad_type = Shapes::GradientShape::GradTri;
-		if (gt.startsWith("saw")) o.grad_type = Shapes::GradientShape::GradSaw;
-		if (gt.startsWith("squ")) o.grad_type = Shapes::GradientShape::GradSquare;
+		if (gt.startsWith("sin")) o.grad_type = Shapes::GradientShape::Sin;
+		if (gt.startsWith("cos")) o.grad_type = Shapes::GradientShape::Cos;
+		if (gt.startsWith("tri")) o.grad_type = Shapes::GradientShape::Tri;
+		if (gt.startsWith("saw")) o.grad_type = Shapes::GradientShape::Saw;
+		if (gt.startsWith("squ")) o.grad_type = Shapes::GradientShape::Squ;
 		if (gt.startsWith("non") || gt.startsWith("dis") || gt.startsWith("0") 
 			|| gt.startsWith("false") || gt.startsWith("off")) 
-			o.grad_type = Shapes::GradientShape::N_GradTypes;
+			o.grad_type = Shapes::GradientShape::None;
 	}
 	if (getParam("objGradientFreq", o.grad_freq)
 		|| getParam("objGradFreq", o.grad_freq)
@@ -228,38 +226,31 @@ bool MovingObjects::initObjectFromParams(ObjData & o, ConfigSuppressesFrameVar &
 		|| getParam("objGradN", o.grad_freq) 
 		|| getParam("objGradientNum", o.grad_freq)
 		|| getParam("objGradNum", o.grad_freq))
-		o.has_gradient = true;
+	{}
 	if (getParam("objGradientAngle", o.grad_angle)
 		|| getParam("objGradientPhi", o.grad_angle)
 		|| getParam("objGradAngle", o.grad_angle)
 		|| getParam("objGradPhi", o.grad_angle)) {
 		o.grad_angle = DEG2RAD(o.grad_angle);
-		o.has_gradient = true;
 	}
 	if (getParam("objGradientOffset", o.grad_offset)
 		|| getParam("objGradientPhase", o.grad_offset)
 		|| getParam("objGradOffset", o.grad_offset)
 		|| getParam("objGradPhase", o.grad_offset)) 
-		o.has_gradient = true;
+	{}
 	if (getParam("objGradientMin", o.grad_min)
 		|| getParam("objGradMin", o.grad_min))
-		o.has_gradient = true;
+	{}
 	if (getParam("objGradientMax", o.grad_max)
 		|| getParam("objGradMax", o.grad_max))
-		o.has_gradient = true;
+	{}
 	if (o.grad_min >= o.grad_max
 		|| o.grad_min < 0.f || o.grad_max > 1.f) {
 		Warning() << "Invalid objGradMin/objGradMax parameters (" << o.grad_min << "," << o.grad_max << ") for object #" << o.objNum << ", defaulting to (0,1)."; 
 		o.grad_min = 0; o.grad_max = 1.0;
 	}
-
 	
-	if (feqf(o.grad_freq,0.0f)) o.has_gradient = false;
-	if (!o.has_gradient) o.grad_freq = 0.f;
-	if (o.grad_type>=Shapes::GradientShape::N_GradTypes) {
-		o.grad_type = Shapes::GradientShape::GradSine;
-		o.has_gradient = false;
-	}
+	if (feqf(o.grad_freq,0.0f)) o.grad_type = Shapes::GradientShape::None;
 	
 	return true;
 }
@@ -540,7 +531,7 @@ void MovingObjects::initObj(ObjData & o) {
 	}
 	Shapes::GradientShape *gs = 0;
 	if ((gs = dynamic_cast<Shapes::GradientShape *>(o.shape)))
-		gs->setGradient(o.has_gradient,o.grad_type,o.grad_freq,o.grad_angle,o.grad_offset,o.grad_min,o.grad_max);
+		gs->setGradient(o.grad_type,o.grad_freq,o.grad_angle,o.grad_offset,o.grad_min,o.grad_max);
 	o.shape->position = o.pos_o;
 	o.shape->noMatrixAttribPush = true; ///< performance hack	
 }

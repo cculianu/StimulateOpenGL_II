@@ -63,7 +63,7 @@ void Shape::copyProperties(const Shape *o)
 /* static */ GradientShape::DLMap GradientShape::dls;
 /* static */ GradientShape::DLRev GradientShape::dlsRev;
 
-GradientShape::GradientShape() : gtex(0), grad_type(GradSine), grad_freq(1.f), grad_angle(0.f), grad_offset(0.f), grad_min(0.f), grad_max(1.f), dl_grad(0)
+GradientShape::GradientShape() : gtex(0), grad_type(None), grad_freq(1.f), grad_angle(0.f), grad_offset(0.f), grad_min(0.f), grad_max(1.f), dl(0)
 {
 	if (!tcache) tcache = new TexCache, tcache_ct = 0;
 	++tcache_ct;
@@ -72,8 +72,8 @@ GradientShape::~GradientShape()
 {
 	if (tcache) tcache->release(gtex); 
 	gtex = 0;
-	if (dl_grad) dlGradRelease(dl_grad);
-	dl_grad = 0;
+	if (dl) dlGradRelease(dl);
+	dl = 0;
 	if (tcache && --tcache_ct <= 0) {
 		Debug() << "Gradient tex cache delete (cache current size: " << tcache->size() << " max size was: " << tcache->maxSize() << ")...";
 		delete tcache; 
@@ -88,15 +88,11 @@ void GradientShape::copyProperties(const Shape *from)
 	Shape::copyProperties(from);
 	const GradientShape *g;
 	if ((g = dynamic_cast<const GradientShape *>(from))) {
-		if ( (dl_grad?1:0) != (g->dl_grad?1:0)
-			|| Vec4f(grad_type, grad_freq, grad_angle, grad_offset) != Vec4f(g->grad_type, g->grad_freq, g->grad_angle, g->grad_offset)
-			|| Vec3f(grad_type, grad_min, grad_max) != Vec3f(g->grad_type, g->grad_min, g->grad_max) 
-			)
-		setGradient(!!g->dl_grad, g->grad_type, g->grad_freq, g->grad_angle, g->grad_offset, g->grad_min, g->grad_max);
+		setGradient(g->grad_type, g->grad_freq, g->grad_angle, g->grad_offset, g->grad_min, g->grad_max);
 	}
 }
 
-void GradientShape::setGradient(bool enabled, GradType t, float freq, float angle, float offset, float min, float max)
+void GradientShape::setGradient(GradType t, float freq, float angle, float offset, float min, float max)
 {
 	grad_freq = freq;
 	grad_angle = angle;
@@ -107,39 +103,35 @@ void GradientShape::setGradient(bool enabled, GradType t, float freq, float angl
 	if (max < 0.f) max = 0.f; if (max > 1.f) max = 1.f;
 	grad_min = min;
 	grad_max = max;
-	if (enabled) setupDl(dl_grad, true);
-	else if (dl_grad) { dlGradRelease(dl_grad); dl_grad = 0; }
+	GLuint olddl = dl;
+	setupDl();
+	dlGradRelease(olddl);
 }
 
-void GradientShape::setupDl(GLuint & dl, bool use_grad_tex)
+void GradientShape::setupDl()
 {
 	const GLuint old_gtex = gtex;
-	gtex = 0;
-	if (use_grad_tex && &dl == &dl_grad) {
-		gtex = tcache->getAndRetain(grad_type, grad_min, grad_max);
-		const int type_id = (dynamic_cast<Ellipse *>(this) ? 1 : (dynamic_cast<Rectangle *>(this) ? 2 : 0));
-		if (!type_id) {
-			Error() << "GradientShape::setupDl() -- cannot determine type_id for object! FIXME!";
-		}
-		dl = dlGradGetAndRetain(Vec5bf(type_id,
-									  gtex,grad_freq,grad_angle,grad_offset));
-		if (excessiveDebug) Debug() << "setupDl(): gradient tex=true, dl=" << dl << " dlrefct=" << dlRefcts[dl];
+	gtex = tcache->getAndRetain(grad_type, grad_min, grad_max);
+	if (!typeId()) {
+		Error() << "GradientShape::setupDl() -- cannot determine type_id for object! FIXME!";
 	}
-	else if (!dl) {
-		dl = glGenLists(1);
-		if (&dl == &dl_grad) {
-			Warning() << "setupDl(): gradient tex=false, but generating list for dl_grad! FIXME!";
-		}
-	}
-	if (old_gtex) tcache->release(old_gtex);
+	dl = dlGradGetAndRetain(Vec5bf(typeId(),gtex,grad_freq,grad_angle,grad_offset));
+	if (excessiveDebug) Debug() << "setupDl(): gradient tex=" << gtex << ", dl=" << dl << " dlrefct=" << dlRefcts[dl];
+	tcache->release(old_gtex);
 	// continue on in subclass..
+	if (dlRefcts[dl] > 1) {
+		if (excessiveDebug) Debug() << "GradientShape::setupDl(): dl " << dl << " already setup (has refct), aborting early..." ;
+		return; // was already set up!
+	} 
+	else if (excessiveDebug) Debug() << "GradientShape:setupDl(): no performance improvement possible.. continuing on to dl setup...";	
+	defineDl();
 }
 	
 /* virtual */
 void GradientShape::drawBegin()
 {
 	Shape::drawBegin();
-	if (dl_grad) glEnable(GL_TEXTURE_1D);
+	if (gtex) glEnable(GL_TEXTURE_1D);
 	// continued in subclass
 }
 	
@@ -147,7 +139,7 @@ void GradientShape::drawBegin()
 void GradientShape::drawEnd()
 {
 	// continues from subclass..
-	if (dl_grad) glDisable(GL_TEXTURE_1D);
+	if (gtex) glDisable(GL_TEXTURE_1D);
 	Shape::drawEnd();
 }
 	
@@ -169,6 +161,7 @@ void GradientShape::drawEnd()
 }
 /*static*/ void GradientShape::dlGradRelease(GLuint dl)
 {
+	if (!dl) return;
 	DLRefctMap::iterator it = dlRefcts.find(dl);
 	if (it != dlRefcts.end()) {
 		if (--(it.value()) <= 0) {
@@ -207,21 +200,23 @@ void GradientShape::TexCache::release(GLuint tex)
 
 void GradientShape::TexCache::release(GradType t, float min, float max)
 {
+	if (int(t) < 0 || int(t) > N_GradTypes) t = (GradType)0;
+	if (t == None) return;
 	if (min > max) { float t = min; min = max; max = t; }
 	if (min < 0.f) min = 0.f; else if (min > 1.f) min = 1.f;
 	if (max < 0.f) max = 0.f; else if (max > 1.f) max = 1.f;
-	if (int(t) < 0 || int(t) > N_GradTypes) t = (GradType)0;
 	PropTexMap::const_iterator it = propTex.find(Vec3bf(float(int(t)), min, max));
 	if (it != propTex.end()) release(it.value());
 }
 	
 GLuint GradientShape::TexCache::getAndRetain(GradType t, float min, float max)
 {
+	if (int(t) < 0 || int(t) > N_GradTypes) t = (GradType)0;
+	if (t == None) return 0;
 	GLuint ret = 0;
 	if (min > max) { float t = min; min = max; max = t; }
 	if (min < 0.f) min = 0.f; else if (min > 1.f) min = 1.f;
 	if (max < 0.f) max = 0.f; else if (max > 1.f) max = 1.f;
-	if (int(t) < 0 || int(t) > N_GradTypes) t = (GradType)0;
 	const Vec3bf prop(float(int(t)),min,max);
 	PropTexMap::const_iterator it = propTex.find(prop);
 	if (it != propTex.end()) {
@@ -240,7 +235,7 @@ GLuint GradientShape::TexCache::getAndRetain(GradType t, float min, float max)
 			texProp[ret] = prop;
 			ref[ret] = 1;
 			if (size_max < unsigned(ref.size())) size_max = ref.size();
-		} else {
+		} else if (t != None) {
 			Error() << "Got a 0 from GradientShape::TexCache::createTex()!";
 		}
 	}
@@ -258,6 +253,7 @@ GradientShape::TexCache::~TexCache()
 	
 GLuint GradientShape::TexCache::createTex(GradType t, float min, float max)
 {
+	if (t == None) return 0;
 	static const int TEXWIDTH = 256;
 	GLuint tex = 0;
 	glGenTextures(1, &tex);
@@ -265,10 +261,10 @@ GLuint GradientShape::TexCache::createTex(GradType t, float min, float max)
 	for (int i = 0; tex && i < TEXWIDTH; ++i) {
 		const GLfloat x(GLfloat(i)/GLfloat(TEXWIDTH)); 
 		switch (t) {
-			case GradSquare:
+			case Squ:
 				f = x < 0.5f ? 0.0f : 1.0f;
 				break;
-			case GradSaw: {
+			case Saw: {
 				static const float swfact = (1.0f/0.95f);
 				f = x*swfact;
 				if (f >= 1.0f) {
@@ -276,14 +272,18 @@ GLuint GradientShape::TexCache::createTex(GradType t, float min, float max)
 				}
 			}
 				break;
-			case GradTri:
+			case Tri:
 				f = x*2.0f;
 				if (f > 1.0) f = 1.0f-(f-1.0f);
 				break;
-			case GradSine:
+			case Sin:
 				f = (sinf(x*(2.0*M_PI))+1.0)/2.0;
 				break;
-			case GradCosine:
+			case None:
+				glDeleteTextures(1, &tex);
+				tex = 0;
+				break;
+			case Cos:
 			default:
 				f = (cosf(x*(2.0*M_PI))+1.0)/2.0;
 				break;
@@ -302,25 +302,22 @@ GLuint GradientShape::TexCache::createTex(GradType t, float min, float max)
 	
 void Rectangle::copyProperties(const Shape *o)
 {
-	Shape::copyProperties(o);
+	GradientShape::copyProperties(o);	
 	const Rectangle *r;
 	if ((r=dynamic_cast<const Rectangle *>(o))) {
 		width = r->width;
 		height = r->height;
 	}
-	// copy properties here because this ends up setting up a possible gradient display list based on our params, etc
-	GradientShape::copyProperties(o);	
 }
 
 void Ellipse::copyProperties(const Shape *o)
 {
+	GradientShape::copyProperties(o);
 	const Ellipse *e;
 	if ((e = dynamic_cast<const Ellipse *>(o))) {
 		xdiameter = e->xdiameter;
 		ydiameter = e->ydiameter;
 	}
-	// copy properties here because this ends up setting up a possible gradient display list based on our params, etc
-	GradientShape::copyProperties(o);
 }
 
 void Sphere::copyProperties(const Shape *o)
@@ -400,27 +397,20 @@ Vec3 Shape::cposToRealPos(const Vec2 & cpos, double z)
 	return Vec3 (rpos2d.x, rpos2d.y, z);
 }
 	
-/* static */ GLuint Ellipse::dl = 0;
 const unsigned Ellipse::numVertices = NUM_VERTICES_FOR_ELLIPSOIDS;
 	
 Ellipse::Ellipse(double lx, double ly)
 	: xdiameter(lx), ydiameter(ly)
 {
-	if (!dl) setupDl(dl, false);
+	if (!dl) setupDl();
 }
 
-void Ellipse::setupDl(GLuint & displayList, bool use_grad_tex)
+void Ellipse::defineDl()
 {
-	GradientShape::setupDl(displayList, use_grad_tex);
-	if (use_grad_tex && dlRefcts[displayList] > 1) {
-		if (excessiveDebug) Debug() << "Ellipse::setupDl(): gradient dl " << displayList << " already setup (has refct), aborting early..." ;
-		return; // was already set up!
-	} 
-	else if (excessiveDebug) Debug() << "Ellipse::setupDl(): no performance improvement possible.. continuing on to dl setup...";
 	static const double incr = DEG2RAD(360.0) / numVertices;
 	double radian = 0.;
-	glNewList(displayList, GL_COMPILE);
-	if (use_grad_tex) {
+	glNewList(dl, GL_COMPILE);
+	if (gtex) {
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 		glBindTexture(GL_TEXTURE_1D, gtex);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -430,24 +420,23 @@ void Ellipse::setupDl(GLuint & displayList, bool use_grad_tex)
 	}
 	glBegin(GL_POLYGON);
 	for (unsigned i = 0; i < numVertices; ++i) {
-		if (use_grad_tex) 
+		if (gtex) 
 			glTexCoord1d(grad_offset + (grad_freq * ((1.0+cos(radian-grad_angle))/2.0)));
 		glVertex2d(cos(radian)/2., sin(radian)/2.);
 		radian += incr;
 	}
 	glEnd();
-	if (use_grad_tex) glBindTexture(GL_TEXTURE_1D, 0);
+	if (gtex) glBindTexture(GL_TEXTURE_1D, 0);
 	glEndList();	
 }
-	
+
 void Ellipse::draw() {
 	Vec2 scale_saved = scale;
 	// emulate the xradius,yradius thing with just a glScale.. muahahaha!
 	scale.x *= xdiameter;
 	scale.y *= ydiameter;
 	drawBegin();
-	if (dl_grad) glCallList(dl_grad);
-	else glCallList(dl);
+	glCallList(dl);
 	drawEnd();
 	scale = scale_saved;
 }
@@ -467,27 +456,18 @@ Rect Ellipse::AABB() const {
 	return Rect(Vec2(cpos.x-rect_width/2.,cpos.y-rect_height/2.),Vec2(rect_width,rect_height));
 }
 
-
-/* static */ GLuint Rectangle::dl = 0; ///< shared display list for all rectangles!
 	
 Rectangle::Rectangle(double w, double h)
 : width(w), height(h)
 {
-	if (!dl) setupDl(dl, false);
+	if (!dl) setupDl();
 }
 
-void Rectangle::setupDl(GLuint & displayList, bool use_grad_tex)
+void Rectangle::defineDl()
 {
-	GradientShape::setupDl(displayList, use_grad_tex);
-	if (use_grad_tex && dlRefcts[displayList] > 1) {
-		if (excessiveDebug) Debug() << "Rectangle::setupDl(): gradient dl " << displayList << " already setup (has refct), aborting early..." ;
-		return; // was already set up!
-	} 
-	else if (excessiveDebug) Debug() << "Rectangle::setupDl(): no performance improvement possible.. continuing on to dl setup...";
-	
 	// put the unit square in a display list
-	glNewList(displayList, GL_COMPILE);
-	if (use_grad_tex) {
+	glNewList(dl, GL_COMPILE);
+	if (gtex) {
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 		glBindTexture(GL_TEXTURE_1D, gtex);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -496,25 +476,23 @@ void Rectangle::setupDl(GLuint & displayList, bool use_grad_tex)
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);		
 	}
 	Vec2f texCoords[4];
-	if (use_grad_tex) {
+	if (gtex) {
 		texCoords[0] = Vec2f(0.f,0.f).rotated(grad_angle); 
 		texCoords[1] = Vec2f(1.f,0.f).rotated(grad_angle);
 		texCoords[2] = Vec2f(1.f,1.f).rotated(grad_angle);
 		texCoords[3] = Vec2f(0.f,1.f).rotated(grad_angle); 
 	}
 	glBegin(GL_QUADS);	
-	if (use_grad_tex) glTexCoord1d( (grad_freq * texCoords[0].x) + grad_offset);
+	if (gtex) glTexCoord1d( (grad_freq * texCoords[0].x) + grad_offset);
 	glVertex2d(-.5, -.5);
-	if (use_grad_tex) glTexCoord1d( (grad_freq * texCoords[1].x) + grad_offset);
+	if (gtex) glTexCoord1d( (grad_freq * texCoords[1].x) + grad_offset);
 	glVertex2d(.5, -.5);
-	if (use_grad_tex) glTexCoord1d( (grad_freq * texCoords[2].x) + grad_offset);
+	if (gtex) glTexCoord1d( (grad_freq * texCoords[2].x) + grad_offset);
 	glVertex2d(.5, .5);
-	if (use_grad_tex) glTexCoord1d( (grad_freq * texCoords[3].x) + grad_offset);
+	if (gtex) glTexCoord1d( (grad_freq * texCoords[3].x) + grad_offset);
 	glVertex2d(-.5, .5);
 	glEnd();
-	if (use_grad_tex) glBindTexture(GL_TEXTURE_1D, 0);
-//	glVertex2d(-.5, -.5);
-//	if (use_grad_tex) glTexCoord1d(grad_freq * 0.f);
+	if (gtex) glBindTexture(GL_TEXTURE_1D, 0);
 	glEndList();	
 }
 	
@@ -524,8 +502,7 @@ void Rectangle::draw() {
 	scale.x *= width;
 	scale.y *= height;
 	drawBegin();
-	if (dl_grad) glCallList(dl_grad);
-	else         glCallList(dl);
+	glCallList(dl);
 	drawEnd();
 	scale = scale_saved;
 }
@@ -576,11 +553,8 @@ Rect Rectangle::AABB() const {
 
 
 void InitStaticDisplayLists() {
-	Ellipse a(3,4);
-	Rectangle b(4,5);
-	Sphere  c(1);
-
-	(void)a; (void)b; (void)c;
+	Sphere  sphere(1);
+	(void)sphere;
 }
 
 static void DLCleanup(GLuint & dl) {
@@ -591,8 +565,6 @@ static void DLCleanup(GLuint & dl) {
 }
 	
 void CleanupStaticDisplayLists() {
-	DLCleanup(Ellipse::dl);
-	DLCleanup(Rectangle::dl);
 	DLCleanup(Sphere::dl);
 	gluDeleteQuadric(Sphere::quadric), Sphere::quadric = 0;
 }
