@@ -289,7 +289,7 @@ GLuint GradientShape::TexCache::createTex(GradType t, float min, float max)
 	glGenTextures(1, &tex);
 	GLfloat pix[TEXWIDTH], f;
 	for (int i = 0; tex && i < TEXWIDTH; ++i) {
-		const GLfloat x(GLfloat(i)/GLfloat(TEXWIDTH)); 
+		const GLfloat x(GLfloat(i)/GLfloat(TEXWIDTH-1)); // we do it this way so we can get 0.0 and 1.0 in our x domain..
 		switch (t) {
 			case Squ:
 				f = x < 0.5f ? 0.0f : 1.0f;
