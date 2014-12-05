@@ -59,26 +59,33 @@ void Shape::copyProperties(const Shape *o)
 	
 /* static */ GradientShape::TexCache * GradientShape::tcache(0);
 /* static */ int GradientShape::tcache_ct(0);
-/* static */ GradientShape::DLRefctMap GradientShape::dlRefcts; /// maps dl_grad display lists to counters.. implementing shared display lists
-/* static */ GradientShape::DLMap GradientShape::dls;
-/* static */ GradientShape::DLRev GradientShape::dlsRev;
+/* static */ GradientShape::DLCache *GradientShape::dcache; /// maps dl_grad display lists to counters.. implementing shared display lists
+/* static */ int GradientShape::dcache_ct(0);
 
 GradientShape::GradientShape() : gtex(0), grad_type(None), grad_freq(1.f), grad_angle(0.f), grad_offset(0.f), grad_min(0.f), grad_max(1.f), dl(0)
 {
 	if (!tcache) tcache = new TexCache, tcache_ct = 0;
+	if (!dcache) dcache = new DLCache, dcache_ct = 0;
 	++tcache_ct;
+	++dcache_ct;
 }	
 GradientShape::~GradientShape()
 {
 	if (tcache) tcache->release(gtex); 
 	gtex = 0;
-	if (dl) dlGradRelease(dl);
+	if (dcache) dcache->release(dl);
 	dl = 0;
 	if (tcache && --tcache_ct <= 0) {
 		Debug() << "Gradient tex cache delete (cache current size: " << tcache->size() << " max size was: " << tcache->maxSize() << ")...";
 		delete tcache; 
 		tcache = 0;
 		tcache_ct = 0;
+	}
+	if (dcache && --dcache_ct <= 0) {
+		Debug() << "Display list cache delete (cache current size: " << dcache->size() << " max size was: " << dcache->maxSize() << ")...";
+		delete dcache; 
+		dcache = 0;
+		dcache_ct = 0;
 	}
 }
 	
@@ -105,7 +112,7 @@ void GradientShape::setGradient(GradType t, float freq, float angle, float offse
 	grad_max = max;
 	GLuint olddl = dl;
 	setupDl();
-	dlGradRelease(olddl);
+	dcache->release(olddl);
 }
 
 void GradientShape::setupDl()
@@ -115,15 +122,16 @@ void GradientShape::setupDl()
 	if (!typeId()) {
 		Error() << "GradientShape::setupDl() -- cannot determine type_id for object! FIXME!";
 	}
-	dl = dlGradGetAndRetain(Vec5bf(typeId(),gtex,grad_freq,grad_angle,grad_offset));
-	if (excessiveDebug) Debug() << "setupDl(): gradient tex=" << gtex << ", dl=" << dl << " dlrefct=" << dlRefcts[dl];
+	dl = dcache->getAndRetain(Vec5bf(typeId(),gtex,grad_freq,grad_angle,grad_offset));
+	const int ct = dcache->count(dl);
+	if (excessiveDebug) Debug() << "setupDl(): gradient tex=" << gtex << ", dl=" << dl << " dlrefct=" << ct;
 	tcache->release(old_gtex);
 	// continue on in subclass..
-	if (dlRefcts[dl] > 1) {
+	if (ct > 1) {
 		if (excessiveDebug) Debug() << "GradientShape::setupDl(): dl " << dl << " already setup (has refct), aborting early..." ;
 		return; // was already set up!
 	} 
-	else if (excessiveDebug) Debug() << "GradientShape:setupDl(): no performance improvement possible.. continuing on to dl setup...";	
+	else if (excessiveDebug) Debug() << "GradientShape:setupDl(): no performance improvement possible.. continuing on to call defineDl()...";	
 	defineDl();
 }
 	
@@ -142,32 +150,40 @@ void GradientShape::drawEnd()
 	if (gtex) glDisable(GL_TEXTURE_1D);
 	Shape::drawEnd();
 }
-	
-/*static*/ GLuint GradientShape::dlGradGetAndRetain(const Vec5bf & props)
+
+unsigned GradientShape::DLCache::count(GLuint dl) const { 
+	RefctMap::const_iterator it = refs.find(dl);
+	if (it != refs.end()) return it.value();
+	return 0;
+}
+
+GLuint GradientShape::DLCache::getAndRetain(const Vec5bf & props)
 {
 	GLuint ret = 0;
-	DLRev::const_iterator it = dlsRev.find(props);
+	Rev::const_iterator it = dlsRev.find(props);
 	if (it != dlsRev.end())
 		ret = it.value();
 	if (!ret) {
 		ret = glGenLists(1);
+		Debug() << "DisplayList " << ret << " created.";
 		if (ret) {
 			dls[ret] = props;
 			dlsRev[props] = ret;
 		}
 	}
-	dlGradRetain(ret);
+	retain(ret);
 	return ret;
 }
-/*static*/ void GradientShape::dlGradRelease(GLuint dl)
+void GradientShape::DLCache::release(GLuint dl)
 {
 	if (!dl) return;
-	DLRefctMap::iterator it = dlRefcts.find(dl);
-	if (it != dlRefcts.end()) {
+	RefctMap::iterator it = refs.find(dl);
+	if (it != refs.end()) {
 		if (--(it.value()) <= 0) {
 			if (dl) glDeleteLists(dl, 1);
-			dlRefcts.erase(it);
-			DLMap::iterator dlm_it = dls.find(dl);
+			Debug() << "DisplayList " << dl << " deleted.";
+			refs.erase(it);
+			Map::iterator dlm_it = dls.find(dl);
 			if (dlm_it != dls.end()) {
 				dlsRev.remove(dlm_it.value());
 				dls.erase(dlm_it);
@@ -175,10 +191,23 @@ void GradientShape::drawEnd()
 		}
 	}
 }
-/*static*/ void GradientShape::dlGradRetain(GLuint dl)
+void GradientShape::DLCache::retain(GLuint dl)
 {
-	if (dl) dlRefcts[dl] = dlRefcts[dl] + 1;
+	if (dl) {
+		refs[dl] = refs[dl] + 1;
+		if (size_max < size()) size_max = size();
+	}
 }
+	
+GradientShape::DLCache::~DLCache()
+{
+	for(RefctMap::const_iterator it = refs.begin(); it != refs.end(); ++it) {
+		GLuint d = it.key();
+		if (d) glDeleteLists(d, 1);
+	}
+	refs.clear(); dls.clear(); dlsRev.clear();
+}
+
 
 void GradientShape::TexCache::release(GLuint tex)
 {
@@ -192,9 +221,10 @@ void GradientShape::TexCache::release(GLuint tex)
 			ref.erase(it);
 			if (excessiveDebug) Debug() << "Deleting texture " << tex;
 			glDeleteTextures(1, &tex);
+			Debug() << "Texture " << tex << " deleted.";
 		}
 	} else {
-		Debug() << "GradientShape::TexCache::texRelease was given a tex_id `" << tex << "' but it doesn't exist in the cache!";
+		Debug() << "GradientShape::TexCache::release was given a tex_id `" << tex << "' but it doesn't exist in the cache!";
 	}
 }
 

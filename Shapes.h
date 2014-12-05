@@ -90,16 +90,33 @@ public:
 	virtual int typeId() const = 0;
 	
 protected:
+
+	GLuint gtex;
 	
+	GradType grad_type;
+	float grad_freq,  ///< default 1.0
+	      grad_angle,  ///< default 0.0
+	      grad_offset; ///< default 0.0
+	
+	float grad_min, grad_max;
+			
+	GLuint dl; ///< if non-zero, child class should use this display list instead of the static one associated with the class
+
+	void setupDl();
+	virtual void defineDl() = 0;
+	// child classes should call these if they reimplement them!!
+	virtual void drawBegin();
+	virtual void drawEnd();
+	
+private:
 	struct TexCache {
-		
+		TexCache() : size_max(0) {}
+		~TexCache();
+
 		GLuint getAndRetain(GradType type, float min, float max);
 		void release(GLuint tex_id);
 		void release(GradType type, float min, float max);
-		
-		TexCache() : size_max(0) {}
-		~TexCache();
-		
+				
 		unsigned size() const { return ref.size(); }
 		unsigned maxSize() const { return size_max; }
 		
@@ -119,34 +136,27 @@ protected:
 	static TexCache *tcache;
 	static int tcache_ct;
 	
-	GLuint gtex;
+	class DLCache {
+		typedef QMap<GLuint, int> RefctMap; 
+		typedef QMap<GLuint,Vec5bf> Map;
+		typedef QMap<Vec5bf,GLuint> Rev;
+		RefctMap refs; /// maps dl_grad display lists to counters.. implementing shared display lists
+		Map dls;
+		Rev dlsRev;
+		unsigned size_max; ///< debug stat
+	public:
+		DLCache() : size_max(0) {}
+		~DLCache();
+		GLuint getAndRetain(const Vec5bf & props); ///< props are tex_id,freq,angle,offset!
+		unsigned count(GLuint dl) const;
+		void release(GLuint dl);
+		void retain(GLuint dl);		
+		unsigned size() const { return refs.size(); }
+		unsigned maxSize() const { return size_max; }
+	};
 	
-	GradType grad_type;
-	float grad_freq,  ///< default 1.0
-	      grad_angle,  ///< default 0.0
-	      grad_offset; ///< default 0.0
-	
-	float grad_min, grad_max;
-		
-	typedef QMap<GLuint, int> DLRefctMap; 
-	typedef QMap<GLuint,Vec5bf> DLMap;
-	typedef QMap<Vec5bf,GLuint> DLRev;
-	static DLRefctMap dlRefcts; /// maps dl_grad display lists to counters.. implementing shared display lists
-	static DLMap dls;
-	static DLRev dlsRev;
-	static GLuint dlGradGetAndRetain(const Vec5bf & props); ///< props are tex_id,freq,angle,offset!
-	static void dlGradRelease(GLuint dl);
-	static void dlGradRetain(GLuint dl);
-	
-	GLuint dl; ///< if non-zero, child class should use this display list instead of the static one associated with the class
-
-	void setupDl();
-	virtual void defineDl() = 0;
-	// child classes should call these if they reimplement them!!
-	virtual void drawBegin();
-	virtual void drawEnd();
-private:
-	static int tex_grad_ct;
+	static DLCache *dcache;
+	static int dcache_ct;
 };
 	
 class Rectangle : public GradientShape {
