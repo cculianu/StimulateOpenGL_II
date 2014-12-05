@@ -255,7 +255,7 @@ GLuint GradientShape::TexCache::getAndRetain(GradType t, float min, float max)
 			++it2.value();
 			ret = it.value();
 		} else {
-			Error() << "INTERNAL ERROR IN GradientShape::TexCache::texGetAndRetain() -- prop is in propTex but not in ref! FIXME!";
+			Error() << "INTERNAL ERROR IN GradientShape::TexCache::getAndRetain() -- prop is in propTex but not in ref! FIXME!";
 		}
 		if (excessiveDebug && ret) Debug() << "GradientShape::TexCache::getAndRetain(" << int(t) << "," << min << "," << max << ") found cached texture with id " << ret << " refct: " << (it2.value()-1);
 	} else { // create new..
