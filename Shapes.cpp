@@ -121,7 +121,7 @@ void GradientShape::setupDl(GLuint & dl, bool use_grad_tex)
 		if (!type_id) {
 			Error() << "GradientShape::setupDl() -- cannot determine type_id for object! FIXME!";
 		}
-		dl = dlGradGetAndRetain(Vec5f(type_id,
+		dl = dlGradGetAndRetain(Vec5bf(type_id,
 									  gtex,grad_freq,grad_angle,grad_offset));
 		if (excessiveDebug) Debug() << "setupDl(): gradient tex=true, dl=" << dl << " dlrefct=" << dlRefcts[dl];
 	}
@@ -151,7 +151,7 @@ void GradientShape::drawEnd()
 	Shape::drawEnd();
 }
 	
-/*static*/ GLuint GradientShape::dlGradGetAndRetain(const Vec5f & props)
+/*static*/ GLuint GradientShape::dlGradGetAndRetain(const Vec5bf & props)
 {
 	GLuint ret = 0;
 	DLRev::const_iterator it = dlsRev.find(props);
@@ -211,7 +211,7 @@ void GradientShape::TexCache::release(GradType t, float min, float max)
 	if (min < 0.f) min = 0.f; else if (min > 1.f) min = 1.f;
 	if (max < 0.f) max = 0.f; else if (max > 1.f) max = 1.f;
 	if (int(t) < 0 || int(t) > N_GradTypes) t = (GradType)0;
-	PropTexMap::const_iterator it = propTex.find(Vec3f(float(int(t)), min, max));
+	PropTexMap::const_iterator it = propTex.find(Vec3bf(float(int(t)), min, max));
 	if (it != propTex.end()) release(it.value());
 }
 	
@@ -222,7 +222,7 @@ GLuint GradientShape::TexCache::getAndRetain(GradType t, float min, float max)
 	if (min < 0.f) min = 0.f; else if (min > 1.f) min = 1.f;
 	if (max < 0.f) max = 0.f; else if (max > 1.f) max = 1.f;
 	if (int(t) < 0 || int(t) > N_GradTypes) t = (GradType)0;
-	const Vec3f prop(float(int(t)),min,max);
+	const Vec3bf prop(float(int(t)),min,max);
 	PropTexMap::const_iterator it = propTex.find(prop);
 	if (it != propTex.end()) {
 		RefctMap::iterator it2 = ref.find(it.value());

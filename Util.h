@@ -243,7 +243,7 @@ struct Vec2T {
 	template <typename U> Vec2T<T> operator-(const U & u) const { return Vec2T<T>(x-u,y-u); }
 	bool operator==(const Vec2T<T> & o) const { return eqf(x,o.x) && eqf(y,o.y); }
 	bool operator!=(const Vec2T<T> & o) const { return !((*this) == o); }
-	bool operator<(const Vec2T<T> & o) const { return genericVectorCompareLessThan(2,v,o.v); }
+//	bool operator<(const Vec2T<T> & o) const { return magnitude() < o.magnitude(); }
 	Vec2T<T> operator-(const Vec2T<T> & v) const { return Vec2T<T>(x-v.x,y-v.y); }
 	Vec2T<T> operator+(const Vec2T<T> & v) const { return Vec2T<T>(x+v.x,y+v.y); }
 	T dot(const Vec2T<T> & v) const { return x*v.x + y*v.y; }
@@ -303,7 +303,7 @@ struct Vec3T {
 	template <typename U> Vec3T<T> operator-(const U & u) const { return Vec3T<T>(x-u,y-u,z-u); }
 	bool operator==(const Vec3T<T> & o) const { return eqf(x,o.x) && eqf(y,o.y) && eqf(z,o.z); }
 	bool operator!=(const Vec3T<T> & o) const { return !((*this) == o); }
-	bool operator<(const Vec3T<T> & o) const { return genericVectorCompareLessThan(3,v,o.v); }
+//	bool operator<(const Vec3T<T> & o) const { return magnitude() < o.magnitude(); }
 	
 	T dot(const Vec3T<T> & v) const { return x*v.x + y*v.y + z*v.z; }
 	Vec3T<T> cross(const Vec3T<T> & v) const {
@@ -342,6 +342,13 @@ template <>
 inline bool Vec3T<float>::operator==(const Vec3T<float> & o) const { return feqf(x,o.x) && feqf(y,o.y) && feqf(z,o.z); }
 
 template <typename T=double>
+struct Vec3bT : public Vec3T<T>
+{
+	Vec3bT(T v1 = 0, T v2 = 0, T v3 = 0) : Vec3T<T>(v1,v2,v3) {}	
+	bool operator<(const Vec3T<T> & o) const { return genericVectorCompareLessThan(3,this->v,o.v); }	
+};
+	
+template <typename T=double>
 struct Vec4T 
 {
 	union { 
@@ -356,7 +363,7 @@ struct Vec4T
 	T distance(const Vec4T<T> &v) const { return ((*this)-v).magnitude(); }
 	bool operator==(const Vec4T<T> & o) const { return eqf(x,o.x) && eqf(y,o.y) && eqf(z,o.z) && eqf(w,o.w); }
 	bool operator!=(const Vec4T<T> & o) const { return !((*this) == o); }
-	bool operator<(const Vec4T<T> & o) const { return genericVectorCompareLessThan(4,v,o.v); }
+//	bool operator<(const Vec4T<T> & o) const { return magnitude() < o.magnitude(); }
 	T magnitude() const { return sqrt(x*x + y*y + z*z + w*w); }
 
 	QString toString() const { return QString("%1,%2,%3,%4").arg(v1).arg(v2).arg(v3).arg(v4); }
@@ -393,7 +400,7 @@ struct Vec5T
 	T distance(const Vec5T<T> &v) const { return ((*this)-v).magnitude(); }
 	bool operator==(const Vec5T<T> & o) const { return eqf(v1,o.v1) && eqf(v2,o.v2) && eqf(v3,o.v3) && eqf(v4,o.v4) && eqf(v5,o.v5);; }
 	bool operator!=(const Vec5T<T> & o) const { return !((*this) == o); }
-	bool operator<(const Vec5T<T> & o) const { return genericVectorCompareLessThan(5,v,o.v); }
+//	bool operator<(const Vec5T<T> & o) const { return magnitude() < o.magnitude(); }
 	T magnitude() const { return sqrt(v1*v1 + v2*v2 + v3*v3 + v4*v4 + v5*v5); }
 	
 	QString toString() const { return QString("%1,%2,%3,%4,%5").arg(v1).arg(v2).arg(v3).arg(v4).arg(v5); }
@@ -413,6 +420,13 @@ struct Vec5T
 		return false;
 	}
 };
+	
+template <typename T=double>
+struct Vec5bT : public Vec5T<T>
+{
+	Vec5bT(T v1 = 0, T v2 = 0, T v3 = 0, T v4 = 0, T v5 = 0) : Vec5T<T>(v1,v2,v3,v4,v5) {}	
+	bool operator<(const Vec5T<T> & o) const { return genericVectorCompareLessThan(5,this->v,o.v); }
+};
 
 template <>
 inline bool Vec5T<float>::operator==(const Vec5T<float> & o) const { return feqf(v1,o.v1) && feqf(v2,o.v2) && feqf(v3,o.v3) && feqf(v4,o.v4) && feqf(v5,o.v5); }
@@ -431,12 +445,18 @@ extern const Vec2i Vec2iUnit; // unit vector, that is, (1,1) -- usefule as a def
 typedef Vec3T<double> Vec3;
 typedef Vec3T<int> Vec3i;
 typedef Vec3T<float> Vec3f;
+typedef Vec3bT<double> Vec3b;
+typedef Vec3bT<int> Vec3bi;
+typedef Vec3bT<float> Vec3bf;
 typedef Vec4T<double> Vec4;
 typedef Vec4T<int> Vec4i;	
 typedef Vec4T<float> Vec4f;
 typedef Vec5T<double> Vec5;
 typedef Vec5T<int> Vec5i;	
 typedef Vec5T<float> Vec5f;
+typedef Vec5bT<double> Vec5b;
+typedef Vec5bT<int> Vec5bi;	
+typedef Vec5bT<float> Vec5bf;
 	
 extern const Vec3 Vec3Zero; // default 0 vec -- useful as a default argument to functions
 extern const Vec3 Vec3Unit; // default unit vec -- useful as a default argument to functions

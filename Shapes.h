@@ -104,8 +104,8 @@ protected:
 		
 	private:
 		typedef QMap<GLuint, int> RefctMap;
-		typedef QMap<GLuint, Vec3f> TexPropMap;
-		typedef QMap<Vec3f, GLuint> PropTexMap;
+		typedef QMap<GLuint, Vec3bf> TexPropMap;
+		typedef QMap<Vec3bf, GLuint> PropTexMap;
 		
 		GLuint createTex(GradType type, float min, float max);
 		
@@ -128,12 +128,12 @@ protected:
 	float grad_min, grad_max;
 		
 	typedef QMap<GLuint, int> DLRefctMap; 
-	typedef QMap<GLuint,Vec5f> DLMap;
-	typedef QMap<Vec5f,GLuint> DLRev;
+	typedef QMap<GLuint,Vec5bf> DLMap;
+	typedef QMap<Vec5bf,GLuint> DLRev;
 	static DLRefctMap dlRefcts; /// maps dl_grad display lists to counters.. implementing shared display lists
 	static DLMap dls;
 	static DLRev dlsRev;
-	static GLuint dlGradGetAndRetain(const Vec5f & props); ///< props are tex_id,freq,angle,offset!
+	static GLuint dlGradGetAndRetain(const Vec5bf & props); ///< props are tex_id,freq,angle,offset!
 	static void dlGradRelease(GLuint dl);
 	static void dlGradRetain(GLuint dl);
 	
