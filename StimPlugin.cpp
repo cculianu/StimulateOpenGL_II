@@ -1151,8 +1151,10 @@ void StimPlugin::doRealtimeParamUpdateHousekeeping()
 	
 	// pending param history support here -- dequeues queued params at appropriate times
 	checkPendingParamHistory();
-	
+
+#ifndef Q_OS_WIN
 #pragma mark Realtime param support here
+#endif
 	// realtime param update support HERE
 	if (gotNewParams) {
 		if ( !applyNewParamsAtRuntime_Base() || !applyNewParamsAtRuntime() ) {

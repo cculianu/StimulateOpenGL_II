@@ -1337,7 +1337,9 @@ double MovingObjects::zToDistance(double z) const
 	return z/cameraDistance + 1.0;
 }
 
+#ifndef Q_OS_WIN
 #pragma mark Realtime param update support functions here
+#endif
 
 bool MovingObjects::applyNewParamsAtRuntime()
 {
