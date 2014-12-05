@@ -14,6 +14,7 @@
 #include "Util.h"
 #include <QHash>
 
+static const bool excessiveDebug = false;
 
 namespace Shapes {
 	
@@ -116,8 +117,13 @@ void GradientShape::setupDl(GLuint & dl, bool use_grad_tex)
 	gtex = 0;
 	if (use_grad_tex && &dl == &dl_grad) {
 		gtex = tcache->getAndRetain(grad_type, grad_min, grad_max);
-		dl = dlGradGetAndRetain(Vec4f(gtex,grad_freq,grad_angle,grad_offset));
-		//Debug() << "setupDl(): gradient tex=true, dl=" << dl << " dlrefct=" << dlRefcts[dl];
+		const int type_id = (dynamic_cast<Ellipse *>(this) ? 1 : (dynamic_cast<Rectangle *>(this) ? 2 : 0));
+		if (!type_id) {
+			Error() << "GradientShape::setupDl() -- cannot determine type_id for object! FIXME!";
+		}
+		dl = dlGradGetAndRetain(Vec5f(type_id,
+									  gtex,grad_freq,grad_angle,grad_offset));
+		if (excessiveDebug) Debug() << "setupDl(): gradient tex=true, dl=" << dl << " dlrefct=" << dlRefcts[dl];
 	}
 	else if (!dl) {
 		dl = glGenLists(1);
@@ -145,7 +151,7 @@ void GradientShape::drawEnd()
 	Shape::drawEnd();
 }
 	
-/*static*/ GLuint GradientShape::dlGradGetAndRetain(const Vec4f & props)
+/*static*/ GLuint GradientShape::dlGradGetAndRetain(const Vec5f & props)
 {
 	GLuint ret = 0;
 	DLRev::const_iterator it = dlsRev.find(props);
@@ -191,7 +197,7 @@ void GradientShape::TexCache::release(GLuint tex)
 			if (it2 != texProp.end())  propTex.remove(it2.value());
 			texProp.erase(it2);
 			ref.erase(it);
-			//Debug() << "Deleting texture " << tex;
+			if (excessiveDebug) Debug() << "Deleting texture " << tex;
 			glDeleteTextures(1, &tex);
 		}
 	} else {
@@ -226,9 +232,9 @@ GLuint GradientShape::TexCache::getAndRetain(GradType t, float min, float max)
 		} else {
 			Error() << "INTERNAL ERROR IN GradientShape::TexCache::texGetAndRetain() -- prop is in propTex but not in ref! FIXME!";
 		}
-		//if (ret) Debug() << "GradientShape::TexCache::getAndRetain(" << int(t) << "," << min << "," << max << ") found cached texture with id " << ret << " refct: " << (it2.value()-1);
+		if (excessiveDebug && ret) Debug() << "GradientShape::TexCache::getAndRetain(" << int(t) << "," << min << "," << max << ") found cached texture with id " << ret << " refct: " << (it2.value()-1);
 	} else { // create new..
-		//Debug() << "propTex size: " << propTex.size();
+		if (excessiveDebug) Debug() << "propTex size: " << propTex.size();
 		if ((ret = createTex(t, min, max))) {
 			propTex[prop] = ret;
 			texProp[ret] = prop;
@@ -407,10 +413,10 @@ void Ellipse::setupDl(GLuint & displayList, bool use_grad_tex)
 {
 	GradientShape::setupDl(displayList, use_grad_tex);
 	if (use_grad_tex && dlRefcts[displayList] > 1) {
-		//Debug() << "Ellipse::setupDl(): gradient dl " << dl << " already setup (has refct), aborting early..." ;
+		if (excessiveDebug) Debug() << "Ellipse::setupDl(): gradient dl " << displayList << " already setup (has refct), aborting early..." ;
 		return; // was already set up!
 	} 
-	//else Debug() << "Ellipse::setupDl(): no performance improvement possible.. continuing on to dl setup...";
+	else if (excessiveDebug) Debug() << "Ellipse::setupDl(): no performance improvement possible.. continuing on to dl setup...";
 	static const double incr = DEG2RAD(360.0) / numVertices;
 	double radian = 0.;
 	glNewList(displayList, GL_COMPILE);
@@ -474,10 +480,10 @@ void Rectangle::setupDl(GLuint & displayList, bool use_grad_tex)
 {
 	GradientShape::setupDl(displayList, use_grad_tex);
 	if (use_grad_tex && dlRefcts[displayList] > 1) {
-		//Debug() << "Rectangle::setupDl(): gradient dl " << dl << " already setup (has refct), aborting early..." ;
+		if (excessiveDebug) Debug() << "Rectangle::setupDl(): gradient dl " << displayList << " already setup (has refct), aborting early..." ;
 		return; // was already set up!
 	} 
-	//else Debug() << "Rectangle::setupDl(): no performance improvement possible.. continuing on to dl setup...";
+	else if (excessiveDebug) Debug() << "Rectangle::setupDl(): no performance improvement possible.. continuing on to dl setup...";
 	
 	// put the unit square in a display list
 	glNewList(displayList, GL_COMPILE);

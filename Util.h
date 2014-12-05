@@ -213,16 +213,29 @@ private:
     QTextStream s;
 };
 
+template <typename T>
+inline bool genericVectorCompareLessThan(int n, const T *a, const T *b)
+{
+	for (int i = 0; i < n; ++i) {
+		if ( a[i] < b[i] ) return true;
+		else if (a[i] > b[i]) return false;
+	}
+	// if we make it here, it's equal!
+	return false;
+}
+	
 template <typename T=double> 
 struct Vec2T {
 	union { 
 		struct { T x, y; };		
 		struct { T w, h; };		
 		struct { T v1, v2; };
+		T v[2];
 	};
 	Vec2T(T x = 0, T y = 0) : x(x), y(y) {}	
 
-	T & operator[](int i) { if (i == 0) return x; return y; }	
+	T & operator[](int i) { if (i<0) i=0; else if (i>1) i=1; return v[i]; }	
+	const T & operator[](int i) const { if (i<0) i=0; else if (i>1) i=1; return v[i]; }
 
 	template <typename U> Vec2T<T> operator*(const U & u) const { return Vec2T<T>(x*u,y*u); }
 	template <typename U> Vec2T<T> operator/(const U & u) const { return Vec2T<T>(x/u,y/u); }
@@ -230,7 +243,7 @@ struct Vec2T {
 	template <typename U> Vec2T<T> operator-(const U & u) const { return Vec2T<T>(x-u,y-u); }
 	bool operator==(const Vec2T<T> & o) const { return eqf(x,o.x) && eqf(y,o.y); }
 	bool operator!=(const Vec2T<T> & o) const { return !((*this) == o); }
-	bool operator<(const Vec2T<T> & o) const { return magnitude() < o.magnitude(); }
+	bool operator<(const Vec2T<T> & o) const { return genericVectorCompareLessThan(2,v,o.v); }
 	Vec2T<T> operator-(const Vec2T<T> & v) const { return Vec2T<T>(x-v.x,y-v.y); }
 	Vec2T<T> operator+(const Vec2T<T> & v) const { return Vec2T<T>(x+v.x,y+v.y); }
 	T dot(const Vec2T<T> & v) const { return x*v.x + y*v.y; }
@@ -274,10 +287,12 @@ struct Vec3T {
 		struct { T x, y, z; };		
 		struct { T r, g, b; };		
 		struct { T v1, v2, v3; };
+		T v[3];
 	};
 	Vec3T(T v1 = 0, T v2 = 0, T v3 = 0) : v1(v1), v2(v2), v3(v3) {}	
 
-	T & operator[](int i) { if (i == 0) return x; else if (i==1) return y; return z; }
+	T & operator[](int i) { if (i < 0) i=0; else if (i > 2) i=2;  return v[i];  }
+	const T & operator[](int i) const { if (i < 0) i=0; else if (i > 2) i=2;  return v[i];  }
 
 	// some common vector operations
 	Vec3T<T> operator-(const Vec3T<T> & v) const { return Vec3T<T>(x-v.x,y-v.y,z-v.z); }
@@ -288,7 +303,7 @@ struct Vec3T {
 	template <typename U> Vec3T<T> operator-(const U & u) const { return Vec3T<T>(x-u,y-u,z-u); }
 	bool operator==(const Vec3T<T> & o) const { return eqf(x,o.x) && eqf(y,o.y) && eqf(z,o.z); }
 	bool operator!=(const Vec3T<T> & o) const { return !((*this) == o); }
-	bool operator<(const Vec3T<T> & o) const { return magnitude() < o.magnitude(); }
+	bool operator<(const Vec3T<T> & o) const { return genericVectorCompareLessThan(3,v,o.v); }
 	
 	T dot(const Vec3T<T> & v) const { return x*v.x + y*v.y + z*v.z; }
 	Vec3T<T> cross(const Vec3T<T> & v) const {
@@ -333,14 +348,15 @@ struct Vec4T
 		struct { T x, y, z, w; };		
 		struct { T r, g, b, a; };		
 		struct { T v1, v2, v3, v4; };
+		T v[4];
 	};
 	Vec4T(T v1 = 0, T v2 = 0, T v3 = 0, T v4 = 0) : v1(v1), v2(v2), v3(v3), v4(v4) {}
-	T & operator[](int i) { if (i == 0) return x; else if (i==1) return y; else if (i == 2) return z; return w; }
-	const T & operator[](int i) const { if (i == 0) return x; else if (i==1) return y; else if (i == 2) return z; return w; }
+	T & operator[](int i) { if (i < 0) i=0; else if (i > 3) i=3;  return v[i];  }
+	const T & operator[](int i) const { if (i < 0) i=0; else if (i > 3) i=3;  return v[i];  }
 	T distance(const Vec4T<T> &v) const { return ((*this)-v).magnitude(); }
 	bool operator==(const Vec4T<T> & o) const { return eqf(x,o.x) && eqf(y,o.y) && eqf(z,o.z) && eqf(w,o.w); }
 	bool operator!=(const Vec4T<T> & o) const { return !((*this) == o); }
-	bool operator<(const Vec4T<T> & o) const { return magnitude() < o.magnitude(); }
+	bool operator<(const Vec4T<T> & o) const { return genericVectorCompareLessThan(4,v,o.v); }
 	T magnitude() const { return sqrt(x*x + y*y + z*z + w*w); }
 
 	QString toString() const { return QString("%1,%2,%3,%4").arg(v1).arg(v2).arg(v3).arg(v4); }
@@ -363,6 +379,45 @@ struct Vec4T
 template <>
 inline bool Vec4T<float>::operator==(const Vec4T<float> & o) const { return feqf(x,o.x) && feqf(y,o.y) && feqf(z,o.z) && feqf(w,o.w); }
 
+	
+template <typename T=double>
+struct Vec5T 
+{
+	union { 
+		struct { T v1, v2, v3, v4, v5; };
+		T v[5];
+	};
+	Vec5T(T v1 = 0, T v2 = 0, T v3 = 0, T v4 = 0, T v5 = 0) : v1(v1), v2(v2), v3(v3), v4(v4), v5(v5) {}
+	T & operator[](int i) { if (i < 0) i=0; else if (i > 4) i=4;  return v[i];  }
+	const T & operator[](int i) const { if (i < 0) i=0; else if (i > 4) i=4;  return v[i];  }
+	T distance(const Vec5T<T> &v) const { return ((*this)-v).magnitude(); }
+	bool operator==(const Vec5T<T> & o) const { return eqf(v1,o.v1) && eqf(v2,o.v2) && eqf(v3,o.v3) && eqf(v4,o.v4) && eqf(v5,o.v5);; }
+	bool operator!=(const Vec5T<T> & o) const { return !((*this) == o); }
+	bool operator<(const Vec5T<T> & o) const { return genericVectorCompareLessThan(5,v,o.v); }
+	T magnitude() const { return sqrt(v1*v1 + v2*v2 + v3*v3 + v4*v4 + v5*v5); }
+	
+	QString toString() const { return QString("%1,%2,%3,%4,%5").arg(v1).arg(v2).arg(v3).arg(v4).arg(v5); }
+	bool fromString(const QString &s) {
+		QStringList nums = s.split(",",QString::SkipEmptyParts);
+		if (nums.size() == 4) {
+			Vec5T<T> dummy;
+			bool ok;
+			dummy.v1 = (T)nums[0].toDouble(&ok);
+			if (ok) dummy.v2 = (T)nums[1].toDouble(&ok);
+			if (ok) dummy.v3 = (T)nums[2].toDouble(&ok);
+			if (ok) dummy.v4 = (T)nums[3].toDouble(&ok);
+			if (ok) dummy.v5 = (T)nums[4].toDouble(&ok);
+			if (ok) (*this) = dummy;
+			return ok;
+		}
+		return false;
+	}
+};
+
+template <>
+inline bool Vec5T<float>::operator==(const Vec5T<float> & o) const { return feqf(v1,o.v1) && feqf(v2,o.v2) && feqf(v3,o.v3) && feqf(v4,o.v4) && feqf(v5,o.v5); }
+	
+	
 typedef Vec2T<double> Vec2d;
 typedef Vec2T<float> Vec2f;
 typedef Vec2T<int> Vec2i;
@@ -374,12 +429,14 @@ extern const Vec2i Vec2iZero; // default 0 vec -- useful as a default argument t
 extern const Vec2i Vec2iUnit; // unit vector, that is, (1,1) -- usefule as a default argument to functions
 
 typedef Vec3T<double> Vec3;
-typedef Vec4T<int> Vec4i;
 typedef Vec3T<int> Vec3i;
-typedef Vec4T<double> Vec4;
-	
 typedef Vec3T<float> Vec3f;
+typedef Vec4T<double> Vec4;
+typedef Vec4T<int> Vec4i;	
 typedef Vec4T<float> Vec4f;
+typedef Vec5T<double> Vec5;
+typedef Vec5T<int> Vec5i;	
+typedef Vec5T<float> Vec5f;
 	
 extern const Vec3 Vec3Zero; // default 0 vec -- useful as a default argument to functions
 extern const Vec3 Vec3Unit; // default unit vec -- useful as a default argument to functions

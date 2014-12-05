@@ -126,14 +126,14 @@ protected:
 	      grad_offset; ///< default 0.0
 	
 	float grad_min, grad_max;
-	
+		
 	typedef QMap<GLuint, int> DLRefctMap; 
-	typedef QMap<GLuint,Vec4f> DLMap;
-	typedef QMap<Vec4f,GLuint> DLRev;
+	typedef QMap<GLuint,Vec5f> DLMap;
+	typedef QMap<Vec5f,GLuint> DLRev;
 	static DLRefctMap dlRefcts; /// maps dl_grad display lists to counters.. implementing shared display lists
 	static DLMap dls;
 	static DLRev dlsRev;
-	static GLuint dlGradGetAndRetain(const Vec4f & props); ///< props are tex_id,freq,angle,offset!
+	static GLuint dlGradGetAndRetain(const Vec5f & props); ///< props are tex_id,freq,angle,offset!
 	static void dlGradRelease(GLuint dl);
 	static void dlGradRetain(GLuint dl);
 	
