@@ -75,6 +75,19 @@ double getTime()
     if (!t0) t0 = ct;
     return double(ct-t0) / double(freq);
 }
+u64 getAbsTimeNS()
+{
+	static __int64 freq = 0;
+	__int64 ct, factor;
+	
+	if (!freq) {
+		QueryPerformanceFrequency((LARGE_INTEGER *)&freq);
+	}
+	QueryPerformanceCounter((LARGE_INTEGER *)&ct);   // reads the current time (in system units) 
+	factor = 1000000000LL/freq;
+	if (factor <= 0) factor = 1;
+	return u64(ct * factor);
+}	
 /// sets the process affinity mask -- a bitset of which processors to run on
 void setProcessAffinityMask(unsigned mask)
 {
@@ -123,7 +136,12 @@ double getTime()
         if (t0 < 0.) t0 = t; 
         return t-t0;
 }
-
+u64 getAbsTimeNS()
+{
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return u64(ts.tv_sec)*1000000000ULL + u64(ts.tv_nsec);
+}	
 /// sets the process affinity mask -- a bitset of which processors to run on
 void setProcessAffinityMask(unsigned mask)
 {
@@ -174,7 +192,20 @@ double getTime()
 	mach_timebase_info(&info);
 	return t * (1e-9 * static_cast<double>(info.numer) / static_cast<double>(info.denom) );
 }
-
+u64 getAbsTimeNS() 
+{
+	/* get timer units */
+	mach_timebase_info_data_t info;
+	mach_timebase_info(&info);
+	/* get timer value */
+	uint64_t ts = mach_absolute_time();
+	
+	/* convert to nanoseconds */
+	ts *= info.numer;
+	ts /= info.denom;
+	return ts;
+}
+	
 unsigned long long getHWPhysMem()
 {
 	QProcess p;
@@ -197,6 +228,11 @@ double getTime()
     if (!started) { t.start(); started = true; }
     return double(t.elapsed())/1000.0;
 }
+u64 getAbsTimeNS()
+{
+	return u64(getTime()*1e9);
+}
+
 unsigned long long getHWPhysMem() { return 512ULL*1024ULL*1024ULL; }
 #endif // !Q_OS_DARWIN
 

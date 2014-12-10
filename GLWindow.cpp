@@ -472,6 +472,7 @@ void GLWindow::paintGL()
 				//Debug() << "glMapBuffer of pbo# " << ix << " took: " << (getTime()-t0)*1000. << "ms";
 				if (fs_mem && fshare.lock()) {
 					fshare.shm->frame_num = fs_lastHWFC[ix];
+					fshare.shm->frame_abs_time_ns = getAbsTimeNS();
 					fshare.shm->w = w;
 					fshare.shm->h = h;
 					fshare.shm->fmt = GL_BGRA;

@@ -12,6 +12,7 @@ class StimApp;
 #include <QRegExp>
 #include <math.h>
 #include <QStringList>
+#include "TypeDefs.h"
 
 #define STR1(x) #x
 #define STR(x) STR1(x)
@@ -70,7 +71,11 @@ extern void setVSyncMode(bool vsync);
 
 /// retrieve a time value from the system's high resolution timer, in seconds
 extern double getTime();
-
+	
+/// retrieve a time value from the system's high resolution timer -- the absolute time since system boot is returns, in nanoseconds
+/// implemented to attempt to do synch in the StimGL/SpikeGL frame share mechanism
+extern u64 getAbsTimeNS();
+	
 /// retrieve the frame count from the GLX_SGI_video_sync ext
 extern unsigned getHWFrameCount();
 
