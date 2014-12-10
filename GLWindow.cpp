@@ -11,6 +11,8 @@
 
 #define WINDOW_TITLE "StimulateOpenGL II - GLWindow"
 
+static const bool excessiveDebug = true;
+
 GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
     : QGLWidget((QWidget *)0,0,static_cast<Qt::WindowFlags>(
 #ifdef Q_OS_WIN														
@@ -467,12 +469,12 @@ void GLWindow::paintGL()
 				const int ix = fs_pbo_ix % N_PBOS;
 				// data from last frame should be ready
 				glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[ix]);
-				//double t0 = getTime();
+				double t0 = getTime();
 				const void *fs_mem = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
-				//Debug() << "glMapBuffer of pbo# " << ix << " took: " << (getTime()-t0)*1000. << "ms";
+				if (excessiveDebug) Debug() << "glMapBuffer of pbo# " << ix << " took: " << (getTime()-t0)*1000. << "ms";
 				if (fs_mem && fshare.lock()) {
 					fshare.shm->frame_num = fs_lastHWFC[ix];
-					fshare.shm->frame_abs_time_ns = getAbsTimeNS();
+					if (excessiveDebug) pushFSTSC(fshare.shm->frame_abs_time_ns = getAbsTimeNS());
 					fshare.shm->w = w;
 					fshare.shm->h = h;
 					fshare.shm->fmt = GL_BGRA;
@@ -484,19 +486,20 @@ void GLWindow::paintGL()
 					fshare.shm->box_h = fs_rect.v4/win_height;
 					memcpy((void *)fshare.shm->data, fs_mem, fshare.shm->sz_bytes);
 					fshare.unlock();
-					//t0 = getTime();
+					t0 = getTime();
 					glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-					//Debug() << "glUnmapBuffer of pbo#" << ix << " took: " << (getTime()-t0)*1000. << "ms";
+					if (excessiveDebug) Debug() << "glUnmapBuffer of pbo#" << ix << " took: " << (getTime()-t0)*1000. << "ms";
 				}
 			}
+			if (excessiveDebug) Debug() << "FSShare: Last 5 frame avg FPS=" << (1.0/getFSAvgTimeLastN(2));
 			const int ix(fs_pbo_ix % N_PBOS);
 			glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[ix]);
 			GLint bufwas;
 			glGetIntegerv(GL_READ_BUFFER, &bufwas);
 			glReadBuffer(GL_FRONT);
-			//double t0 = getTime();
+			double t0 = getTime();
 			glReadPixels(dfw?0:fs_rect.x,dfw?0:fs_rect.y,w,h,GL_BGRA,GL_UNSIGNED_BYTE,0);
-			//Debug() << "glReadPixels of pbo#" << (fs_pbo_ix%2) << " took: " << (getTime()-t0)*1000. << "ms";
+			if (excessiveDebug) Debug() << "glReadPixels of pbo#" << (fs_pbo_ix%2) << " took: " << (getTime()-t0)*1000. << "ms";
 			fs_lastHWFC[ix] = lastHWFC;
 			fs_bytesz[ix] = sz;
 			glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
@@ -737,4 +740,28 @@ QList<QString> GLWindow::plugins() const
     }
     return ret;
 }
+
+double GLWindow::getFSAvgTimeLastN(unsigned n_frames)
+{
+	if (n_frames > (unsigned)fs_frame_tscs.size()) n_frames = fs_frame_tscs.size();
+	if (n_frames <= 1) return 0.;
+	unsigned i = 0;
+	double avg = 0.0, fact = 1.0/double(n_frames-1);
+	quint64 last = 0;
+	
+	for (QList<quint64>::const_iterator it = fs_frame_tscs.begin(); it != fs_frame_tscs.end() && i < n_frames; ++i, ++it) {
+		if (last) {
+			avg += (last-(*it))/fact;
+		}
+		last = *it;
+	}
+	return avg / 1e9;
+}
+void GLWindow::pushFSTSC(quint64 tsc)
+{
+	static const int max = 120;
+	fs_frame_tscs.push_front(tsc);
+	if (fs_frame_tscs.size() > int(max*1.25)) fs_frame_tscs = fs_frame_tscs.mid(0,max);
+}
+
 

@@ -96,7 +96,8 @@ namespace StimGL_SpikeGL_Integration
 		float box_x, box_y, box_w, box_h; ///< StimGL writes to this to tell SpikeGL the exact area of the overlay box relative to the overall StimGL window, coordinate range of values is always 0->1
 		int dump_full_window; ///< SpikeGL writes to this to tell StimGL to not use the overlay box area and instead dump entire StimGL window, if true
 		quint64 frame_abs_time_ns; ///< StimGL writes to this to give SpikeGL an indication of the age/time of the frame...
-		int reserved[15]; ///< reserved for future implementations and to align the data a bit..
+		int frame_rate_limit; ///< SpikeGL writes to this to tell StimGL at what approx. rate to write frames into the buffer.  Defaults to 10. 0 means don't use a frame rate limit.
+		int reserved[14]; ///< reserved for future implementations and to align the data a bit..
 		char data[1]; ///< the frame data, written-to by StimGL.. real size is obviously bigger than 1!
 	};
 	
