@@ -453,17 +453,15 @@ unsigned getHWFrameCount()
 	static BOOL (WINAPI *funcNV)(HDC, GLuint *) = 0;
     static BOOL (WINAPI *func)(HDC, INT64 *ust, INT64 *msc, INT64 *sbc) = 0;
     static bool triedToFindFunc = false;
-    if (!triedToFindFunc && !func) {
+    if (!triedToFindFunc && !func && stimApp() && stimApp()->glWin()) {
         triedToFindFunc = true;
         stimApp()->glWin()->makeCurrent();
 		funcNV = (BOOL (WINAPI *)(HDC, GLuint *))QGLContext::currentContext()->getProcAddress("wglQueryFrameCountNV");
+		func = (BOOL (WINAPI *)(HDC, INT64 *, INT64 *, INT64 *))QGLContext::currentContext()->getProcAddress( "wglGetSyncValuesOML" );
 		if (funcNV) {
 			Debug() << "Found NVIDIA QueryFrameCountNV function! YAY!";
-		} else {
-			func = (BOOL (WINAPI *)(HDC, INT64 *, INT64 *, INT64 *))QGLContext::currentContext()->getProcAddress( "wglGetSyncValuesOML" );
-			if (!func) {
-				Error() << "No hw framecount func., will be emulated"; 
-			}
+		} else if (!func) {
+			Error() << "No hw framecount func., will be emulated"; 
 		}
     }
 	if (funcNV) {
@@ -472,8 +470,10 @@ unsigned getHWFrameCount()
 		HDC hdc = wglGetCurrentDC();
 		GLuint fc = 0;
 		funcNV(hdc, &fc);
-		return fc;
-	} else if (func) {
+		if (fc)	return fc;
+		// otherwise fall through..
+	} 
+	if (func) {
 		if (stimApp() && stimApp()->glWin())
 			stimApp()->glWin()->makeCurrent();			
         static INT64 f0 = 0;
@@ -481,8 +481,14 @@ unsigned getHWFrameCount()
         INT64 ust, msc, sbc;
         func(hdc, &ust, &msc, &sbc);
         if (!f0) f0 = msc;
-        return msc-f0;
+		if (msc) return msc-f0; 
     }
+	static bool didWarn = false;
+	bool needWarn = funcNV || func;
+	if (needWarn && !didWarn) {
+		Error() << "HW framecount functions appear to return 0 values -- hwfc will be emulated!";
+		didWarn = true;
+	}
     // otherwise emulated from the time and the HW refresh count -- note this may be off or drift because the system CPU clock is not necessarily synchronized to the video clock, right?
     return static_cast<unsigned>(getTime() * getHWRefreshRate()); 
 }
