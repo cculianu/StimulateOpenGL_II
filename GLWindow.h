@@ -134,6 +134,7 @@ private:
 	GLuint fs_w, fs_h, fs_pbo[N_PBOS], fs_pbo_ix, fs_lastHWFC[N_PBOS], fs_bytesz[N_PBOS];
 	float fs_delay_ctr;
 	QList<quint64> fs_frame_tscs;
+	QList<GLuint> fs_q1, fs_q2;
 	
 	double getFSAvgTimeLastN(unsigned n_frames);
 	void pushFSTSC(quint64 tsc);

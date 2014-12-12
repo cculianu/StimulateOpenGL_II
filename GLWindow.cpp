@@ -11,7 +11,7 @@
 
 #define WINDOW_TITLE "StimulateOpenGL II - GLWindow"
 
-static const bool excessiveDebug = true;
+static const bool excessiveDebug = false;
 
 GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
     : QGLWidget((QWidget *)0,0,static_cast<Qt::WindowFlags>(
@@ -495,59 +495,67 @@ void GLWindow::processFrameShare()
 			if (!fs_pbo[0] || fs_w != win_width || fs_h != win_height) {
 				if (fs_pbo[0]) glDeleteBuffers(N_PBOS, fs_pbo);
 				glGenBuffers(N_PBOS, fs_pbo);
-				fs_pbo_ix = 0;
+				fs_pbo_ix = 0;	fs_q1.clear(); fs_q2.clear();
 				for (int i = 0; i < N_PBOS; ++i) {
 					glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[i]);
 					glBufferData(GL_PIXEL_PACK_BUFFER, win_width*win_height*4, 0, GL_DYNAMIC_READ);
 				}
 				fs_w = win_width, fs_h = win_height;
-			} else if (fs_pbo_ix >= (unsigned)N_PBOS && grabThisFrame) {
-				const int ix = fs_pbo_ix % N_PBOS;
-				// data from last frame should be ready
-				glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[ix]);
-				double t0 = getTime();
-				const void *fs_mem = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
-				if (excessiveDebug) Debug() << "glMapBuffer of pbo# " << ix << " took: " << (getTime()-t0)*1000. << "ms";
-				if (fs_mem && fshare.lock()) {
-					fshare.shm->frame_num = fs_lastHWFC[ix];
-					fshare.shm->frame_abs_time_ns = getAbsTimeNS();
-					if (excessiveDebug) pushFSTSC(fshare.shm->frame_abs_time_ns);
-					fshare.shm->w = w;
-					fshare.shm->h = h;
-					fshare.shm->fmt = GL_BGRA;
-					static const unsigned fssds(FRAME_SHARE_SHM_DATA_SIZE);
-					fshare.shm->sz_bytes = fs_bytesz[ix] < fssds ? fs_bytesz[ix] : fssds;
-					fshare.shm->box_x = fs_rect.x/win_width;
-					fshare.shm->box_y = fs_rect.y/win_height;
-					fshare.shm->box_w = fs_rect.v3/win_width;
-					fshare.shm->box_h = fs_rect.v4/win_height;
-					memcpy((void *)fshare.shm->data, fs_mem, fshare.shm->sz_bytes);
-					fshare.unlock();
-					t0 = getTime();
-					glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-					if (excessiveDebug) Debug() << "glUnmapBuffer of pbo#" << ix << " took: " << (getTime()-t0)*1000. << "ms";
+			} else if (!fs_q2.empty()) {
+				for (QList<GLuint>::const_iterator it = fs_q2.begin(); it != fs_q2.end(); ++it) {
+					const int ix = *it;
+					// data from last frame should be ready
+					glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[ix]);
+					double t0 = getTime();
+					const void *fs_mem = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+					if (excessiveDebug) Debug() << "glMapBuffer of pbo# " << ix << " took: " << (getTime()-t0)*1000. << "ms";
+					if (fs_mem && fshare.lock()) {
+						fshare.shm->frame_num = fs_lastHWFC[ix];
+						fshare.shm->frame_abs_time_ns = getAbsTimeNS();
+						if (excessiveDebug) pushFSTSC(fshare.shm->frame_abs_time_ns);
+						fshare.shm->w = w;
+						fshare.shm->h = h;
+						fshare.shm->fmt = GL_BGRA;
+						static const unsigned fssds(FRAME_SHARE_SHM_DATA_SIZE);
+						fshare.shm->sz_bytes = fs_bytesz[ix] < fssds ? fs_bytesz[ix] : fssds;
+						fshare.shm->box_x = fs_rect.x/win_width;
+						fshare.shm->box_y = fs_rect.y/win_height;
+						fshare.shm->box_w = fs_rect.v3/win_width;
+						fshare.shm->box_h = fs_rect.v4/win_height;
+						memcpy((void *)fshare.shm->data, fs_mem, fshare.shm->sz_bytes);
+						fshare.unlock();
+						t0 = getTime();
+						glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+						if (excessiveDebug) Debug() << "glUnmapBuffer of pbo#" << ix << " took: " << (getTime()-t0)*1000. << "ms";
+					}
 				}
+				fs_q2.clear();
 			}
 			if (excessiveDebug) Debug() << "FSShare: Last 2 frame FPS=" << (1.0/getFSAvgTimeLastN(2));
+			fs_q2.append(fs_q1);
+			fs_q1.clear();
 			if (grabThisFrame) {
-				const int ix(fs_pbo_ix % N_PBOS);
+				const unsigned ix(fs_pbo_ix % N_PBOS);
 				glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[ix]);
 				GLint bufwas;
 				glGetIntegerv(GL_READ_BUFFER, &bufwas);
 				glReadBuffer(GL_FRONT);
 				double t0 = getTime();
 				glReadPixels(dfw?0:fs_rect.x,dfw?0:fs_rect.y,w,h,GL_BGRA,GL_UNSIGNED_BYTE,0);
-				if (excessiveDebug) Debug() << "glReadPixels of pbo#" << (fs_pbo_ix%2) << " took: " << (getTime()-t0)*1000. << "ms";
+				if (excessiveDebug) Debug() << "glReadPixels of pbo#" << (ix) << " took: " << (getTime()-t0)*1000. << "ms";
 				fs_lastHWFC[ix] = lastHWFC;
 				fs_bytesz[ix] = sz;
 				glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 				glReadBuffer(bufwas);
+				fs_q1.push_back(ix);
 				++fs_pbo_ix;
 			}
 			
 			//Debug() << "Entire fshare routine took: " << ((getTime()-t0)*1000.) << "ms";
 		} else { // !fshare.shm->enabled
 			fs_pbo_ix = 0; // make sure to zero out the fs_pbo_ix always because we want to "get rid of" old/stale PBOs when user toggles enable/disable 
+			fs_q1.clear();
+			fs_q2.clear();
 		}
 		if (fshare.shm->do_box_select) {
 			fshare.lock();
