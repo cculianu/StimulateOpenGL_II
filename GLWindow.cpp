@@ -21,7 +21,7 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 															(frameless ? Qt::FramelessWindowHint : (Qt::WindowFlags)0))), 
        aMode(false), running(0), paused(false), tooFastWarned(false),  
        lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.), delayCtr(0), delayt0(0.), 
-       delayFPS(0.), debugLogFrames(false), clearColor(0.5,0.5,0.5), fs_w(0), fs_h(0), fs_pbo_ix(0)
+       delayFPS(0.), debugLogFrames(false), clearColor(0.5,0.5,0.5), fs_w(0), fs_h(0), fs_pbo_ix(0), fs_delay_ctr(1.0f)
 
 {
     memset(fs_pbo, 0, sizeof fs_pbo);
@@ -47,6 +47,9 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 	boxSelector = new GLBoxSelector(this);
 	boxSelector->loadSettings();
 	blockPaint = false;
+	win_width = w;
+	win_height = h;
+	hw_refresh = getHWRefreshRate();
     QSize s(w, h);
     setMaximumSize(s);
     setMinimumSize(s);
@@ -116,6 +119,11 @@ void GLWindow::resizeEvent(QResizeEvent *evt)
             evt->ignore();
 }
 
+void GLWindow::moveEvent(QMoveEvent *evt)
+{
+	hw_refresh = getHWRefreshRate();
+	QGLWidget::moveEvent(evt);
+}
 
 // Set up the rendering context, define display lists etc.:
 void GLWindow::initializeGL()
@@ -147,7 +155,9 @@ void GLWindow::resizeGL(int w, int h)
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity();
     glOrtho( 0.0, (GLdouble)w, 0.0, (GLdouble) h, -1e6, 1e6 );
-	
+	win_width = w;
+	win_height = h;
+	hw_refresh = getHWRefreshRate();
 	fs_rect = fs_rect_saved = boxSelector->getBox();
 }
 
@@ -217,7 +227,6 @@ void GLWindow::paintGL()
 	
     tThisFrame = getTime();
     bool tooFast = false, tooSlow = false, signalDIOOn = false;
-	const float win_width = width(), win_height = height();
 	
     if (timer->isActive()) return; // this was a spurious paint event
     unsigned timerpd = 1000/MAX(stimApp()->refreshRate(),120)/2;
@@ -242,7 +251,7 @@ void GLWindow::paintGL()
         lastHWFC = hwfc;
     } else if (!stimApp()->busy()/*hasAccurateHWRefreshRate()*/ && tLastLastFrame > 0.) {
         double diff = tThisFrame-tLastFrame/*, diff2 = tThisFrame-tLastLastFrame*/;
-        double tFrames = 1.0/getHWRefreshRate();
+        double tFrames = 1.0/hw_refresh;
         if (diff > tFrames*2.) tooSlow = true;
         /*else if (diff2 < tFrames) tooFast = true;*/
 		lastHWFC = getHWFrameCount();
@@ -451,79 +460,9 @@ void GLWindow::paintGL()
 		
         // don't swap buffers here to avoid frame ghosts in 'A' Mode on Windows.. We get frame ghosts in Windows in 'A' mode when paused or not running because we didn't draw a new frame if paused, and so swapping the buffers causes previous frames to appear onscreen
     }
-	if (fshare.shm) {
-		if (fshare.shm->enabled) {
-			//const double t0(getTime());
-			const bool dfw = fshare.shm->dump_full_window;
-			const unsigned w = dfw ? win_width : fs_rect.v3, h = dfw ? win_height : fs_rect.v4, sz = w*h*4;
-			if (!fs_pbo[0] || fs_w != win_width || fs_h != win_height) {
-				if (fs_pbo[0]) glDeleteBuffers(N_PBOS, fs_pbo);
-				glGenBuffers(N_PBOS, fs_pbo);
-				fs_pbo_ix = 0;
-				for (int i = 0; i < N_PBOS; ++i) {
-					glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[i]);
-					glBufferData(GL_PIXEL_PACK_BUFFER, win_width*win_height*4, 0, GL_DYNAMIC_READ);
-				}
-				fs_w = win_width, fs_h = win_height;
-			} else if (fs_pbo_ix >= (unsigned)N_PBOS) {
-				const int ix = fs_pbo_ix % N_PBOS;
-				// data from last frame should be ready
-				glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[ix]);
-				double t0 = getTime();
-				const void *fs_mem = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
-				if (excessiveDebug) Debug() << "glMapBuffer of pbo# " << ix << " took: " << (getTime()-t0)*1000. << "ms";
-				if (fs_mem && fshare.lock()) {
-					fshare.shm->frame_num = fs_lastHWFC[ix];
-					if (excessiveDebug) pushFSTSC(fshare.shm->frame_abs_time_ns = getAbsTimeNS());
-					fshare.shm->w = w;
-					fshare.shm->h = h;
-					fshare.shm->fmt = GL_BGRA;
-					static const unsigned fssds(FRAME_SHARE_SHM_DATA_SIZE);
-					fshare.shm->sz_bytes = fs_bytesz[ix] < fssds ? fs_bytesz[ix] : fssds;
-					fshare.shm->box_x = fs_rect.x/win_width;
-					fshare.shm->box_y = fs_rect.y/win_height;
-					fshare.shm->box_w = fs_rect.v3/win_width;
-					fshare.shm->box_h = fs_rect.v4/win_height;
-					memcpy((void *)fshare.shm->data, fs_mem, fshare.shm->sz_bytes);
-					fshare.unlock();
-					t0 = getTime();
-					glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-					if (excessiveDebug) Debug() << "glUnmapBuffer of pbo#" << ix << " took: " << (getTime()-t0)*1000. << "ms";
-				}
-			}
-			if (excessiveDebug) Debug() << "FSShare: Last 5 frame avg FPS=" << (1.0/getFSAvgTimeLastN(2));
-			const int ix(fs_pbo_ix % N_PBOS);
-			glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[ix]);
-			GLint bufwas;
-			glGetIntegerv(GL_READ_BUFFER, &bufwas);
-			glReadBuffer(GL_FRONT);
-			double t0 = getTime();
-			glReadPixels(dfw?0:fs_rect.x,dfw?0:fs_rect.y,w,h,GL_BGRA,GL_UNSIGNED_BYTE,0);
-			if (excessiveDebug) Debug() << "glReadPixels of pbo#" << (fs_pbo_ix%2) << " took: " << (getTime()-t0)*1000. << "ms";
-			fs_lastHWFC[ix] = lastHWFC;
-			fs_bytesz[ix] = sz;
-			glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-			glReadBuffer(bufwas);
-			++fs_pbo_ix;
-
-			//Debug() << "Entire fshare routine took: " << ((getTime()-t0)*1000.) << "ms";
-		} else { // !fshare.shm->enabled
-			fs_pbo_ix = 0; // make sure to zero out the fs_pbo_ix always because we want to "get rid of" old/stale PBOs when user toggles enable/disable 
-		}
-		if (fshare.shm->do_box_select) {
-			fshare.lock();
-			fshare.shm->do_box_select = 0;
-			fshare.unlock();
-			fs_rect_saved = fs_rect = boxSelector->getBox();
-			boxSelector->setEnabled(true);
-			boxSelector->setHidden(false);
-			activateWindow();
-			raise();
-			Log() << "SpikeGL requested a 'frame-share' clipping rectangle definition...\n";
-			Log() << "Use the mouse cursor to adjust the rectangle, ENTER to accept it, or ESC to cancel."; 
-		}
-	}
-
+	
+	processFrameShare();
+	
 	
 #ifdef Q_OS_WIN
 	    //timer->start(timerpd);
@@ -543,6 +482,93 @@ void GLWindow::paintGL()
 			running->doRealtimeParamUpdateHousekeeping();
     }
     
+}
+
+void GLWindow::processFrameShare()
+{
+	if (fshare.shm) {
+		fs_delay_ctr -= 1.0f;
+		const bool grabThisFrame = (fs_delay_ctr <= 0.0001f);
+		if (fshare.shm->enabled) {
+			const bool dfw = fshare.shm->dump_full_window;
+			const unsigned w = dfw ? win_width : fs_rect.v3, h = dfw ? win_height : fs_rect.v4, sz = w*h*4;
+			if (!fs_pbo[0] || fs_w != win_width || fs_h != win_height) {
+				if (fs_pbo[0]) glDeleteBuffers(N_PBOS, fs_pbo);
+				glGenBuffers(N_PBOS, fs_pbo);
+				fs_pbo_ix = 0;
+				for (int i = 0; i < N_PBOS; ++i) {
+					glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[i]);
+					glBufferData(GL_PIXEL_PACK_BUFFER, win_width*win_height*4, 0, GL_DYNAMIC_READ);
+				}
+				fs_w = win_width, fs_h = win_height;
+			} else if (fs_pbo_ix >= (unsigned)N_PBOS && grabThisFrame) {
+				const int ix = fs_pbo_ix % N_PBOS;
+				// data from last frame should be ready
+				glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[ix]);
+				double t0 = getTime();
+				const void *fs_mem = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+				if (excessiveDebug) Debug() << "glMapBuffer of pbo# " << ix << " took: " << (getTime()-t0)*1000. << "ms";
+				if (fs_mem && fshare.lock()) {
+					fshare.shm->frame_num = fs_lastHWFC[ix];
+					fshare.shm->frame_abs_time_ns = getAbsTimeNS();
+					if (excessiveDebug) pushFSTSC(fshare.shm->frame_abs_time_ns);
+					fshare.shm->w = w;
+					fshare.shm->h = h;
+					fshare.shm->fmt = GL_BGRA;
+					static const unsigned fssds(FRAME_SHARE_SHM_DATA_SIZE);
+					fshare.shm->sz_bytes = fs_bytesz[ix] < fssds ? fs_bytesz[ix] : fssds;
+					fshare.shm->box_x = fs_rect.x/win_width;
+					fshare.shm->box_y = fs_rect.y/win_height;
+					fshare.shm->box_w = fs_rect.v3/win_width;
+					fshare.shm->box_h = fs_rect.v4/win_height;
+					memcpy((void *)fshare.shm->data, fs_mem, fshare.shm->sz_bytes);
+					fshare.unlock();
+					t0 = getTime();
+					glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+					if (excessiveDebug) Debug() << "glUnmapBuffer of pbo#" << ix << " took: " << (getTime()-t0)*1000. << "ms";
+				}
+			}
+			if (excessiveDebug) Debug() << "FSShare: Last 2 frame FPS=" << (1.0/getFSAvgTimeLastN(2));
+			if (grabThisFrame) {
+				const int ix(fs_pbo_ix % N_PBOS);
+				glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[ix]);
+				GLint bufwas;
+				glGetIntegerv(GL_READ_BUFFER, &bufwas);
+				glReadBuffer(GL_FRONT);
+				double t0 = getTime();
+				glReadPixels(dfw?0:fs_rect.x,dfw?0:fs_rect.y,w,h,GL_BGRA,GL_UNSIGNED_BYTE,0);
+				if (excessiveDebug) Debug() << "glReadPixels of pbo#" << (fs_pbo_ix%2) << " took: " << (getTime()-t0)*1000. << "ms";
+				fs_lastHWFC[ix] = lastHWFC;
+				fs_bytesz[ix] = sz;
+				glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+				glReadBuffer(bufwas);
+				++fs_pbo_ix;
+			}
+			
+			//Debug() << "Entire fshare routine took: " << ((getTime()-t0)*1000.) << "ms";
+		} else { // !fshare.shm->enabled
+			fs_pbo_ix = 0; // make sure to zero out the fs_pbo_ix always because we want to "get rid of" old/stale PBOs when user toggles enable/disable 
+		}
+		if (fshare.shm->do_box_select) {
+			fshare.lock();
+			fshare.shm->do_box_select = 0;
+			fshare.unlock();
+			fs_rect_saved = fs_rect = boxSelector->getBox();
+			boxSelector->setEnabled(true);
+			boxSelector->setHidden(false);
+			activateWindow();
+			raise();
+			Log() << "SpikeGL requested a 'frame-share' clipping rectangle definition...\n";
+			Log() << "Use the mouse cursor to adjust the rectangle, ENTER to accept it, or ESC to cancel."; 
+		}
+		if (grabThisFrame) {
+			//if (excessiveDebug) Debug() << "fs_delay_ctr= " << fs_delay_ctr << ", would have written frame# " << lastHWFC;
+			unsigned frl = fshare.shm->frame_rate_limit;
+			if (frl > hw_refresh || !frl) frl = hw_refresh;
+			fs_delay_ctr += hw_refresh/float(frl);
+		}
+		//if (excessiveDebug) Debug() << "fs_delay_ctr: " << fs_delay_ctr;
+	}	
 }
 
 void GLWindow::copyBlinkBuf() 
@@ -575,6 +601,7 @@ void GLWindow::pluginStarted(StimPlugin *p)
 {
     if (running) { running->stop(); }
     running = p;
+	hw_refresh = getHWRefreshRate();
     Log() << p->name() << " started";
 }
 
@@ -593,6 +620,7 @@ void GLWindow::pluginStopped(StimPlugin *p)
 		}
         running = 0;
         paused = false;
+		hw_refresh = getHWRefreshRate();
         Log() << p->name() << " stopped.";
         setWindowTitle(WINDOW_TITLE);
     }

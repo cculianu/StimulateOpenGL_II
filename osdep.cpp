@@ -520,6 +520,7 @@ unsigned getHWRefreshRate()
             ReleaseDC(stimApp()->glWin()->winId(), dc);
         }
         //}
+	//Debug() >> "getHWRefreshRate() to return: " << rate;
     return rate;
 }
 

@@ -99,6 +99,9 @@ protected:
 
      /// overrides QWidget methoed -- catch keypresses -- all keyboard handling happens in this class
      void keyPressEvent(QKeyEvent *event);
+	
+	/// overrides QWidget -- catch the refresh rate in case the window moved to a new monitor..
+	void moveEvent(QMoveEvent *event);
 
 private:
 	bool blockPaint;
@@ -119,13 +122,17 @@ private:
 	double tThisFrame, tLastFrame, tLastLastFrame;
 	int delayCtr;
 	double delayt0, delayFPS;
+	unsigned win_width, win_height, hw_refresh;
 	
 	bool debugLogFrames;
 	Util::Vec3 clearColor;
 	
+	void processFrameShare();
+	
 	StimGL_SpikeGL_Integration::FrameShare fshare;
 	static const int N_PBOS = 2; ///< number of frameshare PBOs to use
 	GLuint fs_w, fs_h, fs_pbo[N_PBOS], fs_pbo_ix, fs_lastHWFC[N_PBOS], fs_bytesz[N_PBOS];
+	float fs_delay_ctr;
 	QList<quint64> fs_frame_tscs;
 	
 	double getFSAvgTimeLastN(unsigned n_frames);
