@@ -486,6 +486,7 @@ void GLWindow::paintGL()
 
 void GLWindow::processFrameShare()
 {
+	bool doClear = false;
 	if (fshare.shm) {
 		fs_delay_ctr -= 1.0f;
 		const bool grabThisFrame = (fs_delay_ctr <= 0.0001f);
@@ -518,10 +519,10 @@ void GLWindow::processFrameShare()
 						fshare.shm->fmt = GL_BGRA;
 						static const unsigned fssds(FRAME_SHARE_SHM_DATA_SIZE);
 						fshare.shm->sz_bytes = fs_bytesz[ix] < fssds ? fs_bytesz[ix] : fssds;
-						fshare.shm->box_x = fs_rect.x/win_width;
-						fshare.shm->box_y = fs_rect.y/win_height;
-						fshare.shm->box_w = fs_rect.v3/win_width;
-						fshare.shm->box_h = fs_rect.v4/win_height;
+						fshare.shm->box_x = fs_rect.x/float(win_width);
+						fshare.shm->box_y = fs_rect.y/float(win_height);
+						fshare.shm->box_w = fs_rect.v3/float(win_width);
+						fshare.shm->box_h = fs_rect.v4/float(win_height);
 						memcpy((void *)fshare.shm->data, fs_mem, fshare.shm->sz_bytes);
 						fshare.unlock();
 						t0 = getTime();
@@ -553,9 +554,7 @@ void GLWindow::processFrameShare()
 			
 			//Debug() << "Entire fshare routine took: " << ((getTime()-t0)*1000.) << "ms";
 		} else { // !fshare.shm->enabled
-			fs_pbo_ix = 0; // make sure to zero out the fs_pbo_ix always because we want to "get rid of" old/stale PBOs when user toggles enable/disable 
-			fs_q1.clear();
-			fs_q2.clear();
+			doClear = true;
 		}
 		if (fshare.shm->do_box_select) {
 			fshare.lock();
@@ -576,7 +575,13 @@ void GLWindow::processFrameShare()
 			fs_delay_ctr += hw_refresh/float(frl);
 		}
 		//if (excessiveDebug) Debug() << "fs_delay_ctr: " << fs_delay_ctr;
-	}	
+	} else // !fshare.shm
+		doClear = true;
+	if (doClear) {
+		fs_pbo_ix = 0; // make sure to zero out the fs_pbo_ix always because we want to "get rid of" old/stale PBOs when user toggles enable/disable 
+		fs_q1.clear();
+		fs_q2.clear();		
+	}
 }
 
 void GLWindow::copyBlinkBuf() 
