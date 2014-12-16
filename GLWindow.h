@@ -132,6 +132,7 @@ private:
 	StimGL_SpikeGL_Integration::FrameShare fshare;
 	static const int N_PBOS = 2; ///< number of frameshare PBOs to use
 	GLuint fs_w, fs_h, fs_pbo[N_PBOS], fs_pbo_ix, fs_lastHWFC[N_PBOS], fs_bytesz[N_PBOS];
+	quint64 fs_abs_times[N_PBOS];
 	float fs_delay_ctr;
 	QList<quint64> fs_frame_tscs;
 	QList<int> fs_q1, fs_q2;

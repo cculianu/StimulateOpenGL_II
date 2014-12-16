@@ -521,7 +521,7 @@ void GLWindow::processFrameShare(GLenum which_colorbuffer)
 					if (excessiveDebug) Debug() << "glMapBuffer of pbo# " << ix << " took: " << (getTime()-t0)*1000. << "ms";
 					if (!throwaway && fs_mem && fshare.lock()) {
 						fshare.shm->frame_num = fs_lastHWFC[ix];
-						fshare.shm->frame_abs_time_ns = getAbsTimeNS();
+						fshare.shm->frame_abs_time_ns = fs_abs_times[ix];
 						if (excessiveDebug) pushFSTSC(fshare.shm->frame_abs_time_ns);
 						fshare.shm->w = w;
 						fshare.shm->h = h;
@@ -549,6 +549,9 @@ void GLWindow::processFrameShare(GLenum which_colorbuffer)
 			fs_q1.clear();
 			if (true/*grabThisFrame*/) {
 				const int ix(fs_pbo_ix % N_PBOS);
+				fs_lastHWFC[ix] = lastHWFC;
+				fs_bytesz[ix] = sz;
+				fs_abs_times[ix] = getAbsTimeNS();
 				glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[ix]);
 				GLint bufwas;
 				glGetIntegerv(GL_READ_BUFFER, &bufwas);
@@ -556,8 +559,6 @@ void GLWindow::processFrameShare(GLenum which_colorbuffer)
 				double t0 = getTime();
 				glReadPixels(dfw?0:fs_rect.x,dfw?0:fs_rect.y,w,h,GL_BGRA,GL_UNSIGNED_BYTE,0);
 				if (excessiveDebug) Debug() << "glReadPixels " << (grabThisFrame ? "(realgrab) " : "(throwaway) ") << "of pbo#" << (ix) << " took: " << (getTime()-t0)*1000. << "ms";
-				fs_lastHWFC[ix] = lastHWFC;
-				fs_bytesz[ix] = sz;
 				glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 				glReadBuffer(bufwas);
 				fs_q1.push_back(grabThisFrame ? (ix+1) : -(ix+1)); // offset up so negative takes effect
