@@ -343,6 +343,7 @@ unsigned StimPlugin::height() const
 void StimPlugin::computeFPS()
 {
     double tDiff = (parent->tThisFrame - parent->tLastLastFrame)/2.; 
+	//Debug() << "tDiff: " << tDiff << " 1/tDiff: " << (1.0/tDiff) << " tThisFrame: " << parent->tThisFrame << " tLastFrame: " << parent->tLastFrame << " tLastLastFrame: " << parent->tLastLastFrame;
     if (tDiff > 0.0 && parent->tLastLastFrame > 0.) {
         fps = 1.0/tDiff;
     } else

@@ -127,14 +127,14 @@ private:
 	bool debugLogFrames;
 	Util::Vec3 clearColor;
 	
-	void processFrameShare();
+	void processFrameShare(GLenum which_colorbuffer = GL_FRONT);
 	
 	StimGL_SpikeGL_Integration::FrameShare fshare;
 	static const int N_PBOS = 2; ///< number of frameshare PBOs to use
 	GLuint fs_w, fs_h, fs_pbo[N_PBOS], fs_pbo_ix, fs_lastHWFC[N_PBOS], fs_bytesz[N_PBOS];
 	float fs_delay_ctr;
 	QList<quint64> fs_frame_tscs;
-	QList<GLuint> fs_q1, fs_q2;
+	QList<int> fs_q1, fs_q2;
 	
 	double getFSAvgTimeLastN(unsigned n_frames);
 	void pushFSTSC(quint64 tsc);

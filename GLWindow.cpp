@@ -432,6 +432,9 @@ void GLWindow::paintGL()
 
 		boxSelector->draw();
 
+		glFlush();
+		processFrameShare(GL_BACK);
+
 		swapBuffers();// should wait for vsync...   
 
 		if (running && running->delay > 0 && delayFPS <= 0. && delayt0 > 0. && 0==delayCtr && !paused) {
@@ -457,11 +460,12 @@ void GLWindow::paintGL()
 		// TODO FIXME XXX.. what to do about ghosting here if we aren't swapping buffers?! HALP!!
 		if (boxSelector->draw(GL_FRONT)) 
 			glFlush(); // flush required when drawing to the front buffer..
-		
+
+			processFrameShare(GL_FRONT);
+
         // don't swap buffers here to avoid frame ghosts in 'A' Mode on Windows.. We get frame ghosts in Windows in 'A' mode when paused or not running because we didn't draw a new frame if paused, and so swapping the buffers causes previous frames to appear onscreen
     }
 	
-	processFrameShare();
 	
 	
 #ifdef Q_OS_WIN
@@ -484,7 +488,7 @@ void GLWindow::paintGL()
     
 }
 
-void GLWindow::processFrameShare()
+void GLWindow::processFrameShare(GLenum which_colorbuffer)
 {
 	bool doClear = false;
 	if (fshare.shm) {
@@ -503,14 +507,19 @@ void GLWindow::processFrameShare()
 				}
 				fs_w = win_width, fs_h = win_height;
 			} else if (!fs_q2.empty()) {
-				for (QList<GLuint>::const_iterator it = fs_q2.begin(); it != fs_q2.end(); ++it) {
-					const int ix = *it;
+				for (QList<int>::const_iterator it = fs_q2.begin(); it != fs_q2.end(); ++it) {
+					int ix = *it;
+					bool throwaway = ix < 0;
+					if (throwaway) ix = -ix;
+					--ix; // offset back..
+					double t0 = getTime();
 					// data from last frame should be ready
 					glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[ix]);
-					double t0 = getTime();
+					if (excessiveDebug) Debug() << "glBindBuffer of pbo# " << ix << " took: " << (getTime()-t0)*1000. << "ms";
+					t0 = getTime();
 					const void *fs_mem = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
 					if (excessiveDebug) Debug() << "glMapBuffer of pbo# " << ix << " took: " << (getTime()-t0)*1000. << "ms";
-					if (fs_mem && fshare.lock()) {
+					if (!throwaway && fs_mem && fshare.lock()) {
 						fshare.shm->frame_num = fs_lastHWFC[ix];
 						fshare.shm->frame_abs_time_ns = getAbsTimeNS();
 						if (excessiveDebug) pushFSTSC(fshare.shm->frame_abs_time_ns);
@@ -525,30 +534,33 @@ void GLWindow::processFrameShare()
 						fshare.shm->box_h = fs_rect.v4/float(win_height);
 						memcpy((void *)fshare.shm->data, fs_mem, fshare.shm->sz_bytes);
 						fshare.unlock();
+					}
+					if (fs_mem) {
 						t0 = getTime();
 						glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-						if (excessiveDebug) Debug() << "glUnmapBuffer of pbo#" << ix << " took: " << (getTime()-t0)*1000. << "ms";
+						if (excessiveDebug) Debug() << "glUnmapBuffer " << (throwaway ? "(throwaway) " : "(realgrab) ") << "of pbo#" << ix << " took: " << (getTime()-t0)*1000. << "ms";
 					}
+					glBindBuffer(GL_PIXEL_PACK_BUFFER, 0); // unbind...
 				}
 				fs_q2.clear();
 			}
 			if (excessiveDebug) Debug() << "FSShare: Last 2 frame FPS=" << (1.0/getFSAvgTimeLastN(2));
 			fs_q2.append(fs_q1);
 			fs_q1.clear();
-			if (grabThisFrame) {
-				const unsigned ix(fs_pbo_ix % N_PBOS);
+			if (true/*grabThisFrame*/) {
+				const int ix(fs_pbo_ix % N_PBOS);
 				glBindBuffer(GL_PIXEL_PACK_BUFFER, fs_pbo[ix]);
 				GLint bufwas;
 				glGetIntegerv(GL_READ_BUFFER, &bufwas);
-				glReadBuffer(GL_FRONT);
+				glReadBuffer(which_colorbuffer);
 				double t0 = getTime();
 				glReadPixels(dfw?0:fs_rect.x,dfw?0:fs_rect.y,w,h,GL_BGRA,GL_UNSIGNED_BYTE,0);
-				if (excessiveDebug) Debug() << "glReadPixels of pbo#" << (ix) << " took: " << (getTime()-t0)*1000. << "ms";
+				if (excessiveDebug) Debug() << "glReadPixels " << (grabThisFrame ? "(realgrab) " : "(throwaway) ") << "of pbo#" << (ix) << " took: " << (getTime()-t0)*1000. << "ms";
 				fs_lastHWFC[ix] = lastHWFC;
 				fs_bytesz[ix] = sz;
 				glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 				glReadBuffer(bufwas);
-				fs_q1.push_back(ix);
+				fs_q1.push_back(grabThisFrame ? (ix+1) : -(ix+1)); // offset up so negative takes effect
 				++fs_pbo_ix;
 			}
 			
