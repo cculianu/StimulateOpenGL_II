@@ -38,7 +38,7 @@ win32-g++ {
 	LIBS += -lm
 }
 win32 {
-        LIBS += NI/NIDAQmx.lib WS2_32.lib
+        LIBS += $${PWD}/NI/NIDAQmx.lib WS2_32.lib
         DEFINES += HAVE_NIDAQmx 
 #        LIBS += -lws2_32
         RC_FILE += WinResources.rc
