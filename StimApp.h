@@ -145,7 +145,8 @@ public:
 public slots:    
     /// Set/unset the application-wide 'debug' mode setting.  If the application is in debug mode, Debug() messages are printed to the console window, otherwise they are not
     void setDebugMode(bool); 
-	
+    void setExcessiveDebugMode(bool); ///< access this with the global var Util::excessiveDebug
+
 	void setNoDropFrameWarn(bool);
 	
 	void setSaveFrameVars(bool);

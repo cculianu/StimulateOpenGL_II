@@ -11,8 +11,6 @@
 
 #define WINDOW_TITLE "StimulateOpenGL II - GLWindow"
 
-static const bool excessiveDebug = false;
-
 GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
     : QGLWidget((QWidget *)0,0,static_cast<Qt::WindowFlags>(
 #ifdef Q_OS_WIN														

@@ -229,6 +229,11 @@ void StimApp::setDebugMode(bool d)
     saveSettings();
 }
 
+void StimApp::setExcessiveDebugMode(bool d)
+{
+    Util::excessiveDebug = d;
+}
+
 bool StimApp::isSaveFrameVars() const
 {
     return saveFrameVars;

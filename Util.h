@@ -469,7 +469,9 @@ extern const Vec3 Vec3Gray; // default .5 vec -- useful as a default argument to
 
 /// Rotate the vector v, about the euler angles alpha, beta, gamma using x-y-z convention.  Returns the rotated vector.
 extern Vec3 Vec3RotateEuler(const Vec3 & v, double a, double b, double c);
-	
+
+/// used by various parts of the app to do "excessive debugging" output to the console.  Set from the ConsoleWindow options menu, or CTRL+D
+extern bool excessiveDebug;
 } // end namespace Util
 
 using namespace Util;

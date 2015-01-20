@@ -222,6 +222,7 @@ QString makeUniqueFileName(const QString & prefix, const QString & ext_in)
 		;
 	return fn;	
 }
-	
+
+bool excessiveDebug(false);
 	
 }

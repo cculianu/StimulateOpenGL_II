@@ -14,7 +14,7 @@
 #include "Util.h"
 #include <QHash>
 
-static const bool excessiveDebug = false;
+static const bool myExcessiveDebug(false);
 
 namespace Shapes {
 	
@@ -124,14 +124,14 @@ void GradientShape::setupDl()
 	}
 	dl = dcache->getAndRetain(Vec5bf(typeId(),gtex,grad_freq,grad_angle,grad_offset));
 	const int ct = dcache->count(dl);
-	if (excessiveDebug) Debug() << "setupDl(): gradient tex=" << gtex << ", dl=" << dl << " dlrefct=" << ct;
+    if (myExcessiveDebug) Debug() << "setupDl(): gradient tex=" << gtex << ", dl=" << dl << " dlrefct=" << ct;
 	tcache->release(old_gtex);
 	// continue on in subclass..
 	if (ct > 1) {
-		if (excessiveDebug) Debug() << "GradientShape::setupDl(): dl " << dl << " already setup (has refct), aborting early..." ;
+        if (myExcessiveDebug) Debug() << "GradientShape::setupDl(): dl " << dl << " already setup (has refct), aborting early..." ;
 		return; // was already set up!
 	} 
-	else if (excessiveDebug) Debug() << "GradientShape:setupDl(): no performance improvement possible.. continuing on to call defineDl()...";	
+    else if (myExcessiveDebug) Debug() << "GradientShape:setupDl(): no performance improvement possible.. continuing on to call defineDl()...";
 	defineDl();
 }
 	
@@ -219,7 +219,7 @@ void GradientShape::TexCache::release(GLuint tex)
 			if (it2 != texProp.end())  propTex.remove(it2.value());
 			texProp.erase(it2);
 			ref.erase(it);
-			if (excessiveDebug) Debug() << "Deleting texture " << tex;
+            if (myExcessiveDebug) Debug() << "Deleting texture " << tex;
 			glDeleteTextures(1, &tex);
 			Debug() << "Texture " << tex << " deleted.";
 		}
@@ -257,9 +257,9 @@ GLuint GradientShape::TexCache::getAndRetain(GradType t, float min, float max)
 		} else {
 			Error() << "INTERNAL ERROR IN GradientShape::TexCache::getAndRetain() -- prop is in propTex but not in ref! FIXME!";
 		}
-		if (excessiveDebug && ret) Debug() << "GradientShape::TexCache::getAndRetain(" << int(t) << "," << min << "," << max << ") found cached texture with id " << ret << " refct: " << (it2.value()-1);
+        if (myExcessiveDebug && ret) Debug() << "GradientShape::TexCache::getAndRetain(" << int(t) << "," << min << "," << max << ") found cached texture with id " << ret << " refct: " << (it2.value()-1);
 	} else { // create new..
-		if (excessiveDebug) Debug() << "propTex size: " << propTex.size();
+        if (myExcessiveDebug) Debug() << "propTex size: " << propTex.size();
 		if ((ret = createTex(t, min, max))) {
 			propTex[prop] = ret;
 			texProp[ret] = prop;
