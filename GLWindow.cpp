@@ -488,11 +488,13 @@ void GLWindow::paintGL()
 
 void GLWindow::processFrameShare(GLenum which_colorbuffer)
 {
+    double funcStart = -1.;
 	bool doClear = false;
 	if (fshare.shm) {
 		fs_delay_ctr -= 1.0f;
 		const bool grabThisFrame = (fs_delay_ctr <= 0.0001f);
 		if (fshare.shm->enabled) {
+            if (excessiveDebug) funcStart = getTime();
 			const bool dfw = fshare.shm->dump_full_window;
 			const unsigned w = dfw ? win_width : fs_rect.v3, h = dfw ? win_height : fs_rect.v4, sz = w*h*4;
 			if (!fs_pbo[0] || fs_w != win_width || fs_h != win_height) {
@@ -545,7 +547,7 @@ void GLWindow::processFrameShare(GLenum which_colorbuffer)
 			if (excessiveDebug) Debug() << "FSShare: Last 2 frame FPS=" << (1.0/getFSAvgTimeLastN(2));
 			fs_q2.append(fs_q1);
 			fs_q1.clear();
-			if (true/*grabThisFrame*/) {
+            if (/*true*/grabThisFrame) {
 				const int ix(fs_pbo_ix % N_PBOS);
 				fs_lastHWFC[ix] = lastHWFC;
 				fs_bytesz[ix] = sz;
@@ -556,7 +558,7 @@ void GLWindow::processFrameShare(GLenum which_colorbuffer)
 				glReadBuffer(which_colorbuffer);
 				double t0 = getTime();
 				glReadPixels(dfw?0:fs_rect.x,dfw?0:fs_rect.y,w,h,GL_BGRA,GL_UNSIGNED_BYTE,0);
-				if (excessiveDebug) Debug() << "glReadPixels " << (grabThisFrame ? "(realgrab) " : "(throwaway) ") << "of pbo#" << (ix) << " took: " << (getTime()-t0)*1000. << "ms";
+                if (excessiveDebug) Debug() << "glReadPixels of pbo#" << (ix) << " took: " << (getTime()-t0)*1000. << "ms";
 				glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 				glReadBuffer(bufwas);
 				fs_q1.push_back(grabThisFrame ? (ix+1) : -(ix+1)); // offset up so negative takes effect
@@ -592,7 +594,8 @@ void GLWindow::processFrameShare(GLenum which_colorbuffer)
 		fs_pbo_ix = 0; // make sure to zero out the fs_pbo_ix always because we want to "get rid of" old/stale PBOs when user toggles enable/disable 
 		fs_q1.clear();
 		fs_q2.clear();		
-	}
+    }
+    if (excessiveDebug && funcStart > 0.) Debug() << "processFrameShare total time: " << (getTime()-funcStart)*1000. << "ms";
 }
 
 void GLWindow::copyBlinkBuf() 

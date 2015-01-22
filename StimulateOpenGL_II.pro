@@ -55,4 +55,3 @@ unix {
 macx {
 	LIBS += -framework CoreServices 
 }
-

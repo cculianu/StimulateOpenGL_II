@@ -31,7 +31,7 @@ ConsoleWindow::ConsoleWindow(QWidget *p, Qt::WindowFlags f)
     QAction *action = m->addAction("&Debug Mode D", stimApp(), SLOT(setDebugMode(bool)));
     action->setCheckable(true);
     action->setChecked(stimApp()->isDebugMode());
-    action = m->addAction("Excessive Debug Ctrl+D", stimApp(), SLOT(setExcessiveDebugMode(bool)));
+    action = m->addAction("Excessive Debug", stimApp(), SLOT(setExcessiveDebugMode(bool)));
     action->setCheckable(true);
     action->setChecked(Util::excessiveDebug);
 	action = m->addAction("&No Dropped Frame Warnings", stimApp(), SLOT(setNoDropFrameWarn(bool)));
