@@ -813,7 +813,7 @@ void StimApp::alignGLWindow()
         } else {
             QDesktopWidget desktop;
             const QRect screenRect(desktop.screenGeometry(glWindow));
-            delete glWindow;
+            delete glWindow; glWindow = 0;
             glWinHasFrame = !glWinHasFrame;
             createGLWindow();
             glWindow->aMode = !glWinHasFrame; // 'A' mode if we lack a frame
