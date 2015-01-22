@@ -167,7 +167,7 @@ bool StimPlugin::initFromParams()
 	b_index = corder.indexOf('b');
 	r_index = corder.indexOf('r');
 	g_index = corder.indexOf('g');
-	memcpy(color_order, corder.toAscii(), sizeof(color_order));
+    memcpy(color_order, corder.toUtf8(), sizeof(color_order));
 	if (b_index < 0 || r_index < 0 || g_index < 0) {
 		Error() << "color_order parameter that was specified is invalid!";
 		return false;

@@ -1,5 +1,5 @@
 #include "CalibPlugin.h"
-#ifdef _MSC_VER
+#if _MSC_VER <= 1500
 static double round(double d) { return qRound(d); }
 #endif
 

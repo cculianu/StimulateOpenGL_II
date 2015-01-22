@@ -441,7 +441,7 @@ void StimApp::loadSettings()
 	defs.ftrack_change_color = settings.value("ftrack_change_color", defs.ftrack_change_color).toString();
 	defs.ftrack_start_color = settings.value("ftrack_start_color", defs.ftrack_start_color).toString();
 	defs.ftrack_end_color = settings.value("ftrack_end_color", defs.ftrack_end_color).toString();
-	qstrncpy(defs.color_order, settings.value("color_order", defs.color_order).toString().toAscii().constData(), 4);
+    qstrncpy(defs.color_order, settings.value("color_order", defs.color_order).toString().toUtf8().constData(), 4);
 	defs.fps_mode = settings.value("fps_mode", defs.fps_mode).toInt();
 	defs.DO_with_vsync = settings.value("DO_with_vsync", defs.DO_with_vsync).toString();
 	if (!DAQ::DOChannelExists(defs.DO_with_vsync)) {

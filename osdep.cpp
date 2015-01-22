@@ -502,7 +502,7 @@ unsigned getHWRefreshRate()
         HDC dc;
         bool defaultdc = false;
         if (stimApp() && stimApp()->glWin()) {
-            dc = GetDC(stimApp()->glWin()->winId());
+            dc = GetDC(reinterpret_cast<HWND>(stimApp()->glWin()->winId()));
         } else {
             dc = CreateDCA( "DISPLAY", NULL, NULL, NULL );
             defaultdc = true; 
@@ -517,7 +517,7 @@ unsigned getHWRefreshRate()
         if (defaultdc) {
             DeleteDC(dc);
         } else if (dc) {
-            ReleaseDC(stimApp()->glWin()->winId(), dc);
+            ReleaseDC(reinterpret_cast<HWND>(stimApp()->glWin()->winId()), dc);
         }
         //}
 	//Debug() >> "getHWRefreshRate() to return: " << rate;

@@ -12,6 +12,18 @@ class StimApp;
 #include <QRegExp>
 #include <math.h>
 #include <QStringList>
+#ifdef Q_OS_WIN32
+/* For Qt4 -> Qt5 compat */
+#  ifndef Q_OS_WIN
+#    define Q_OS_WIN
+#  endif
+#  ifndef Q_WS_WIN
+#    define Q_WS_WIN
+#  endif
+#  ifndef Q_WS_WIN32
+#    define Q_WS_WIN32
+#  endif
+#endif
 #include "TypeDefs.h"
 
 #define STR1(x) #x
