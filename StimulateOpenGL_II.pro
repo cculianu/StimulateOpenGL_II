@@ -3,7 +3,7 @@
 ######################################################################
 
 TEMPLATE = app
-TARGET = app
+TARGET = StimulateOpenGL_II
 DEPENDPATH += .
 INCLUDEPATH += . SFMT
 
