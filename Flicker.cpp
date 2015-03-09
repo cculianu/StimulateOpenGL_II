@@ -2,10 +2,6 @@
 #include <string.h>
 #include <limits.h>
 
-#if _MSC_VER <= 1500
-static double round(double d) { return qRound(d); }
-#endif
-
 // number of ms per subframe
 #define TBASE (1000./120./3.)
 
@@ -53,7 +49,7 @@ bool Flicker::initFromParams()
 	};
 	memcpy(vertices, v, sizeof(v));
 	
-	cyctot = round(1000./hz/(1000./120./3.));	
+	cyctot = qRound(1000./hz/(1000./120./3.));	
 	
 	return true;
 }

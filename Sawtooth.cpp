@@ -2,10 +2,6 @@
 #include <string.h>
 #include <limits.h>
 
-#if _MSC_VER <= 1500
-static double round(double d) { return qRound(d); }
-#endif
-
 // number of ms per subframe
 #define TBASE (1000./120./3.)
 
@@ -26,14 +22,14 @@ bool Sawtooth::initFromParams()
 		Error() << "intensity_low of " << intensity_lof << " invalid. Specify a number from 0 -> 255";
 		return false;
 	}
-	intensity_low = round(intensity_lof);
+	intensity_low = qRound(intensity_lof);
 	if (!getParam("intensity_high", intensity_hif)) intensity_hif = 255.0;
 	// deal with 0->255 spec
 	if (intensity_hif < 0. || intensity_hif > 255.0) {
 		Error() << "intensity_high of " << intensity_hif << " invalid. Specify a number from 0 -> 255";
 		return false;
 	}
-	intensity_high = round(intensity_hif);
+	intensity_high = qRound(intensity_hif);
 	if (intensity_lof < 1.0 && intensity_hif <= 1.0) {
 		// they specified numbers from 0->1.0
 		intensity_low = intensity_lof * 255.0;

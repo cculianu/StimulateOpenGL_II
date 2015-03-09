@@ -580,12 +580,14 @@ void StimApp::loadStim()
             QMessageBox::critical(0, "Could not open", QString("Could not open '") + lastFile + "' for reading.");
             return;
         }
+		bool isMovieFile = lastFile.toLower().endsWith(".fmv") || lastFile.toLower().endsWith(".gif");
 		
 		StimPlugin *p = 0;		
 		QString pname;
 		QStack<StimPlugin::ParamHistoryEntry> hist;
 		
-		if (StimPlugin::fileAppearsToBeValidParamHistory(lastFile) 
+		if (!isMovieFile 
+			&& StimPlugin::fileAppearsToBeValidParamHistory(lastFile) 
 			&& StimPlugin::parseParamHistoryString(pname, hist, QString(f.readAll()))) {
 			// It's a param history!  Huzzah!  Just read it in and set param history
 			p = glWindow->pluginFind(pname);
@@ -603,6 +605,15 @@ void StimApp::loadStim()
 			// if we get here, it's a regular stim param file..
 			
 			QTextStream ts(&f);
+			QString dummy;
+			if (isMovieFile) {
+				// turns out it was a movie file.  we support this 'feature', for
+				// the movie plugin, for convenience.  Added 3/9/2015 by Calin because
+				// I was annoyed at trying to open .fmv files and having to modify
+				// the .txt file each time.. :)
+				dummy = QString("movie\nfile=%1\n").arg(lastFile);
+				ts.setString(&dummy);
+			}
 			QString line;
 			do {
 				line = ts.readLine().trimmed();

@@ -39,6 +39,7 @@ win32-g++ {
 }
 win32 {
         LIBS += $${PWD}/NI/NIDAQmx.lib WS2_32.lib
+#        LIBS += DelayImp.lib
         DEFINES += HAVE_NIDAQmx 
 #        LIBS += -lws2_32
         RC_FILE += WinResources.rc
@@ -46,6 +47,7 @@ win32 {
         QMAKE_CXXFLAGS_RELEASE -= /O2 /O1 -O1 -O2
         QMAKE_CFLAGS_RELEASE += -arch:SSE2 -Oy -Ox
         QMAKE_CXXFLAGS_RELEASE += -arch:SSE2 Oy -Ox
+#        QMAKE_LFLAGS += /DELAYLOAD:"nicaiu.dll"
 }
 
 

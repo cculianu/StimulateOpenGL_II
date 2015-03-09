@@ -1,7 +1,4 @@
 #include "CalibPlugin.h"
-#if _MSC_VER <= 1500
-static double round(double d) { return qRound(d); }
-#endif
 
 CalibPlugin::CalibPlugin()
     : StimPlugin("CalibPlugin")
@@ -43,7 +40,7 @@ void CalibPlugin::drawFrame()
     Debug() << "Frame " << frameNum << " fpsnow " << fps << " avg " << fpsAvg << " hwframe " << getHWFrameCount();
     if (frameNum >= calibTot) {
         stop();
-        emit refreshRateCalibrated(static_cast<unsigned>(::round(fpsAvg)));
+        emit refreshRateCalibrated(static_cast<unsigned>(qRound(fpsAvg)));
         emit finished();
     }
 }
