@@ -294,6 +294,7 @@ void GLWindow::paintGL()
 	const int *Nblinks = running ? &running->Nblinks : 0;
 	const bool haveBlinkBuf = running && *Nblinks > 1 && *blinkCt > 0;
 	const bool saveBlinkBuf = !haveBlinkBuf && running && *Nblinks > 1 && *blinkCt == 0;
+    bool drewEndStateBlankScreen = false;
 	
     if (!paused && (!blinkCt || !(*blinkCt) || saveBlinkBuf)) {
         // NB: don't clear here, let the plugin do clearing as an optimization
@@ -324,6 +325,7 @@ void GLWindow::paintGL()
 				if (!doRestart || hadDelay) {
 					// force screen clear *NOW* as per Anthony's specs, so that we don't hang on last frame forever..
 					drawEndStateBlankScreenImmediately(p, !doRestart);
+                    drewEndStateBlankScreen = true;
 					/**/
 					 /// XXX
 					 Debug() << "looped, drew delayframe, hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
@@ -356,6 +358,7 @@ void GLWindow::paintGL()
 					if (frameFudge > 0 && delayCtr > 0) {
 						// force a frame so as to re-synch us to the vsync signal so that the fudge factor becomes more accurate
 						drawEndStateBlankScreenImmediately(p, false);
+                        drewEndStateBlankScreen = true;
 					}
 					// now we are synched to the vsync signal, so hopefully this fudging is more accurate 
 					tRestart = getTime() - t0;
@@ -409,10 +412,11 @@ void GLWindow::paintGL()
     }	
 	if (!paused && blinkCt && ++(*blinkCt) >= *Nblinks) *blinkCt = 0; 
 	if (!running) {  
-		// no plugin running, draw default .5 gray bg without ft box
-//        glClear( GL_COLOR_BUFFER_BIT );
-		drawEndStateBlankScreen(0, false);
-        doBufSwap = true;		
+        if (!drewEndStateBlankScreen) {
+            // no plugin running, draw default .5 gray bg without ft box
+            drawEndStateBlankScreen(0, false);
+            doBufSwap = true;
+        }
     } else if (running && running->getFrameNum() < 0 && (paused/*|| delayCtr <= 0*/)) { 
 		// running but paused and before plugin started (and not delay mode because that's handled above!)
 		// if so, draw plugin bg with ftrack_end box
