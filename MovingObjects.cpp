@@ -571,6 +571,7 @@ void MovingObjects::cleanup()
 		Shapes::CleanupStaticDisplayLists();
 		glShadeModel(savedShadeModel);
 	}
+	StimPlugin::cleanup();
 }
 
 bool MovingObjects::processKey(int key)
@@ -594,7 +595,7 @@ void MovingObjects::drawFrame()
 	glGetFloatv(GL_COLOR_CLEAR_VALUE, clc); // save clear color to not break calling code..
 
 	glClearColor(bgcolor, bgcolor, bgcolor, 1.0);
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ); 
+	clearScreen(GL_DEPTH_BUFFER_BIT);
 	
 	doFrameDraw();
    

@@ -554,6 +554,7 @@ void CheckerFlicker::cleanup()
 	if (origThreadAffinityMask) {
 		setCurrentThreadAffinityMask(origThreadAffinityMask); // make it runnable as it was before plugin was run
 	}
+	StimPlugin::cleanup();
 }
 
 void CheckerFlicker::genGaussColors()
@@ -710,7 +711,7 @@ Frame *CheckerFlicker::genFrame(std::vector<unsigned> & entvec, SFMT_Generator &
 void CheckerFlicker::drawFrame()
 {
         if (!initted) {
-            glClear( GL_COLOR_BUFFER_BIT );
+            clearScreen();
             return;
         } 
 
@@ -736,7 +737,7 @@ void CheckerFlicker::drawFrame()
 		bgcolor = frames[num].bgcolor;
 		glDisable(GL_SCISSOR_TEST);
 		useBGColor();
-		glClear( GL_COLOR_BUFFER_BIT );
+		clearScreen();
 		bgcolor = bgcolor_saved;
 		glEnable(GL_SCISSOR_TEST);
 	

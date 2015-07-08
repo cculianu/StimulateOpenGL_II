@@ -47,6 +47,7 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 	blockPaint = false;
 	win_width = w;
 	win_height = h;
+	clrImg_tex = clrImg_w = clrImg_h = 0;
 	hw_refresh = getHWRefreshRate();
     QSize s(w, h);
     setMaximumSize(s);
@@ -81,6 +82,7 @@ GLWindow::~GLWindow() {
 void GLWindow::criticalCleanup() { 
 	if (fshare.shm) { fshare.lock(); fshare.shm->stimgl_pid = 0; fshare.unlock(); }
 	if (fs_pbo[0]) { glDeleteBuffers(N_PBOS, fs_pbo); memset(fs_pbo, 0, sizeof fs_pbo); }
+	if (clrImg_tex) glDeleteTextures(1, &clrImg_tex), clrImg_tex = clrImg_w = clrImg_h = 0; 
 }
 
 void GLWindow::setClearColor(const QString & c)
@@ -159,11 +161,46 @@ void GLWindow::resizeGL(int w, int h)
 	fs_rect = fs_rect_saved = boxSelector->getBox();
 }
 
+void GLWindow::clearScreen()
+{
+	if (clrImg_tex) {
+		/* draw the texture... */ 
+		{
+			const int w = win_width, h = win_height;
+			const int v[] = {
+				0,0, w,0, w,h, 0,h
+			}, t[] = {
+				0,0, clrImg_w,0, clrImg_w,clrImg_h, 0,clrImg_h
+			};
+			bool wasEnabled = glIsEnabled(GL_TEXTURE_RECTANGLE_ARB);
+			if (!wasEnabled) glEnable(GL_TEXTURE_RECTANGLE_ARB);
+			glBindTexture(GL_TEXTURE_RECTANGLE_ARB, clrImg_tex);
+			glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			// render our vertex and coord buffers which don't change.. just the texture changes
+			glEnableClientState(GL_VERTEX_ARRAY);
+			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+			GLfloat c[4];
+			glGetFloatv(GL_CURRENT_COLOR, c);
+			glColor4f(1.,1.,1.,1.);
+			glVertexPointer(2, GL_INT, 0, v);
+			glTexCoordPointer(2, GL_INT, 0, t);
+			glDrawArrays(GL_QUADS, 0, 4);
+			glDisableClientState(GL_VERTEX_ARRAY);
+			glDisableClientState(GL_TEXTURE_COORD_ARRAY);			
+			glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);	
+			glColor4f(c[0],c[1],c[2],c[3]);
+			if (!wasEnabled) glDisable(GL_TEXTURE_RECTANGLE_ARB);			
+		}		
+	} else {
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
+}
 
 void GLWindow::drawEndStateBlankScreen(StimPlugin *p, bool isBlankBG) {
 	if (isBlankBG) {
 		glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0);
-		glClear(GL_COLOR_BUFFER_BIT);
+		clearScreen();
 	} else if (p) {		
 		float color[4];
 		GLboolean blend;
@@ -173,7 +210,7 @@ void GLWindow::drawEndStateBlankScreen(StimPlugin *p, bool isBlankBG) {
 		
 		glClearColor(graylevel, graylevel, graylevel, 1.0f);
 		if (blend) glDisable(GL_BLEND);
-		glClear(GL_COLOR_BUFFER_BIT);
+		clearScreen();
 	/* Apr. 10 Change: FT_Off on plugin load always
      if (p->delay > 0 && (delayCtr > 0 || !p->initted) && !paused)
     */
@@ -185,7 +222,7 @@ void GLWindow::drawEndStateBlankScreen(StimPlugin *p, bool isBlankBG) {
 		if (blend) glEnable(GL_BLEND);
 		glClearColor(color[0], color[1], color[2], color[3]);	
 	} else { // !p
-		glClear(GL_COLOR_BUFFER_BIT);
+		clearScreen();
 		StimPlugin::drawFTBoxStatic();
 	}
 }
@@ -389,8 +426,9 @@ void GLWindow::paintGL()
 				doBufSwap = true;
 			} else if (running) { // note: code above may have stopped plugin, check if it's still running
 			
-				if (!running->pluginDoesOwnClearing)
-					glClear( GL_COLOR_BUFFER_BIT );
+				if (!running->pluginDoesOwnClearing) {
+					running->clearScreen();
+				}
 				
 				glEnable(GL_SCISSOR_TEST); /// < the frame happens within our scissor rect, (lmargin, etc support)
 				running->drawFrame();

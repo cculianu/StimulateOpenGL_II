@@ -238,7 +238,10 @@ protected:
 
     /// The meat of every plugin -- re-implement this function to draw the actual frame.  Class variable frameNum holds the frame number.
     virtual void drawFrame() = 0;
-
+	
+	/// called by GLWindow to do clearing.  Clears screen using bgcolor, or if bgImg is set, clears using a background texture
+	void clearScreen(int extra_bits = 0); 
+	
 	/// Normally no need to re-implement.  Just draws the frame track box for the PD sensor. Only drawn if the box has dimensions (see ftrackbox_[xyw])
 	virtual void drawFTBox();
 	
@@ -424,6 +427,11 @@ protected:
 	
 	/// Just saves the current param history to a disk file in output dir, file name is based on plugin name and date, with .txt ext.
 	void saveParamHistoryToFile() const; 
+	
+	/// Instead of using a clearcolor to clear the background for each frame, the plugin should instead
+	/// draw this background image -- comes from param file 'bgImg' -- this variable is default 0
+	/// but if set, we use a background image
+	GLuint bgImg_tex, bgImg_h, bgImg_w; ///< initially 0
 	
 private:
     void computeFPS();

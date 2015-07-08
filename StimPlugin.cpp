@@ -9,12 +9,14 @@
 #include <iostream>
 #include <math.h>
 #include <QImageWriter>
+#include <QImage>
 #include "DAQ.h"
 
 StimPlugin::StimPlugin(const QString &name)
     : QObject(StimApp::instance()->glWin()), parent(StimApp::instance()->glWin()), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), 
 softCleanup(false), dontCloseFVarFileAcrossLoops(false), gotNewParams(false), pluginDoesOwnClearing(false), lmargin(0), rmargin(0), bmargin(0), tmargin(0), mut(QMutex::Recursive), gasGen(1, RNG::Gasdev), ran0Gen(1, RNG::Ran0)
 {
+	bgImg_tex = bgImg_h = bgImg_w = 0;
 	frameVars = 0;
     needNotifyStart = true;
     initted = false;
@@ -33,7 +35,14 @@ StimPlugin::~StimPlugin()
 }
 
 bool StimPlugin::init() { /* default impl. does nothing */  return true; }
-void StimPlugin::cleanup() { /* default impl. does nothing */ }
+
+void StimPlugin::cleanup() 
+{ 
+	if (bgImg_tex) {
+		Debug() << "Deleted background image texture id " << bgImg_tex;
+		StimApp::instance()->glWin()->deleteTexture(bgImg_tex), bgImg_tex = bgImg_h = bgImg_w = 0;
+	}
+}
 
 bool StimPlugin::saveData(bool use_gui)
 {
@@ -86,7 +95,7 @@ void StimPlugin::stop(bool doSave, bool useGui, bool softStop)
 	if (!softCleanup) {
 		glClearColor(0.5, 0.5,  0.5, 1.);
 		glColor4f(0.5, 0.5,  0.5, 1.);
-		glClear( GL_COLOR_BUFFER_BIT );    
+		parent->clearScreen();
 	}
     cleanup();
     // restore original matrices from matrix stack
@@ -202,6 +211,7 @@ bool StimPlugin::initFromParams()
 		}
 	}
 	if(!getParam( "bgcolor" , bgcolor))	bgcolor = 0.5;
+	
 	QString tmps;
 	if ( getParam("clearColor", tmps) || getParam("interTrialBg", tmps) ) {
 		StimApp::instance()->globalDefaults.interTrialBg = tmps;
@@ -222,6 +232,45 @@ bool StimPlugin::initFromParams()
 	
 	if ( !getParam( "Nblinks", Nblinks) || !getParam("nblinks", Nblinks) ) Nblinks = 1;
 	if ( Nblinks < 1 ) Nblinks = 1;	
+	
+	QImage bgImg;
+	QString bgimg = "";
+	if ( getParam( "bgImg", bgimg ) && bgimg.length() && bgImg.load(bgimg) ) {
+		Log() << "Using background image " << bgImg.width() << "x" << bgImg.height() << " px";
+	} else if (bgimg.length()) {
+		Warning () << "Background image specified `" << bgimg << "' failed to load";
+	}
+	if (!bgImg.isNull()) {
+		if (!(bgImg_tex = parent->bindTexture(bgImg, GL_TEXTURE_RECTANGLE_ARB))) {
+			Error() << "Could not bind texture for background image!";
+			return false;
+		} else {
+			bgImg_h = bgImg.height(); bgImg_w = bgImg.width();
+			Debug() << "Background image texture id: " << bgImg_tex;
+		}
+	}
+	bgImg = QImage(); bgimg = "";
+	parent->makeCurrent();
+	if (parent->clrImg_tex) {
+		Debug() << "Deleting interTrialImg with texture id " << parent->clrImg_tex;
+		glDeleteTextures(1, &parent->clrImg_tex);
+		parent->clrImg_tex = parent->clrImg_w = parent->clrImg_h = 0;
+	}
+	if ( getParam( "interTrialImg", bgimg ) && bgimg.length() && bgImg.load(bgimg) ) {
+		Log() << "Using inter-trial background image " << bgImg.width() << "x" << bgImg.height() << " px";
+	} else if (bgimg.length()) {
+		Warning () << "Background image specified `" << bgimg << "' failed to load";
+	}
+	if (!bgImg.isNull()) {
+		if (!(parent->clrImg_tex = parent->bindTexture(bgImg, GL_TEXTURE_RECTANGLE_ARB))) {
+			Error() << "Could not bind texture for inter-trial background image!";
+			return false;
+		} else {
+			parent->clrImg_h = bgImg.height(); parent->clrImg_w = bgImg.width();
+			Debug() << "Inter-trial image texture id: " << parent->clrImg_tex;
+			parent->drawEndStateBlankScreen(0, true);
+		}
+	}
 	
 	return true;
 }
@@ -583,11 +632,56 @@ void StimPlugin::useBGColor() const
 	}		
 }
 
+void StimPlugin::clearScreen(int extra)
+{
+	if (bgImg_tex && parent) {
+		const int bits_except_color_buf_bit = extra & ~GL_COLOR_BUFFER_BIT;
+		if (bits_except_color_buf_bit) 
+			glClear(bits_except_color_buf_bit);
+		/* draw the texture... */ 
+		{
+/*
+   Use this commented-out code if you want the background to fit and be scaled into the scissor area..
+   by default we don't do this.
+   const int w = parent->win_width-(lmargin+rmargin), h = parent->win_height-(bmargin+tmargin);
+   const int v[] = {
+   lmargin,bmargin, lmargin+w,bmargin, lmargin+w,h+bmargin, lmargin,h+bmargin
+*/
+			const int w = parent->win_width, h = parent->win_height;
+			const int v[] = {
+				0,0, w,0, w,h, 0,h
+			}, t[] = {
+				0,0, bgImg_w,0, bgImg_w,bgImg_h, 0,bgImg_h
+			};
+			bool wasEnabled = glIsEnabled(GL_TEXTURE_RECTANGLE_ARB);
+			if (!wasEnabled) glEnable(GL_TEXTURE_RECTANGLE_ARB);
+			glBindTexture(GL_TEXTURE_RECTANGLE_ARB, bgImg_tex);
+			glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			// render our vertex and coord buffers which don't change.. just the texture changes
+			glEnableClientState(GL_VERTEX_ARRAY);
+			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+			GLfloat c[4];
+			glGetFloatv(GL_CURRENT_COLOR, c);
+			glColor4f(1.,1.,1.,1.);			
+			glVertexPointer(2, GL_INT, 0, v);
+			glTexCoordPointer(2, GL_INT, 0, t);
+			glDrawArrays(GL_QUADS, 0, 4);
+			glDisableClientState(GL_VERTEX_ARRAY);
+			glDisableClientState(GL_TEXTURE_COORD_ARRAY);			
+			glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);	
+			glColor4f(c[0],c[1],c[2],c[3]);
+			if (!wasEnabled) glDisable(GL_TEXTURE_RECTANGLE_ARB);			
+		}
+	} else
+		glClear( GL_COLOR_BUFFER_BIT | extra );	
+}
+
 void StimPlugin::renderFrame() { 
 	// unconditionally setup the clear color here
 	useBGColor();
 	if (!pluginDoesOwnClearing)
-		glClear( GL_COLOR_BUFFER_BIT );
+		clearScreen();
 	glEnable(GL_SCISSOR_TEST);
 	drawFrame(); 
 	glDisable(GL_SCISSOR_TEST);
@@ -690,7 +784,8 @@ QList<QByteArray> StimPlugin::getFrameDump(unsigned num, unsigned numframes,
         afterVSync(true);
 		doRealtimeParamUpdateHousekeeping();
     } while (frameNum < num+numframes && parent->runningPlugin() == this);
-    glClear(GL_COLOR_BUFFER_BIT);
+    //glClear(GL_COLOR_BUFFER_BIT);
+	clearScreen();
     return ret;
 }
 

@@ -115,7 +115,7 @@ void MovingGrating::drawFrame()
     glGetFloatv(GL_COLOR_CLEAR_VALUE, savedClear);
     // TODO: make the glClear() here take into account possibly changing min_color values??
     glClearColor(min_min_color, min_min_color, min_min_color, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT);
+    clearScreen();
     
     for (int k = 0; k < nIters; ++k) {
         glPushMatrix();

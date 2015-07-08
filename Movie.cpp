@@ -339,6 +339,7 @@ void Movie::cleanup()
     cfsMap.clear();
 	imgCache.clear();
 	cleanupFBOs();
+	StimPlugin::cleanup();
 }
 
 bool Movie::initFBOs()

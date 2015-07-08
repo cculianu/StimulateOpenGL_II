@@ -142,6 +142,9 @@ private:
 	
 	GLBoxSelector *boxSelector;
 	Util::Vec4i fs_rect, fs_rect_saved; /// frame share rectangle with origin,size
+	
+	GLuint clrImg_tex, clrImg_w, clrImg_h;
+	void clearScreen();
 };
 
 #endif

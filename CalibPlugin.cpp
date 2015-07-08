@@ -62,6 +62,7 @@ bool CalibPlugin::init()
 
 void CalibPlugin::cleanup()
 {
+	StimPlugin::cleanup();
     StimApp::releaseMouseKeyboard();
     
     StimApp::instance()->setDebugMode(wasDebugMode);  // re-enable debug mode if it was set
