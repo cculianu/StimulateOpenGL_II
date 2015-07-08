@@ -265,11 +265,11 @@ bool StimPlugin::initFromParams()
 			Warning() << "Inter-trial image size (" << bgImg.width() << "x" << bgImg.height() << ") does not match window size (" << parent->win_width << "x" << parent->win_height << "), will scale image to fit";
 		}
 	} else if (bgimg.length()) {
-		Warning () << "Background image specified `" << bgimg << "' failed to load";
+		Warning () << "Inter-trial image specified `" << bgimg << "' failed to load";
 	}
 	if (!bgImg.isNull()) {
 		if (!(parent->clrImg_tex = parent->bindTexture(bgImg, GL_TEXTURE_RECTANGLE_ARB))) {
-			Error() << "Could not bind texture for inter-trial background image!";
+			Error() << "Could not bind texture for inter-trial image!";
 			return false;
 		} else {
 			parent->clrImg_h = bgImg.height(); parent->clrImg_w = bgImg.width();
