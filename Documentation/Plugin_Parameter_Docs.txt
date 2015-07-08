@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: December 04, 2014
+Last Updated: July 08, 2015
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -90,6 +90,14 @@ bgcolor
         Possible values:  0.0 - 1.0
         Default value:    0.5
 
+bgImg
+        Synopsis:         Specify the background image to use instead of bgcolor above.
+                          Plugin's drawing area is cleared using this file.  May
+                          be any supported image format (.BMP, .PNG, .JPG, .GIF)
+        Datatype:         string
+        Possible values:  any valid filename that points to a valid image file
+        Default value:    (Empty)
+
 clearColor 
  *AKA* 
 interTrialBg
@@ -99,6 +107,15 @@ interTrialBg
         Datatype:         real triplet, comma-separated (eg .7,.5,1.0)
         Possible values:  Each number in the triplet is in the range [0,1]
         Default value:    0.5, 0.5, 0.5 (gray).
+		
+interTrialImg
+        Synopsis:         Specify the background image to use instead of interTrialBg above.
+                          The image is used to clear the screen in the inter-trial
+                          period during the plugin's run.
+                          May be any supported image format (.BMP, .PNG, .JPG, .GIF)
+        Datatype:         string
+        Possible values:  any valid filename that points to a valid image file
+        Default value:    (Empty)
 
 delay
         Synopsis:         Specify the number of frames to use as a pre-delay for
