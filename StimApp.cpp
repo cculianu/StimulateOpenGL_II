@@ -749,7 +749,9 @@ void StimApp::about()
                        "\n\n(C) 2008-2015 Calin A. Culianu <calin.culianu@gmail.com>\n\n"
                        "Developed for the Anthony Leonardo lab at\n"
                        "Janelia Farm Research Campus HHMI\n\n"
-                       "Software License: GPL v2 or later\n\nGit Repository: https://www.github.com/cculianu/StimulateOpenGL_II");
+                       "Software License: GPL v2 or later\n\n"
+					   "Bitcoin Address: 1Ca1inQuedcKdyELCTmN8AtKTTehebY4mC\n"
+					   "Git Repository: https://www.github.com/cculianu/StimulateOpenGL_II");
 }
 
 bool StimApp::setOutputDirectory(const QString & dpath)
