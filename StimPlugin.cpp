@@ -238,10 +238,11 @@ bool StimPlugin::initFromParams()
 	if ( getParam( "bgImg", bgimg ) && bgimg.length() && bgImg.load(bgimg) ) {
 		Log() << "Using background image " << bgImg.width() << "x" << bgImg.height() << " px";
 		if (bgImg.width() != (int)width() || bgImg.height() != (int)height()) {
-			Warning() << "Background image size (" << bgImg.width() << "x" << bgImg.height() << ") does not match window size (" << parent->win_width << "x" << parent->win_height << "), will scale image to fit";
+			Error() << "Background image size (" << bgImg.width() << "x" << bgImg.height() << ") does not match window size (" << parent->win_width << "x" << parent->win_height << ")";
+			return false;
 		}
 	} else if (bgimg.length()) {
-		Warning () << "Background image specified `" << bgimg << "' failed to load";
+		Warning () << "Failed to load bgImg `" << bgimg << "'";
 	}
 	if (!bgImg.isNull()) {
 		if (bgImg_tex) parent->deleteTexture(bgImg_tex), bgImg_tex = 0;
@@ -262,10 +263,11 @@ bool StimPlugin::initFromParams()
 	if ( getParam( "interTrialImg", bgimg ) && bgimg.length() && bgImg.load(bgimg) ) {
 		Log() << "Using inter-trial background image " << bgImg.width() << "x" << bgImg.height() << " px";
 		if (bgImg.width() != (int)width() || bgImg.height() != (int)height()) {
-			Warning() << "Inter-trial image size (" << bgImg.width() << "x" << bgImg.height() << ") does not match window size (" << parent->win_width << "x" << parent->win_height << "), will scale image to fit";
+			Error() << "Inter-trial image size (" << bgImg.width() << "x" << bgImg.height() << ") does not match window size (" << parent->win_width << "x" << parent->win_height << ")";
+			return false;
 		}
 	} else if (bgimg.length()) {
-		Warning () << "Inter-trial image specified `" << bgimg << "' failed to load";
+		Warning () << "Failed to load interTrialImg `" << bgimg << "'";
 	}
 	if (!bgImg.isNull()) {
 		if (!(parent->clrImg_tex = parent->bindTexture(bgImg, GL_TEXTURE_RECTANGLE_ARB))) {

@@ -746,10 +746,10 @@ void StimApp::about()
 {
     QMessageBox::about(consoleWindow, "About StimulateOpenGL II", 
                        VERSION_STR 
-                       "\n\n(C) 2008-2010 Calin A. Culianu <calin.culianu@gmail.com>\n\n"
+                       "\n\n(C) 2008-2015 Calin A. Culianu <calin.culianu@gmail.com>\n\n"
                        "Developed for the Anthony Leonardo lab at\n"
-                       "Janelia Farm Research Campus, HHMI\n\n"
-                       "Software License: GPL v2 or later");
+                       "Janelia Farm Research Campus HHMI\n\n"
+                       "Software License: GPL v2 or later\n\nGit Repository: https://www.github.com/cculianu/StimulateOpenGL_II");
 }
 
 bool StimApp::setOutputDirectory(const QString & dpath)
