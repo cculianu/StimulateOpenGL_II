@@ -1033,27 +1033,35 @@ StimPlugin::ChangedParamMap StimPlugin::paramsThatChanged() const
 	return ret;
 }
 
-void StimPlugin::paramHistoryPush(bool lock) 
+void StimPlugin::paramHistoryPush(bool lock, StimPlugin::ChangedParamMap *cpm) 
 { 
 	if (lock) mut.lock();
 	ParamHistoryEntry h; 
 	h.frameNum = getNextFrameNum();
 	h.params = params; 
 	h.changedParams = paramsThatChanged();
+	if (cpm) *cpm = h.changedParams;
 	paramHistory.push(h);
 	if (lock) mut.unlock();
 }
 
-void StimPlugin::paramHistoryPop()
+/*void StimPlugin::paramHistoryPop()
 {
 	QMutexLocker l(&mut);
 	paramHistory.pop();
-}
+}*/
 
 /* virtual */
 void StimPlugin::newParamsAccepted()
-{
-	paramHistoryPush();
+{	
+	paramHistoryPush(true, &lastChangedParams);	
+
+	QString s = "";
+	for (ChangedParamMap::iterator it = lastChangedParams.begin(); it != lastChangedParams.end(); ++it) {
+		if (s.length()) s += ", ";
+		s += it.key() + "=" + it.value().first + "->" + it.value().second;
+	}
+	if (s.length()) Debug()  << "CHANGED PARAM MAP: " << s;
 }
 
 QString StimPlugin::ParamHistoryEntry::toString() const

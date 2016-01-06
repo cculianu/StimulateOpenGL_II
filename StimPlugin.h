@@ -411,11 +411,13 @@ protected:
 	QStack<ParamHistoryEntry> paramHistory;
 	/// When playing back a param history -- this is the queue of params to use.
 	QQueue<ParamHistoryEntry> pendingParamHistory;
+	/// Used only for outputting debug info so far..
+	ChangedParamMap lastChangedParams;
 
 	/// Pushes the current params and the computed changedParams to the history top
-	void paramHistoryPush(bool doLocking = true);
+	void paramHistoryPush(bool doLocking = true, ChangedParamMap *cpm = 0);
 	/// Pops the top of the param history (undoes a previous push)
-	void paramHistoryPop();	
+	//void paramHistoryPop();	
 	/// Called by GLWindow.cpp when new parameters are accepted.  Default implementation pushes a new history entry to the parameter history.
 	virtual void newParamsAccepted();
 	

@@ -10,7 +10,7 @@ static double squarewave(double x) {
 MovingGrating::MovingGrating()
     : StimPlugin("MovingGrating"), spatial_freq(0.01f), temp_freq(1.0f), angle(0.f), dangle(0.f), tframes(-1), phase(0.0), tex(0)
 {
-    pluginDoesOwnClearing = true;
+    pluginDoesOwnClearing = false;
 
 }
 
@@ -47,7 +47,7 @@ bool MovingGrating::initFromParams()
 	if (!getParam("wave", wave)) wave = "sin";
 	if (wave.toLower().startsWith("sq")) waveFunc = &squarewave;
 	else waveFunc = &sin;
-
+	
 	return true;	
 }
 
@@ -71,7 +71,6 @@ bool MovingGrating::init()
 {
 	if (!initFromParams()) return false;
 	phase = 0.0;
-	
 	frameVars->setVariableNames(QString("frameNum phase spatial_freq angle min_color max_color").split(" "));
 	frameVars->setVariableDefaults(QVector<double>() << 0. << 0. << spatial_freq <<  angle << min_color << max_color);
 
@@ -113,8 +112,10 @@ void MovingGrating::drawFrame()
     GLfloat savedClear[4];
     glGetBooleanv(GL_COLOR_WRITEMASK, savedMask);
     glGetFloatv(GL_COLOR_CLEAR_VALUE, savedClear);
+		
     // TODO: make the glClear() here take into account possibly changing min_color values??
     glClearColor(min_min_color, min_min_color, min_min_color, 1.0);
+	
     clearScreen();
     
     for (int k = 0; k < nIters; ++k) {
@@ -222,5 +223,4 @@ bool MovingGrating::applyNewParamsAtRuntime()
 {
 	return initFromParams();
 }
-
 
