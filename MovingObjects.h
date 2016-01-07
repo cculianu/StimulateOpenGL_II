@@ -110,7 +110,7 @@ private:
 	int jittermag;	
 	bool jitterlocal;
     bool moveFlag, jitterFlag;
-	bool wrapEdge;
+	bool wrapEdge, noEdge;
 	bool fvHasPhiCol, fvHasZCol, fvHasZScaledCol;
 	bool lightIsFixedInSpace;
 	bool lightIsDirectional;

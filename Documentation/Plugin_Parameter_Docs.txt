@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: July 08, 2015
+Last Updated: January 07, 2016
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -775,6 +775,18 @@ lightSpecular
        Possible values:   -1.0 - 1.0
        Default value:     1.0
 
+noEdge
+       Synopsis:          Disable/enable edge detect for object bouncing/wrapping. 
+                          If this parameter is true, then no edge detection is done
+                          and objects are free to float off the edge of the screen.
+                          If this parameter is false, then objects either bounce 
+                          off the edge of the screen or wrap around the edges
+                          (depending on the value of the wrapEdge parameter, see 
+                          'wrapEdge' below).
+       Datatype:          boolean
+       Possible values:   0, 1, true, fale, no, yes
+       Default value:     false
+
 numObj
         Synopsis:         Specifies the number of moving targets.  Note that 
                           targets after the first have their parameters specified 
@@ -1276,7 +1288,8 @@ tFrames
         Default value:    4320000 (approx 10 hours at 120fps)
 
 wrapEdge
-        Synopsis:         If true, objects wrap off the edge onto the opposite
+        Synopsis:         NOTE: This parameter only takes effect if noEdge=false.
+                          If true, objects wrap off the edge onto the opposite
                           edge of the plugin drawing area.  If false, objects
                           bounce off the edges.  
                           How objects bounce: With wrapEdge=off, objects bounce 

@@ -261,6 +261,8 @@ void MovingObjects::initRealtimeChangeableParams()
 	if(!getParam( "jittermag" , jittermag))	     jittermag = DEFAULT_JITTERMAG;
 	if (!(getParam("wrapEdge", wrapEdge) || getParam("wrap", wrapEdge))) 
 		wrapEdge = false;
+	if (!getParam("noEdge", noEdge))
+		noEdge = false;
 	
 	if (!getParam("debugAABB", debugAABB))
 		debugAABB = false;
@@ -779,15 +781,17 @@ void MovingObjects::doFrameDraw()
 				// MOVEMENT/ROTATION computation happens *always* but the fvar file variables below may override the results of this computation!
 				if (moveFlag) {
 					
-					// wrap objects that floated past the edge of the screen
-					if (wrapEdge && (!canvasAABB.intersects(aabb) 
-									 || (is3D && (z > zBoundsFar 
-												  || z < zBoundsNear))))
-						wrapObject(o, aabb);
 					
-					else if (!wrapEdge) 
-						doWallBounce(o);
-
+					if (!noEdge) {
+						// wrap objects that floated past the edge of the screen
+						if (wrapEdge && (!canvasAABB.intersects(aabb) 
+										 || (is3D && (z > zBoundsFar 
+													  || z < zBoundsNear))))
+							wrapObject(o, aabb);
+						
+						else if (!wrapEdge) 
+							doWallBounce(o);
+					}
 					
 					// initialize position iff k==0 and frameNum is a multiple of tframes
 					if ( !k && !(frameNum%tframes)) {
