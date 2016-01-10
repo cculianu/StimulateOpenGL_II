@@ -157,6 +157,8 @@ private:
 	
 	static DLCache *dcache;
 	static int dcache_ct;
+	
+	static bool did_retain_of_dummy_initial_conditions;
 };
 	
 class Rectangle : public GradientShape {

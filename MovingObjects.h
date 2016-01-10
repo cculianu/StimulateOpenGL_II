@@ -51,8 +51,10 @@ private:
 		Vec3 lastPos; // used for rndtrial > 1 stuff
 		double spin; // default is 0.. otherwise spin is applied to object per-frame
 		QVector<Vec2> len_vec;
-		QVector<Vec3> vel_vec; ///< new targetcycle/speedcycle support for length and velocity vectors	
-		int len_vec_i, vel_vec_i;
+		QVector<Vec3> vel_vec; ///< new targetcycle/speedcycle support for length and velocity vectors
+		QVector<double> stepwise_vel_vec; ///< for rndtrial=5, where we read the velocity in a frame-by-frame manner for each frame 
+		Vec2 stepwise_vel_dir; ///< for rndtrial=5 ONLY -- in radians.. the orientation of our randomly generated direction for frame-by-frame motion
+		int len_vec_i, vel_vec_i, stepwise_vel_vec_i;
 		float color, 
 		      // params for sphere
 		      shininess, ambient, diffuse, emission, specular; // intensity value
@@ -89,7 +91,7 @@ private:
 	void ensureObjectIsInBounds(ObjData & o) const;
 	
 	void applyRandomDirectionForRndTrial_2_4(ObjData & o);
-	void applyRandomPositionForRndTrial_1_2(ObjData & o);
+	void applyRandomPositionForRndTrial_1_2_5(ObjData & o, bool = false);
 
 	void preReadFrameVarsForWholeFrame();
 	void postWriteFrameVarsForWholeFrame();

@@ -54,6 +54,10 @@ void MovingObjects::ObjData::initDefaults() {
 	vel_vec.resize(1);
 	len_vec[0] = Vec2(DEFAULT_LEN, DEFAULT_LEN);
 	vel_vec[0] = Vec3(DEFAULT_VEL,DEFAULT_VEL,0.0);
+
+	stepwise_vel_vec.clear();
+	stepwise_vel_dir = Vec2Zero;
+	stepwise_vel_vec_i = 0;
 	
 	pos_o = Vec3(DEFAULT_POS_X,DEFAULT_POS_Y,DEFAULT_POS_Z);
 	v = vel_vec[0], vel = vel_vec[0];
@@ -251,6 +255,13 @@ bool MovingObjects::initObjectFromParams(ObjData & o, ConfigSuppressesFrameVar &
 	}
 	
 	if (feqf(o.grad_freq,0.0f)) o.grad_type = Shapes::GradientShape::None;
+
+	o.stepwise_vel_vec.clear();
+	if (getParam("objStepwiseVel", o.stepwise_vel_vec)) {
+		o.stepwise_vel_vec_i = 0;
+		o.stepwise_vel_dir = Vec2(o.vel_vec[0].x, o.vel_vec[0].y).normalized(); // safeguard in case we don't have rndtrial=5 but we use stepwise velocities..
+	}
+	
 	
 	return true;
 }
@@ -670,11 +681,11 @@ void MovingObjects::applyRandomDirectionForRndTrial_2_4(ObjData & o)
 
 }
 
-void MovingObjects::applyRandomPositionForRndTrial_1_2(ObjData & o) 
+void MovingObjects::applyRandomPositionForRndTrial_1_2_5(ObjData & o, bool force2D /* = false */) 
 {
-	const bool hasX = !eqf(o.vel.x,0.),
-			   hasY = !eqf(o.vel.y,0.),
-	           hasZ = !eqf(o.vel.z,0.);
+	const bool hasX = force2D ? true : !eqf(o.vel.x,0.),
+	           hasY = force2D ? true : !eqf(o.vel.y,0.),
+	           hasZ = force2D ? false : !eqf(o.vel.z,0.);
 	Vec2 cpos = o.shape->canvasPosition();
 	if (hasX) cpos.x = ran1Gen()*canvasAABB.size.x + min_x_pix;
 	if (hasY) cpos.y = ran1Gen()*canvasAABB.size.y + min_y_pix; 
@@ -801,6 +812,8 @@ void MovingObjects::doFrameDraw()
 						}
 						if (o.len_vec_i >= o.len_vec.size()) o.len_vec_i = 0;
 						
+						o.stepwise_vel_vec_i = 0; // if we use this vector, force it to 0 index
+
 						objLen = o.len_vec[o.len_vec_i].x;
 						objLen_min = o.len_vec[o.len_vec_i].y;
 						
@@ -829,15 +842,17 @@ void MovingObjects::doFrameDraw()
 						//} else 
 						if (1 == rndtrial) {
 							// random position and random V based on init sped 
-							applyRandomPositionForRndTrial_1_2(o);
+							applyRandomPositionForRndTrial_1_2_5(o);
 							vx = ran1Gen()*objVelx*2 - objVelx;
 							vy = ran1Gen()*objVely*2 - objVely;
 							vz = ran1Gen()*objVelz*2 - objVelz;
+							o.stepwise_vel_dir = Vec2(vx, vy).normalized();  ///< only used iff o.stepwise_vel_vec is not empty!
 						} else if (2 == rndtrial) {
 							// random position and direction
 							// static speed
-							applyRandomPositionForRndTrial_1_2(o);
+							applyRandomPositionForRndTrial_1_2_5(o);
 							applyRandomDirectionForRndTrial_2_4(o);
+							o.stepwise_vel_dir = Vec2(vx, vy).normalized();  ///< only used iff o.stepwise_vel_vec is not empty!
 							
 						} else if (3 == rndtrial) {
 							// position at t = position(t-1) + vx, vy
@@ -850,6 +865,7 @@ void MovingObjects::doFrameDraw()
 							vx = ran1Gen()*objVelx*2. - objVelx;
 							vy = ran1Gen()*objVely*2. - objVely;
 							vz = ran1Gen()*objVelz*2. - objVelz; 
+							o.stepwise_vel_dir = Vec2(vx, vy).normalized();  ///< only used iff o.stepwise_vel_vec is not empty!
 						} else if (4 == rndtrial) {
 							// position at t = position(t-1) + vx, vy
 							// static speed, random direction
@@ -859,10 +875,35 @@ void MovingObjects::doFrameDraw()
 								z = o.lastPos.z;
 							}
 							applyRandomDirectionForRndTrial_2_4(o);
+							o.stepwise_vel_dir = Vec2(vx, vy).normalized();  ///< only used iff o.stepwise_vel_vec is not empty!
+						} else if (5 == rndtrial) {
+							// rndtrial = 5 is NEW, as specified by T.J. Wardill in January 2016
+							// we generate a random position (that is always random anywhere on the 2D screen, ignoring 3D)
+							// we generate a random direction and then apply the stepwise velocity to the object
+							applyRandomPositionForRndTrial_1_2_5(o, true);
+							double ang = (ran1Gen() * 2.0 * M_PI) - M_PI; // random number from -M_PI to +M_PI (-180 to 180 degrees)
+							o.stepwise_vel_dir.x = cos(ang);
+							o.stepwise_vel_dir.y = sin(ang);
+							// safeguard against runs that lack objStepwiseVel vector but still want a random direction
+							double mag = sqrt(vx*vx + vy*vy);
+							vx = mag * o.stepwise_vel_dir.x; // this safeguard is just in case we lack a stepwise_vel_vec for rndtrial=5.. so we fall back to specified velocities from objVelX & Y
+							vy = mag * o.stepwise_vel_dir.y; // just in case we lack a stepwise_vel_vec
 						}
+						
 						objPhi = o.phi_o;
 						if (is3D) ensureObjectIsInBounds(o);
 						aabb = o.shape->AABB();
+					}
+					
+					// APPLY STEPWISE MOVEMENT IF o.stepwise_vel_vec is defined
+					// force stepwise velocity if we have a stepwise velocity vector.. ignores objVelX & Y and forces
+					// velocity from objStepwiseVelN vector for object, using o.stepwise_vel_dir for the object (which may have been randomly generated for rndtrial>0)
+					if (o.stepwise_vel_vec.size()) {
+						if (unsigned(o.stepwise_vel_vec_i) >= unsigned(o.stepwise_vel_vec.size())) 
+							o.stepwise_vel_vec_i = 0;
+						const double vmag = o.stepwise_vel_vec[o.stepwise_vel_vec_i++];
+						vx = vmag * o.stepwise_vel_dir.x;
+						vy = vmag * o.stepwise_vel_dir.y;
 					}
 					
 					{

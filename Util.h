@@ -240,6 +240,15 @@ inline bool genericVectorCompareLessThan(int n, const T *a, const T *b)
 	// if we make it here, it's equal!
 	return false;
 }
+
+template <typename T>
+inline bool genericVectorCompareEqual(int n, const T *a, const T *b)
+{
+	for (int i = 0; i < n; ++i) 
+		if (!eqf(a[i],b[i])) return false;
+	// if we make it here, it's equal!
+	return true;
+}	
 	
 template <typename T=double> 
 struct Vec2T {
@@ -258,7 +267,7 @@ struct Vec2T {
 	template <typename U> Vec2T<T> operator/(const U & u) const { return Vec2T<T>(x/u,y/u); }
 	template <typename U> Vec2T<T> operator+(const U & u) const { return Vec2T<T>(x+u,y+u); }
 	template <typename U> Vec2T<T> operator-(const U & u) const { return Vec2T<T>(x-u,y-u); }
-	bool operator==(const Vec2T<T> & o) const { return eqf(x,o.x) && eqf(y,o.y); }
+	bool operator==(const Vec2T<T> & o) const { return genericVectorCompareEqual(2,v,o.v); }
 	bool operator!=(const Vec2T<T> & o) const { return !((*this) == o); }
 //	bool operator<(const Vec2T<T> & o) const { return magnitude() < o.magnitude(); }
 	Vec2T<T> operator-(const Vec2T<T> & v) const { return Vec2T<T>(x-v.x,y-v.y); }
@@ -318,7 +327,7 @@ struct Vec3T {
 	template <typename U> Vec3T<T> operator/(const U & u) const { return Vec3T<T>(x/u,y/u,z/u); }
 	template <typename U> Vec3T<T> operator+(const U & u) const { return Vec3T<T>(x+u,y+u,z+u); }
 	template <typename U> Vec3T<T> operator-(const U & u) const { return Vec3T<T>(x-u,y-u,z-u); }
-	bool operator==(const Vec3T<T> & o) const { return eqf(x,o.x) && eqf(y,o.y) && eqf(z,o.z); }
+	bool operator==(const Vec3T<T> & o) const { return genericVectorCompareEqual(3,v,o.v); }
 	bool operator!=(const Vec3T<T> & o) const { return !((*this) == o); }
 //	bool operator<(const Vec3T<T> & o) const { return magnitude() < o.magnitude(); }
 	
@@ -378,7 +387,7 @@ struct Vec4T
 	T & operator[](int i) { if (i < 0) i=0; else if (i > 3) i=3;  return v[i];  }
 	const T & operator[](int i) const { if (i < 0) i=0; else if (i > 3) i=3;  return v[i];  }
 	T distance(const Vec4T<T> &v) const { return ((*this)-v).magnitude(); }
-	bool operator==(const Vec4T<T> & o) const { return eqf(x,o.x) && eqf(y,o.y) && eqf(z,o.z) && eqf(w,o.w); }
+	bool operator==(const Vec4T<T> & o) const { return genericVectorCompareEqual(4,v,o.v); }
 	bool operator!=(const Vec4T<T> & o) const { return !((*this) == o); }
 //	bool operator<(const Vec4T<T> & o) const { return magnitude() < o.magnitude(); }
 	T magnitude() const { return sqrt(x*x + y*y + z*z + w*w); }
@@ -415,7 +424,7 @@ struct Vec5T
 	T & operator[](int i) { if (i < 0) i=0; else if (i > 4) i=4;  return v[i];  }
 	const T & operator[](int i) const { if (i < 0) i=0; else if (i > 4) i=4;  return v[i];  }
 	T distance(const Vec5T<T> &v) const { return ((*this)-v).magnitude(); }
-	bool operator==(const Vec5T<T> & o) const { return eqf(v1,o.v1) && eqf(v2,o.v2) && eqf(v3,o.v3) && eqf(v4,o.v4) && eqf(v5,o.v5);; }
+	bool operator==(const Vec5T<T> & o) const { return genericVectorCompareEqual(5, this->v, o.v); }
 	bool operator!=(const Vec5T<T> & o) const { return !((*this) == o); }
 //	bool operator<(const Vec5T<T> & o) const { return magnitude() < o.magnitude(); }
 	T magnitude() const { return sqrt(v1*v1 + v2*v2 + v3*v3 + v4*v4 + v5*v5); }
@@ -444,9 +453,6 @@ struct Vec5bT : public Vec5T<T>
 	Vec5bT(T v1 = 0, T v2 = 0, T v3 = 0, T v4 = 0, T v5 = 0) : Vec5T<T>(v1,v2,v3,v4,v5) {}	
 	bool operator<(const Vec5T<T> & o) const { return genericVectorCompareLessThan(5,this->v,o.v); }
 };
-
-template <>
-inline bool Vec5T<float>::operator==(const Vec5T<float> & o) const { return feqf(v1,o.v1) && feqf(v2,o.v2) && feqf(v3,o.v3) && feqf(v4,o.v4) && feqf(v5,o.v5); }
 	
 	
 typedef Vec2T<double> Vec2d;
