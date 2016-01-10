@@ -831,6 +831,8 @@ void MovingObjects::doFrameDraw()
 						objVely = o.vel_vec[o.vel_vec_i].y;
 						objVelz = o.vel_vec[o.vel_vec_i].z;
 						
+                        o.stepwise_vel_dir = Vec2(objVelx, objVely).normalized();  ///< only used iff o.stepwise_vel_vec is not empty!
+
 						// init position
 						//if (0 == rndtrial) {
 						// setup defaults for x,y,z and vx,vy,vz
