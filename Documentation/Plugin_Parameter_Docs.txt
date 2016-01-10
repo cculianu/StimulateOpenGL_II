@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: January 07, 2016
+Last Updated: January 10, 2016
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -999,6 +999,46 @@ objSpinN (for objects 2 through numObj)
                           subsequent objects: take on the value of the first
                           object by default (unless specified, of course).
 
+objStepwiseVel
+  *or*
+objStepwiseVelN (for objects 2 through numObj)
+        Synopsis:         Provides a frame-by-frame override over an object's
+                          motion speed. A vector of values that is the 'speed
+                          in pixels' to move the object (in its 'direction of
+                          motion'), per frame. The 'direction of motion' is
+                          determined by one of two ways:
+                             1. IFF `rndtrial' is 5, it is randomly selected at
+                                the start of the trial -- for every `tframes'
+                                block of frames (see `rndtrial' below).
+                             2. In any other case, the current velocity 
+                                assigned the object (either from the
+                                objVelX/Y/Z params or from rndtrial randomness)
+                                is used to determine the direction that the
+                                objStepwiseVel override is applied in.
+                          Note that the vector of values specified here is
+                          iterated through once per frame for the object. This
+                          feature is designed to interoperate with `tframes'
+                          and `rndtrial' such that you can benefit from
+                          `rndtrial' randomness in position and direction, but
+                          control the speed of motion of an object. Use this
+                          to create effects such an object stopping, slowing
+                          down, going backward, standing still and speeding
+                          up all within a `tframes' trial.
+                          
+                          The objStepwiseVel vector is 'looped back' around if
+                          it is not long enough to accomodate the trial.  So
+                          for instance if tframes=100 and this vector contains
+                          20 values, the vector will be iterated through such
+                          that after the 20th, 40th, 60th, etc frame it will
+                          loop back to the beginning.
+                          
+                          Additionally, whenever a new trial begins, this
+                          vector is iterated through from the beginning.                          
+       Datatype:          float tuple (comma or space delimited)
+       Possible values:   list of floats from -inf to +inf, space or
+                          comma-delimited
+       Default value:     empty (feature is disabled if empty)
+
 objType *or* 
 objTypeN (where N is 2 to numObj)
         Synopsis:         Specifies the shape of the Nth moving target.  The 1st
@@ -1243,9 +1283,33 @@ rndtrial
                                 simply get a random direction in the plane (or 
                                 line) that the object was moving in previously.  
                                 So if objVelZ is 0, the object will get a new
-                                random direction in the    XY plane.  If objVelX 
+                                random direction in the  XY plane.  If objVelX 
                                 was 0, the object will get a new random 
-                                direction in the YZ plane, etc. 
+                                direction in the YZ plane, etc.
+                          IF rndtrial IS 5 THEN
+                              - Position will be a uniformly distributed random 
+                                X,Y tuple within the visible area of the 
+                                screen, taking into account margins, etc, but
+                                *NOT* also taking into account the
+                                'dimensionality of motion' of the object
+                                (unlike rndtrial=2 above).
+                                In brief, the object will always get a new set
+                                of X & Y coordinates on the screen, and the Z
+                                coordinate will be left untouched.
+                              - Velocity will be set to a magnitude of 1, with
+                                a uniformly distributed random direction from
+                                0 to 360 degrees.  This is designed to
+                                interoperate with the `objStepwiseVel'
+                                parameter described above.
+                          `objStepwiseVel` CAVEAT:
+                              For all of the velocity computations described
+                              above, they may be overridden by the frame-level
+                              `objStepwiseVel' vector defined for the object.
+                              If `objStepwiseVel` is defined for the object,
+                              the *direction of motion* of the velocities
+                              computed above is used, but the magnitude of
+                              motion is taken from the values defined in the
+                              object's `objStepwiseVel` on a per-frame basis.
         Datatype:         integer
         Possible values:  0, 1, 2, 3, 4
         Default value:    0

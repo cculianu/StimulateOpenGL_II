@@ -257,7 +257,9 @@ bool MovingObjects::initObjectFromParams(ObjData & o, ConfigSuppressesFrameVar &
 	if (feqf(o.grad_freq,0.0f)) o.grad_type = Shapes::GradientShape::None;
 
 	o.stepwise_vel_vec.clear();
-	if (getParam("objStepwiseVel", o.stepwise_vel_vec)) {
+	if (getParam("objStepwiseVel", o.stepwise_vel_vec)
+		|| getParam("objStepVel", o.stepwise_vel_vec)
+		|| getParam("objStepwiseVelocity", o.stepwise_vel_vec)) {
 		o.stepwise_vel_vec_i = 0;
 		o.stepwise_vel_dir = Vec2(o.vel_vec[0].x, o.vel_vec[0].y).normalized(); // safeguard in case we don't have rndtrial=5 but we use stepwise velocities..
 	}
