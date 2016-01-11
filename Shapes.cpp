@@ -61,7 +61,6 @@ void Shape::copyProperties(const Shape *o)
 /* static */ int GradientShape::tcache_ct(0);
 /* static */ GradientShape::DLCache *GradientShape::dcache; /// maps dl_grad display lists to counters.. implementing shared display lists
 /* static */ int GradientShape::dcache_ct(0);
-/* static */ bool GradientShape::did_retain_of_dummy_initial_conditions = 0;
 
 	
 GradientShape::GradientShape() : gtex(0), grad_type(None), grad_freq(1.f), grad_angle(0.f), grad_offset(0.f), grad_min(0.f), grad_max(1.f), dl(0)
@@ -82,14 +81,12 @@ GradientShape::~GradientShape()
 		delete tcache; 
 		tcache = 0;
 		tcache_ct = 0;
-		did_retain_of_dummy_initial_conditions = false;
 	}
 	if (dcache && --dcache_ct <= 0) {
 		Debug() << "Display list cache delete (cache current size: " << dcache->size() << " max size was: " << dcache->maxSize() << ")...";
 		delete dcache; 
 		dcache = 0;
 		dcache_ct = 0;
-		did_retain_of_dummy_initial_conditions = false;
 	}
 }
 	
@@ -127,12 +124,6 @@ void GradientShape::setupDl()
 		Error() << "GradientShape::setupDl() -- cannot determine type_id for object! FIXME!";
 	}
 	dl = dcache->getAndRetain(Vec5bf(typeId(),gtex,grad_freq,grad_angle,grad_offset));
-	if (!did_retain_of_dummy_initial_conditions) {
-		// hack to keep the initial "default" object always around throughout plugin run as performance optimization
-		dcache->retain(dl);
-		tcache->getAndRetain(grad_type, grad_min, grad_max);
-		did_retain_of_dummy_initial_conditions = true;
-	}
 	const int ct = dcache->count(dl);
     if (myExcessiveDebug) Debug() << "setupDl(): gradient tex=" << gtex << ", dl=" << dl << " dlrefct=" << ct;
 	tcache->release(old_gtex);
