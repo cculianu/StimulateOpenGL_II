@@ -905,7 +905,8 @@ void MovingObjects::doFrameDraw()
 					if (o.stepwise_vel_vec.size()) {
 						if (unsigned(o.stepwise_vel_vec_i) >= unsigned(o.stepwise_vel_vec.size())) 
 							o.stepwise_vel_vec_i = 0;
-						const double vmag = o.stepwise_vel_vec[o.stepwise_vel_vec_i++];
+						const double vmag = o.stepwise_vel_vec[o.stepwise_vel_vec_i];
+						if (k+1 >= nSubFrames) ++o.stepwise_vel_vec_i; // increment only once for every 'tFrame' notion of a frame, which is a graphics card frame.  Caused confusion before when I didn't do it like this (see emails with tjwardill 1/11/2016)
 						vx = vmag * o.stepwise_vel_dir.x;
 						vy = vmag * o.stepwise_vel_dir.y;
 					}
