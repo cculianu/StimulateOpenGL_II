@@ -1030,10 +1030,17 @@ objStepwiseVelN (for objects 2 through numObj)
                           for instance if tframes=100 and this vector contains
                           20 values, the vector will be iterated through such
                           that after the 20th, 40th, 60th, etc frame it will
-                          loop back to the beginning.
-                          
+                          loop back to the beginning.  
+						                            
                           Additionally, whenever a new trial begins, this
                           vector is iterated through from the beginning.                          
+
+                          A NOTE ABOUT TRIPLE-FPS MODE:
+
+                          Note that in "triple-fps" mode, a tFrame frame is 3 
+                          sub-frames. This stepwise vector is applied once per 
+                          *sub-frame* (so its length needs to be adjusted 
+                          accordingly).
        Datatype:          float tuple (comma or space delimited)
        Possible values:   list of floats from -inf to +inf, space or
                           comma-delimited
