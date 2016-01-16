@@ -380,7 +380,7 @@ namespace DAQ
         const char *callStr = "";
 		const double t0 = getTime();
 		static bool didProbe = false;
-		static DeviceRangeMap::aoRanges;
+        static DeviceRangeMap aoRanges;
 		
 		if (!didProbe) {
 			aoRanges = ProbeAllAORanges();
@@ -406,13 +406,13 @@ namespace DAQ
 		
         // Create Digital Output (DO) Task and Channel
         DAQmxErrChk (DAQmxCreateTask ("", &taskHandle));
-        DAQmxErrChk (DAQmxCreateAOChan(taskHandle,devChan.toUtf8().constData(),"",minv,maxv,DAQmx_Val_Volts,NULL));
+        DAQmxErrChk (DAQmxCreateAOVoltageChan(taskHandle,devChan.toUtf8().constData(),"",minv,maxv,DAQmx_Val_Volts,NULL));
 		
         // Start Task (configure port)
         //DAQmxErrChk (DAQmxStartTask (taskHandle));
 		
         //  Autostart ON
-		w_data = volts;
+        w_data[0] = volts;
 				
         DAQmxErrChk (DAQmxWriteAnalogScalarF64(taskHandle,1,DAQ_TIMEOUT,w_data[0],NULL));
 		
