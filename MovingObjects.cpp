@@ -279,6 +279,12 @@ void MovingObjects::initRealtimeChangeableParams()
 	
 	if (!getParam("debugAABB", debugAABB))
 		debugAABB = false;
+	
+	if (!have_fv_input_file && int(nFrames) != tframes * numSizes * numSpeeds) {
+		int oldnFrames = nFrames;
+		nFrames = tframes * numSpeeds * numSizes;
+		Warning() << "nFrames was " << oldnFrames << ", auto-set to match tframes*length(speeds)*length(sizes) = " << nFrames << "!";
+	}	
 }
 
 bool MovingObjects::init()
@@ -337,6 +343,8 @@ bool MovingObjects::init()
 		// rndtrial=2 random position and direction, static velocity
 	    // rndtrial=3 keep old position of last tframes run, random velocity based on initialization range
 		// rndtrial=4 keep old position of last tframes run, static speed, random direction
+	    // rndtrial=5 like 2 above, but random position is generated differently
+
 	if(!getParam( "rseed" , rseed))              rseed = -1;  //set start point of rnd seed;
 	ran1Gen.reseed(rseed);
 	
@@ -361,6 +369,10 @@ bool MovingObjects::init()
 	
 	
 	initRealtimeChangeableParams();
+	
+	if ( (4==rndtrial || 3==rndtrial) && noEdge)
+		Warning() << "POSSIBLY BAD PARAM COMBINATION: Use of rndtrial=3 or rndtrial=4 along with the noEdge=true option is not officially supported! The plugin may produce trials where objects live entirely off-screen! YOU HAVE BEEN WARNED!";
+
 	
 	// Light position stuff...
 	if (!(getParam("sharedLight", lightIsFixedInSpace) || getParam("fixedLight", lightIsFixedInSpace) || getParam("lightIsFixed", lightIsFixedInSpace) || getParam("lightIsFixedInSpace", lightIsFixedInSpace)))
@@ -456,11 +468,6 @@ bool MovingObjects::init()
 		ftChangeEvery = tframes;
 	} else if (ftChangeEvery > 0 && tframes > 0 && ftChangeEvery != tframes) {
 		Warning() << "ftrack_change was defined in configuration and so was tframes (target cycle / speed cycle) but ftrack_change != tframes!";
-	}
-	if (!have_fv_input_file && int(nFrames) != tframes * numSizes * numSpeeds) {
-		int oldnFrames = nFrames;
-		nFrames = tframes * numSpeeds * numSizes;
-		Warning() << "nFrames was " << oldnFrames << ", auto-set to match tframes*length(speeds)*length(sizes) = " << nFrames << "!";
 	}
 	
 	dontCloseFVarFileAcrossLoops = bool(rndtrial && nFrames);
@@ -1412,12 +1419,17 @@ bool MovingObjects::applyNewParamsAtRuntime()
 
 		ConfigSuppressesFrameVar csfv_dummy;
 		Vec3 savedV = o.v, savedVel = o.vel;
+		int saved_stepwise_vel_vec_i = o.stepwise_vel_vec_i;
+		Vec2 saved_stepwise_vel_dir = o.stepwise_vel_dir;
+
 		if (!initObjectFromParams(o, csfv_dummy)) {
 			if (i) paramSuffixPop();
 			return false;
 		}
 		o.v = savedV;
 		o.vel = savedVel;
+		o.stepwise_vel_vec_i = saved_stepwise_vel_vec_i;
+		o.stepwise_vel_dir = saved_stepwise_vel_dir;
 		
 		// objtype
 		if (savedType != o.type) {
@@ -1475,6 +1487,9 @@ bool MovingObjects::applyNewParamsAtRuntime()
 	
 	// trajectory stuff
 	if(!getParam( "rndtrial" , rndtrial))	     rndtrial = 0;
+	
+	if ( (4==rndtrial || 3==rndtrial) && noEdge)
+		Warning() << "POSSIBLY BAD PARAM COMBINATION: Use of rndtrial=3 or rndtrial=4 along with the noEdge=true option is not officially supported! The plugin may produce trials where objects live entirely off-screen! YOU HAVE BEEN WARNED!";
 	
 	Debug() << "CHANGED PARAMS:";
 	for (ChangedParamMap::iterator it = m.begin(); it != m.end(); ++it) {

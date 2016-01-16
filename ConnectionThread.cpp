@@ -408,7 +408,34 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
 			Error() << "NUMPARAMSQUEUED issued on a non-existant plugin";
 		} else {
 			return QString::number(p->pendingParamsHistorySize());
-		}		
+		}	
+	} else if (cmd == "SETPARAMQUEUE") {
+        QString pluginName = toks.join(" ");
+        StimPlugin *p = stimApp()->glWin()->pluginFind(pluginName);
+		if (!p) {
+			Error() << "SETPARAMQUEUE issued on a non-existant plugin";
+		} else if (stimApp()->glWin()->runningPlugin() == p) {
+			Error() << "SETPARAMQUEUE cannot be issued on a plugin that is running";
+		} else {
+            Debug() << "Sending: READY";
+            sock.write("READY\n");
+            QString paramstr ("");
+            QTextStream paramts(&paramstr, QIODevice::WriteOnly/*|QIODevice::Text*/);
+            QString line;
+            while ( sock.canReadLine() || sock.waitForReadyRead() ) {
+                line = sock.readLine().trimmed();
+                if (!line.length()) break;
+                Debug() << "Got Line: " << line;
+                paramts << line << "\n";
+            }
+            paramts.flush();
+			if (p->enqueueParamsForPendingParamsHistoryFromString(paramstr)) {
+				p->setSaveParamHistoryOnStopOverride(false); // also tell plugin to NOT save this param history, since presumably it can be generated again from calling client code..
+				return "";
+			} else {
+				Error() << "SETPARAMQUEUE failed to enqueue params from specified param-queue";
+			}
+		}
     } else if (cmd == "SETPARAMS" && toks.size()) {
         QString pluginName = toks.join(" ");
         StimPlugin *p;

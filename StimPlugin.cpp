@@ -25,6 +25,7 @@ softCleanup(false), dontCloseFVarFileAcrossLoops(false), gotNewParams(false), pl
     setObjectName(name);
     parent->pluginCreated(this);   
 	needToSaveParamHistory = false;
+	replay_param_history_on_soft_restart = false;
 }
 
 StimPlugin::~StimPlugin() 
@@ -42,6 +43,9 @@ void StimPlugin::cleanup()
 		Debug() << "Deleted background image texture id " << bgImg_tex;
 		StimApp::instance()->glWin()->deleteTexture(bgImg_tex), bgImg_tex = bgImg_h = bgImg_w = 0;
 	}
+	// clear pending DO/AO writes
+	pendingDOWrites.clear(); pendingAOWrites.clear();
+	if (!softCleanup) replay_param_history_on_soft_restart = false;
 }
 
 bool StimPlugin::saveData(bool use_gui)
@@ -66,7 +70,7 @@ void StimPlugin::stop(bool doSave, bool useGui, bool softStop)
 	if (!softStop) { 
 		QMutexLocker l(&mut);
 		pendingParamHistory.clear();
-		
+				
 		// also, save the actual param history if that's turned-on
 		if (stimApp()->isSaveParamHistory() && needToSaveParamHistory && paramHistory.size() > 1) {
 			saveParamHistoryToFile();
@@ -280,6 +284,50 @@ bool StimPlugin::initFromParams()
 		}
 	}
 	
+	
+	// DO/AO write params setDOlines setAOlines and setDOstates and setAOStates
+	QVector<QString> lines;
+	QVector<double> states;
+	pendingDOWrites.clear(); pendingAOWrites.clear();
+	bool hadl(false), hads(false);
+			  
+	hadl = getParam("setDOlines", lines); 
+	hads = getParam("setDOstates", states);
+	
+	if ( hadl || hads ) {
+		if (lines.size() != states.size() || !hadl || !hads) 
+			Warning() << "Need to specify setDOlines= and setDOStates= together, and they must both contain the same number of elements!";
+		else {
+			for (int i = 0; i < lines.size(); ++i) {
+				PendingDAQWrite p;
+				p.devChanString = lines[i];
+				p.volts = states[i];
+				pendingDOWrites.push_back(p);
+			}
+		}
+		// XXX
+		Debug() << "Frame " << frameNum << " DO lines=" << joinCSV(lines) << " states=" << joinCSV(states);
+	}
+	lines.clear(); states.clear(); hadl = hads = false;
+
+	hadl = getParam("setAOlines", lines); 
+	hads = getParam("setAOstates", states);
+	
+	if ( hadl || hads ) {
+		if (lines.size() != states.size() || !hadl || !hads) 
+			Warning() << "Need to specify setAOlines= and setAOStates= together, and they must both contain the same number of elements!";
+		else {
+			for (int i = 0; i < lines.size(); ++i) {
+				PendingDAQWrite p;
+				p.devChanString = lines[i];
+				p.volts = states[i];
+				pendingAOWrites.push_back(p);
+			}
+		}
+		// XXX
+		Debug() << "Frame " << frameNum << " AO lines=" << joinCSV(lines) << " states=" << joinCSV(states);
+	}	
+	
 	return true;
 }
 
@@ -320,8 +368,20 @@ bool StimPlugin::start(bool startUnpaused)
 		previous_previous_params.clear();
 		if (pendingParamHistory.size() && pendingParamHistory.head().frameNum == 0) {
 			// force use pending param history first params ...
-			QMutexLocker l (&mut);
 			params = pendingParamHistory.dequeue().params;
+		}
+	} else if (replay_param_history_on_soft_restart) {
+		QMutexLocker l(&mut);
+		pendingParamHistory.clear();
+		for (QVector<ParamHistoryEntry>::const_iterator it = paramHistory.begin(); it != paramHistory.end(); ++it) {
+			pendingParamHistory.enqueue(*it);
+			///XXX
+			//Debug() << "re-adding params for frameNum=" << (*it).frameNum;
+		}
+		paramHistory.clear();
+		if (pendingParamHistory.size() && pendingParamHistory.head().frameNum == 0) {
+			// force use pending param history first params ...
+			params = pendingParamHistory.dequeue().params;	
 		}
 	}
     if (!missedFrames.capacity()) missedFrames.reserve(4096);
@@ -901,6 +961,18 @@ template <> bool StimPlugin::getParam<QVector<double> >(const QString & name, QV
 	return b;
 }
 
+// specialization for QVector of QStrings -- a comma-separated list
+template <> bool StimPlugin::getParam<QVector<QString> >(const QString & name, QVector<QString> & out) const
+{
+	QString s;
+	bool b = getParam(name, s);
+	if (b) out=parseCSVStrings(s);
+	// save param type
+	paramTypes[(name+paramSuffix()).toLower()] = PT_StringVector;
+	paramTypes[name.toLower()] = PT_StringVector;
+	return b;
+}
+
 template <> bool StimPlugin::getParam<double>(const QString & name, double & out) const
 {	
 	bool ret = getParam_Generic(name, out);
@@ -972,6 +1044,13 @@ void StimPlugin::normalizeParamVals(const QString & n, QString & v1, QString & v
 		case PT_DoubleVector: { 
 			// this is to regularize the doubles so they are sorta equal as strings..
 			QVector<double> dv1 = parseCSV(v1), dv2 = parseCSV(v2);
+			v1 = joinCSV(dv1);
+			v2 = joinCSV(dv2);
+		}
+			break;
+		case PT_StringVector: { 
+			// this is to regularize the doubles so they are sorta equal as strings..
+			QVector<QString> dv1 = parseCSVStrings(v1), dv2 = parseCSVStrings(v2);
 			v1 = joinCSV(dv1);
 			v2 = joinCSV(dv2);
 		}
@@ -1181,6 +1260,97 @@ void StimPlugin::setPendingParamHistory(const QVector<ParamHistoryEntry> & h)
 	previous_params = previous_previous_params = StimParams();
 	if (pendingParamHistory.size() && pendingParamHistory.head().frameNum == 0)
 		params = pendingParamHistory.head().params;	
+	replay_param_history_on_soft_restart = true;
+}
+
+/// Called by ConnetionThread to setup a new param history programatically for frame-level plugin control
+bool StimPlugin::enqueueParamsForPendingParamsHistory(const QMap<unsigned, StimParams> & paramQ)
+{
+    if (parent->runningPlugin() == this)  {
+		Error() << "Cannot set param history on a running plugin!";
+		return false;
+	}
+	StimParams saved_params = params, saved_previous_params = previous_params;
+	bool didFirst = false;
+	QStack<ParamHistoryEntry> hist;
+	for (QMap<unsigned, StimParams>::const_iterator it = paramQ.begin(); it != paramQ.end(); ++it)
+	{
+		ParamHistoryEntry h;
+		if (!didFirst && it.key() != 0) {
+			/* IMPORTANT BUG FIXME TODO!!
+			 make sure that calling code can't set a param history if the plugin initial params
+			 for frame 0 haven't been defined yet!  This is important due to the way pending params work.. ! */
+			h.frameNum = 0;
+			h.params = params;
+			previous_params.clear();
+			h.changedParams = paramsThatChanged();
+			previous_params = params;
+			hist.push_back(h);			
+		} else if (it.key() == 0) 
+			previous_params.clear();
+		didFirst = true;
+		h.frameNum = it.key();
+		params = h.params = it.value();
+		h.changedParams = paramsThatChanged();
+		previous_params = params;
+		hist.push_back(h);
+	}
+	params = saved_params;
+	previous_params = saved_previous_params;
+	setPendingParamHistory(hist);
+	return true;
+}
+
+/// Called by ConnetionThread to setup a new param history programatically for frame-level plugin control
+bool StimPlugin::enqueueParamsForPendingParamsHistoryFromString(const QString & s)
+{
+	QMap<unsigned, StimParams> paramQ;
+	if (s.isNull() || !s.length()) return false;
+	QString scpy(s), dummy;
+	QTextStream ts(&scpy,QIODevice::ReadOnly|QIODevice::Text);
+	
+	
+	while (!ts.atEnd()) {
+		qint64 anchor1 = ts.pos();
+		ts >> dummy;
+		if (ts.atEnd()) break;
+		if (dummy.toLower() == "framenum") {
+			int fnum = -1;
+			ts >> fnum;
+			if (fnum < 0) {
+				Error() << "PARSE ERROR: Cannot parse param queue string, expected a number after frameNum!";
+				return false;
+			}
+			if (paramQ.isEmpty() && fnum) {
+				Error() << "ERROR: In param queue string, expected frameNum 0 for first entry!";
+				return false;
+			}
+			ts >> dummy;
+			if (dummy != "{") {
+				Error() << "PARSE ERROR: Expected '{' after frameNum #!\n";
+				return false;
+			}
+			int bracect = 1;
+			while (!ts.atEnd() && bracect > 0) {
+				ts >> dummy;
+				if (dummy == "{") ++bracect;
+				else if (dummy == "}") --bracect;
+			}
+			qint64 anchor2 = ts.pos();
+			ts.seek(anchor1);
+			QString entryStr = ts.read(anchor2-anchor1);
+			ParamHistoryEntry e;			
+			if (!e.fromString(entryStr)) {
+				Error() << "PARSE ERROR: Could not parse param history entry labeled 'frameNum " << fnum << "'";
+				return false;
+			}
+			paramQ[e.frameNum] = e.params;
+		} else {
+			Error() << "PARSE ERROR: Cannot parse param history string, expected frameNum, got: " << dummy;
+			return false;
+		}
+	}	
+	return enqueueParamsForPendingParamsHistory(paramQ);
 }
 
 bool StimPlugin::parseParamHistoryString(QString & pluginName, QVector<ParamHistoryEntry> & h, const QString & s)

@@ -339,10 +339,11 @@ namespace DAQ
         else 
             w_data[0] = 0x1;
 
-		tmp.sprintf("Writing to DO: %s data: 0x%X took %f secs", devChan.toUtf8().constData(),(unsigned int)w_data[0],getTime()-t0);		
-        Debug() << tmp;
 
         DAQmxErrChk (DAQmxWriteDigitalScalarU32(taskHandle,1,DAQ_TIMEOUT,w_data[0],NULL));
+
+		tmp.sprintf("Writing to DO: %s data: 0x%X took %f secs", devChan.toUtf8().constData(),(unsigned int)w_data[0],getTime()-t0);		
+        Debug() << tmp;
 
 
     Error_Out:
@@ -367,6 +368,80 @@ namespace DAQ
 #endif
     }
 
+	bool WriteAO(const QString & devChan, double volts)
+    {
+        QString tmp;
+#ifdef FAKEDAQ
+		(void)devChan; (void)volts;
+		tmp.sprintf("Writing to fake AO: %s data: %f", devChan.toUtf8().constData(), volts);
+        Debug() << tmp;
+		return true;
+#else
+        const char *callStr = "";
+		const double t0 = getTime();
+		static bool didProbe = false;
+		static DeviceRangeMap::aoRanges;
+		
+		if (!didProbe) {
+			aoRanges = ProbeAllAORanges();
+			didProbe = true;
+		}
+		double minv = -5., maxv = 5.;
+		bool foundRange = false;
+		
+		for (DeviceRangeMap::const_iterator it = aoRanges.begin(); it != aoRanges.end(); ++it) {
+			const Range & r = it.value();
+			if (devChan.startsWith(it.key()) && volts <= r.max && volts >= r.min)
+				if (!foundRange || r.max-r.min < maxv-minv)
+					minv = r.min, maxv = r.max, foundRange = true;
+		}
+		
+        // Task parameters
+        int      error = 0;
+        TaskHandle  taskHandle = 0;
+        char        errBuff[2048];
+        
+        // Write parameters
+        float64      w_data [1];
+		
+        // Create Digital Output (DO) Task and Channel
+        DAQmxErrChk (DAQmxCreateTask ("", &taskHandle));
+        DAQmxErrChk (DAQmxCreateAOChan(taskHandle,devChan.toUtf8().constData(),"",minv,maxv,DAQmx_Val_Volts,NULL));
+		
+        // Start Task (configure port)
+        //DAQmxErrChk (DAQmxStartTask (taskHandle));
+		
+        //  Autostart ON
+		w_data = volts;
+				
+        DAQmxErrChk (DAQmxWriteAnalogScalarF64(taskHandle,1,DAQ_TIMEOUT,w_data[0],NULL));
+		
+		tmp.sprintf("Writing to AO: %s data: %f took %f secs", devChan.toUtf8().constData(),w_data[0],getTime()-t0);		
+        Debug() << tmp;
+
+		
+    Error_Out:
+		
+        if (DAQmxFailed (error))
+            DAQmxGetExtendedErrorInfo (errBuff, 2048);
+		
+        if (taskHandle != 0)
+		{
+			DAQmxStopTask (taskHandle);
+			DAQmxClearTask (taskHandle);
+		}
+		
+        if (error) {
+            QString e;
+            e.sprintf("DAQmx Error %d: %s", error, errBuff);
+            if (!noDaqErrPrint) 
+                Error() << e;
+			return false;
+        }
+		return true;
+#endif
+    }
+	
 
 
     TermConfig StringToTermConfig(const QString & txt) 

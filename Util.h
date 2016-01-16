@@ -142,9 +142,16 @@ extern unsigned setCurrentThreadAffinityMask(unsigned cpu_mask);
 /// Pass in a block of CSV text, and you will get back a vector of all the 
 /// doubles that were parsed by separating out the CSV values.  
 extern QVector<double> parseCSV(const QString & text, const QRegExp & sepre = QRegExp("(\\s+)|,"));
+
+/// Pass in a block of CSV text, and you will get back a vector of all the 
+/// doubles that were parsed by separating out the CSV values.  
+extern QVector<QString> parseCSVStrings(const QString & text, const QRegExp & sepre = QRegExp("(\\s+)|,"));
+	
 	
 /// Inverse of above
 extern QString joinCSV(const QVector<double> & vals, const QString & comma = ", ");
+/// Inverse of above, for strings
+extern QString joinCSV(const QVector<QString> & vals, const QString & comma = ", ");
 	
 /// Creates a unique filename based on prefix.  Appends date to the filename and potentially a unique integer.  Used by FrameVars class and other code.
 extern QString makeUniqueFileName(const QString & prefix, const QString & ext);	

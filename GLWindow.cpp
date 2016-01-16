@@ -490,9 +490,25 @@ void GLWindow::paintGL()
 			Debug() << " dframe, after buf swap hwfc=" << getHWFrameCount() << ", delayCtr=" << delayCtr;
 		}
 		
-		QString devChan;
-		if (running && !paused && signalDIOOn && running->getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length()) {
-			DAQ::WriteDO(devChan, true);
+		if (running && !paused) {
+			// Do DO and AO writes immediately after the vsync..
+			QString devChan; bool did_do_vsync = false;
+			if (signalDIOOn && running->getParam("DO_with_vsync", devChan) && devChan != "off" && devChan.length())
+				DAQ::WriteDO(devChan, true), did_do_vsync=true;
+			// do pending writes specified by params set[AD]Olines,set[AD]Ostates for this frame...
+			for (QVector<StimPlugin::PendingDAQWrite>::const_iterator it = running->pendingDOWrites.begin(); it != running->pendingDOWrites.end(); ++it) {
+				const StimPlugin::PendingDAQWrite & w = *it;
+				if (did_do_vsync && w.devChanString == devChan) 
+					Warning() << "Specified to setDOline " << w.devChanString << " conflicts with DO_with_vsync line! Ignoring...";
+				else DAQ::WriteDO(w.devChanString, !eqf(0.0, w.volts));
+			}
+			for (QVector<StimPlugin::PendingDAQWrite>::const_iterator it = running->pendingAOWrites.begin(); it != running->pendingAOWrites.end(); ++it) {
+				const StimPlugin::PendingDAQWrite & w = *it;
+				DAQ::WriteAO(w.devChanString, w.volts);
+			}
+
+			running->pendingDOWrites.clear();
+			running->pendingAOWrites.clear();
 		}
 		
 

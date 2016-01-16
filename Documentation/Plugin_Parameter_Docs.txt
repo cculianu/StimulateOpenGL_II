@@ -783,6 +783,10 @@ noEdge
                           off the edge of the screen or wrap around the edges
                           (depending on the value of the wrapEdge parameter, see 
                           'wrapEdge' below).
+                          WARNING: Specifying noEdge=true with rndtrial=3 or
+                          rndtrial=4 is not officially supported and may
+                          produce trials where objects live entirely off-screen.
+                          USE ONLY IF YOU KNOW WHAT YOU'RE DOING!
        Datatype:          boolean
        Possible values:   0, 1, true, fale, no, yes
        Default value:     false

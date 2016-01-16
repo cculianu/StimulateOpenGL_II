@@ -202,6 +202,12 @@ public:
 	/// Called by StimApp loadStim() to determine how to parse a stim file. Returns true for nonzero length files with header PLUGIN
 	static bool fileAppearsToBeValidParamHistory(const QString & filename);
 	
+	/// Called by ConnetionThread to setup a new param history programatically for frame-level plugin control
+	bool enqueueParamsForPendingParamsHistory(const QMap<unsigned, StimParams> & paramQ);
+
+	/// Called by ConnetionThread to setup a new param history programatically for frame-level plugin control
+	bool enqueueParamsForPendingParamsHistoryFromString(const QString & paramQstring);
+
 signals:
     void started(); ///< emitted when plugin starts
     void finished(); ///< emitted when plugin finishes naturally
@@ -296,6 +302,13 @@ protected:
 	
 	int b_index, r_index, g_index; ///< index of brg values in above color_order param.  
 
+	struct PendingDAQWrite {
+		QString devChanString;
+		double volts;
+	};
+	
+	QVector<PendingDAQWrite> pendingDOWrites, pendingAOWrites;
+	
 public:
 	enum FTState {
 		// NB: if changing order of these or number of these please update the 
@@ -403,7 +416,7 @@ protected:
 	ChangedParamMap paramsThatChanged() const;	
 	
 	/// Type info about the plugin's params
-	enum ParamType { PT_Other = 0, PT_String, PT_Double, PT_DoubleVector, PT_Int };
+	enum ParamType { PT_Other = 0, PT_String, PT_Double, PT_DoubleVector, PT_Int, PT_StringVector };
 	typedef QMap<QString, ParamType> ParamTypeMap;
 	mutable ParamTypeMap paramTypes;
 		
@@ -413,6 +426,8 @@ protected:
 	QQueue<ParamHistoryEntry> pendingParamHistory;
 	/// Used only for outputting debug info so far..
 	ChangedParamMap lastChangedParams;
+	
+	bool replay_param_history_on_soft_restart;
 
 	/// Pushes the current params and the computed changedParams to the history top
 	void paramHistoryPush(bool doLocking = true, ChangedParamMap *cpm = 0);
@@ -497,8 +512,10 @@ namespace {
 
 // specialization for strings
 template <> bool StimPlugin::getParam<QString>(const QString & name, QString & out) const;
-// specialization for QVector of doubles -- a comma-separated list
+// specialization for QVector of doubles -- a comma-separated list (or space separated)
 template <> bool StimPlugin::getParam<QVector<double> >(const QString & name, QVector<double> & out) const;
+// specialization for QVector of string -- a comma-separated list (or space separated)
+template <> bool StimPlugin::getParam<QVector<QString> >(const QString & name, QVector<QString> & out) const;
 // specialization for QVector of doubles -- a comma-separated list
 template <> bool StimPlugin::getParam<double>(const QString & name, double & out) const;
 // specializations for QVector of various ints

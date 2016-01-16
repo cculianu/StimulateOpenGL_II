@@ -78,6 +78,8 @@ namespace DAQ
 	bool WriteDO(const QString & devChanName, bool hi_lo);
 	bool DOChannelExists(const QString & devChan);
 	
+	bool WriteAO(const QString & devChanName, double volts);
+	
     /// returns true iff the device supports AI simultaneous sampling
     bool     SupportsAISimultaneousSampling(const QString & devname);
     

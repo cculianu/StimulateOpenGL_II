@@ -19,7 +19,7 @@
 %                start with the new parameters.
 function [s] = SetParams(s, plugin, params)
     if (~ischar(plugin) | ~isstruct(params)),
-        error('Arguments to stop are Stop(StimOpemGLOBJ, plugin_string, params_struct)');
+        error('Arguments to SetParams are SetParams(StimOpemGLOBJ, plugin_string, params_struct)');
     end;
     ChkConn(s);
 %

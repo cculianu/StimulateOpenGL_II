@@ -58,5 +58,3 @@ bool StimParams::fromFile(const QString & fn)
     fromString(str);
     return true;
 }
-
-

@@ -195,6 +195,18 @@ QVector<double> parseCSV(const QString & text, const QRegExp & sepre)
 	}
 	return ret;
 }
+
+QVector<QString> parseCSVStrings(const QString & text, const QRegExp & sepre)
+{
+	QVector<QString> ret;
+	QStringList l = text.split(sepre, QString::SkipEmptyParts);
+	ret.reserve(l.count());
+	for (QStringList::const_iterator it = l.begin(); it != l.end(); ++it) {
+		ret.push_back(*it);
+	}
+	return ret;
+}
+	
 	
 QString joinCSV(const QVector<double> & v, const QString & c)
 {
@@ -202,6 +214,17 @@ QString joinCSV(const QVector<double> & v, const QString & c)
 	for (int i = 0; i < v.size(); ++i) {
 		if (i) ret += c;
 		ret += QString::number(v[i]);
+	}
+	return ret;
+}
+	
+/// Inverse of above, for strings
+QString joinCSV(const QVector<QString> & v, const QString & c)
+{
+	QString ret = "";
+	for (int i = 0; i < v.size(); ++i) {
+		if (i) ret += c;
+		ret += v[i];
 	}
 	return ret;
 }
