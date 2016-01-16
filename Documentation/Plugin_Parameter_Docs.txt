@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: January 10, 2016
+Last Updated: January 16, 2016
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -283,6 +283,67 @@ nLoops
         Possible values:  0 - +2147483647
         Default value:    0 (no looping)
 
+setAOlines
+        Synopsis:         Specify which analog output lines to output to when the
+                          plugin is run. Analog output can be written-to by
+                          specifying the `setAOstates` variable (which is a
+                          required parameter if this parameter is specified).
+                          The format for this parameter is one or more strings
+                          of the form:
+                             /Dev1/port0/line0
+                          This is standard National Instruments device
+                          notation (see NI docs for more info).
+                          More than one output line at a time can be specified
+                          by delimiting them with a comma ',' or space ' '.
+                          Eg: '/Dev1/port0/line0, /Dev1/port0/line1' and so on.
+        Datatype:         List of strings, space or comma delimited.
+        Possible values:  any
+        Default value:    '' or empty string, meaning don't do any AO output
+        
+setAOstates
+        Synopsis:         Output AO voltage data to the AO lines specified in
+                          `setAOlines'.  This parameter is required if the
+                          `setAOlines' parameter is also defined.  It must
+                          contain a list of real numbers (voltages) to output
+                          to each of the AO lines specified in setAOlines.
+                          The list can be space or comma delimited.
+        Datatype:         List of real numbers, space or comma delimited.
+        Possible values:  -inf - +inf
+        Default value:    '' or empty list, meaning no AO line output states
+                          are defined.
+                          
+setDOlines
+        Synopsis:         Specify which digital output lines to output to when the
+                          plugin is run. Digital output can be written-to by
+                          specifying the `setDOstates` variable (which is a
+                          required parameter if this parameter is specified).
+                          The format for this parameter is one or more strings
+                          of the form:
+                             /Dev1/port0/line0
+                          This is standard National Instruments device
+                          notation (see NI docs for more info).
+                          More than one output line at a time can be specified
+                          by delimiting them with a comma ',' or space ' '.
+                          Eg: '/Dev1/port0/line0, /Dev1/port0/line1' and so on.
+        Datatype:         List of strings, space or comma delimited.
+        Possible values:  any
+        Default value:    '' or empty string, meaning don't do any DO output
+        
+setDOstates
+        Synopsis:         Set the state of the DO lines specified in
+                          `setDOlines' as high or low.  This parameter is
+                          required if the `setDOlines' parameter is also
+                          defined.  It must contain a list of 1s or 0s (hi/lo)
+                          to output to each of the DO lines specified in
+                          setDOlines.
+                          The list can be space or comma delimited.
+                          Eg: '0 1 1 0 0 1' would be valid as would
+                              '0,1,1,0,0,1', etc..
+        Datatype:         List of bits (1 or 0), space or comma delimited.
+        Possible values:  0 or 1, space or comma-delimited
+        Default value:    '' or empty list, meaning no DO line output states
+                          are defined.
+                          
 ------------------------------------------------------------------------------
 `CheckerFlicker' PLUGIN PARAMETERS
 ------------------------------------------------------------------------------
