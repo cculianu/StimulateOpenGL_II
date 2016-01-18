@@ -1045,8 +1045,8 @@ void MovingObjects::doFrameDraw()
                             o.grad_offset += float(dT) * o.grad_temporal_freq;
                             o.grad_offset = fmodf(o.grad_offset, 1.0);
                             o.grad_angle += float(dT) * o.grad_spin;
-                            while (o.grad_angle < (float)-2.*M_PI) o.grad_angle += float(4.*M_PI);
-                            while (o.grad_angle > (float)2.*M_PI) o.grad_angle -= float(4.*M_PI);
+                            while (o.grad_angle < (float)-2.*M_PI) o.grad_angle += float(2.*M_PI);
+                            while (o.grad_angle > (float)2.*M_PI) o.grad_angle -= float(2.*M_PI);
 							gshape->setGradient(o.grad_type, o.grad_freq, o.grad_angle, o.grad_offset, o.grad_min, o.grad_max);
 						}
 						
