@@ -142,6 +142,8 @@ extern unsigned setCurrentThreadAffinityMask(unsigned cpu_mask);
 /// Pass in a block of CSV text, and you will get back a vector of all the 
 /// doubles that were parsed by separating out the CSV values.  
 extern QVector<double> parseCSV(const QString & text, const QRegExp & sepre = QRegExp("(\\s+)|,"));
+/// float version of parseCSV()
+extern QVector<float>  parseCSVf(const QString & text, const QRegExp & sepre = QRegExp("(\\s+)|,"));
 
 /// Pass in a block of CSV text, and you will get back a vector of all the 
 /// doubles that were parsed by separating out the CSV values.  

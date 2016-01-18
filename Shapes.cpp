@@ -166,7 +166,7 @@ GLuint GradientShape::DLCache::getAndRetain(const Vec5bf & props)
 		ret = it.value();
 	if (!ret) {
 		ret = glGenLists(1);
-		Debug() << "DisplayList " << ret << " created.";
+		if (excessiveDebug || myExcessiveDebug) Debug() << "DisplayList " << ret << " created.";
 		if (ret) {
 			dls[ret] = props;
 			dlsRev[props] = ret;
@@ -182,7 +182,7 @@ void GradientShape::DLCache::release(GLuint dl)
 	if (it != refs.end()) {
 		if (--(it.value()) <= 0) {
 			if (dl) glDeleteLists(dl, 1);
-			Debug() << "DisplayList " << dl << " deleted.";
+			if (myExcessiveDebug || excessiveDebug) Debug() << "DisplayList " << dl << " deleted.";
 			refs.erase(it);
 			Map::iterator dlm_it = dls.find(dl);
 			if (dlm_it != dls.end()) {

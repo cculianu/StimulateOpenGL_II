@@ -416,7 +416,7 @@ protected:
 	ChangedParamMap paramsThatChanged() const;	
 	
 	/// Type info about the plugin's params
-	enum ParamType { PT_Other = 0, PT_String, PT_Double, PT_DoubleVector, PT_Int, PT_StringVector };
+	enum ParamType { PT_Other = 0, PT_String, PT_Double, PT_Int, PT_StringVector, PT_FloatVector, PT_DoubleVector };
 	typedef QMap<QString, ParamType> ParamTypeMap;
 	mutable ParamTypeMap paramTypes;
 		
@@ -514,6 +514,8 @@ namespace {
 template <> bool StimPlugin::getParam<QString>(const QString & name, QString & out) const;
 // specialization for QVector of doubles -- a comma-separated list (or space separated)
 template <> bool StimPlugin::getParam<QVector<double> >(const QString & name, QVector<double> & out) const;
+// specialization for QVector of floats -- a comma-separated list (or space separated)
+template <> bool StimPlugin::getParam<QVector<float> >(const QString & name, QVector<float> & out) const;
 // specialization for QVector of string -- a comma-separated list (or space separated)
 template <> bool StimPlugin::getParam<QVector<QString> >(const QString & name, QVector<QString> & out) const;
 // specialization for QVector of doubles -- a comma-separated list

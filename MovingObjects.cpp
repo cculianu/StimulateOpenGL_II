@@ -68,11 +68,12 @@ void MovingObjects::ObjData::initDefaults() {
 	emission = DEFAULT_EMISSION;
 	specular = DEFAULT_SPECULAR;
 	
-	grad_offset = grad_angle = 0.f;
+	grad_offset = grad_angle = grad_spin = 0.f;
 	grad_freq = 1.0f;
 	grad_type = Shapes::GradientShape::None;
 	grad_min = 0.f;
 	grad_max = 1.f;
+	grad_temporal_freq = 0.0f;
 	
 	debugLvl = 0;
 }
@@ -226,16 +227,25 @@ bool MovingObjects::initObjectFromParams(ObjData & o, ConfigSuppressesFrameVar &
 	}
 	if (getParam("objGradientFreq", o.grad_freq)
 		|| getParam("objGradFreq", o.grad_freq)
-		|| getParam("objGradientN", o.grad_freq)
-		|| getParam("objGradN", o.grad_freq) 
+		|| getParam("objGradFrequency", o.grad_freq) 
 		|| getParam("objGradientNum", o.grad_freq)
 		|| getParam("objGradNum", o.grad_freq))
+	{}
+	if (getParam("objGradientTemporalFreq", o.grad_temporal_freq)
+		|| getParam("objGradientTemporal", o.grad_temporal_freq)
+		|| getParam("objGradTempFreq", o.grad_temporal_freq)
+		|| getParam("objGradTemporal", o.grad_temporal_freq) ) 
 	{}
 	if (getParam("objGradientAngle", o.grad_angle)
 		|| getParam("objGradientPhi", o.grad_angle)
 		|| getParam("objGradAngle", o.grad_angle)
 		|| getParam("objGradPhi", o.grad_angle)) {
 		o.grad_angle = DEG2RAD(o.grad_angle);
+	}
+	if (getParam("objGradientDAngle", o.grad_spin)
+		|| getParam("objGradientDPhi", o.grad_spin)
+		|| getParam("objGradSpin", o.grad_spin)) {
+		o.grad_spin = DEG2RAD(o.grad_spin);
 	}
 	if (getParam("objGradientOffset", o.grad_offset)
 		|| getParam("objGradientPhase", o.grad_offset)
@@ -256,14 +266,41 @@ bool MovingObjects::initObjectFromParams(ObjData & o, ConfigSuppressesFrameVar &
 	
 	if (feqf(o.grad_freq,0.0f)) o.grad_type = Shapes::GradientShape::None;
 
+	o.storeOrigGradParams();
+	
 	o.stepwise_vel_vec.clear();
+	o.stepwise_vel_vec_i = 0;
 	if (getParam("objStepwiseVel", o.stepwise_vel_vec)
 		|| getParam("objStepVel", o.stepwise_vel_vec)
 		|| getParam("objStepwiseVelocity", o.stepwise_vel_vec)) {
-		o.stepwise_vel_vec_i = 0;
 		o.stepwise_vel_dir = Vec2(o.vel_vec[0].x, o.vel_vec[0].y).normalized(); // safeguard in case we don't have rndtrial=5 but we use stepwise velocities..
 	}
 	
+	o.stepwise_grad_temp_vec_i = 0;
+	if( getParam("objGradStepwiseTempFreq", o.stepwise_grad_temp_vec)
+	   || getParam("objGradStepTempFreq", o.stepwise_grad_temp_vec)
+	   || getParam("objGradStepwiseTemporal", o.stepwise_grad_temp_vec)
+	   || getParam("objGradStepTemporal", o.stepwise_grad_temp_vec) 
+	   || getParam("objGradientStepwiseTempFreq", o.stepwise_grad_temp_vec)
+	   || getParam("objGradientStepTempFreq", o.stepwise_grad_temp_vec)
+	   || getParam("objGradientStepwiseTemporal", o.stepwise_grad_temp_vec)
+	   || getParam("objGradientStepTemporal", o.stepwise_grad_temp_vec) 
+	   ) {	}
+
+	o.stepwise_grad_spat_vec_i = 0;
+	if( getParam("objGradStepwiseSpatFreq", o.stepwise_grad_spat_vec)
+	   || getParam("objGradStepSpatFreq", o.stepwise_grad_spat_vec)
+	   || getParam("objGradStepwiseSpatial", o.stepwise_grad_spat_vec)
+	   || getParam("objGradStepSpatial", o.stepwise_grad_spat_vec) 
+	   || getParam("objGradientStepwiseSpatFreq", o.stepwise_grad_spat_vec)
+	   || getParam("objGradientStepSpatFreq", o.stepwise_grad_spat_vec)
+	   || getParam("objGradientStepwiseSpatial", o.stepwise_grad_spat_vec)
+	   || getParam("objGradientStepSpatial", o.stepwise_grad_spat_vec)
+	   || getParam("objGradientStepwiseFreq", o.stepwise_grad_spat_vec)
+	   || getParam("objGradientStepFreq", o.stepwise_grad_spat_vec)
+	   || getParam("objGradStepwiseFreq", o.stepwise_grad_spat_vec)
+	   || getParam("objGradStepFreq", o.stepwise_grad_spat_vec)
+	   ) {}
 	
 	return true;
 }
@@ -291,7 +328,7 @@ bool MovingObjects::init()
 {
 	
 	initCameraDistance();
-
+	
     moveFlag = true;
 	is3D = false;
 
@@ -498,7 +535,9 @@ bool MovingObjects::init()
 	
 	initBoundingNormals();
 	
-	nSubFrames = ((int)fps_mode)+1; // hack :)	
+	nSubFrames = ((int)fps_mode)+1; // hack :)
+	
+	dT = (1.0/double(stimApp()->refreshRate()))/double(nSubFrames);
 
 	fvs_block.fill(QVector<QVector<double> >(nSubFrames),numObj);
 	
@@ -748,15 +787,18 @@ void MovingObjects::postWriteFrameVarsForWholeFrame()
 }
 
 void MovingObjects::doFrameDraw()
-{		
+{	
 	if (have_fv_input_file) 
 		preReadFrameVarsForWholeFrame();
 
 	QMap <double, Obj2Render> objs2Render; ///< objects will be rendered in this order, this is ordered in reverse depth order
-		
+	
 	for (int k=0; k < nSubFrames; k++) {
 		
 		for (QList<ObjData>::iterator it = objs.begin(); it != objs.end(); ++it) {
+#    define SETUP_STEPWISE_VEL_DIR(xxx,yyy) ({ if (eqf(xxx,0.) && eqf(yyy,0.)) \
+                                                    o.stepwise_vel_dir = Vec2Zero; \
+                                               else o.stepwise_vel_dir = Vec2(xxx,yyy).normalized(); })			
 			ObjData & o = *it;
 			int objName = o.objNum + 1;
 			QString suf = objName > 1 ? QString::number(objName) : "";
@@ -801,18 +843,7 @@ void MovingObjects::doFrameDraw()
 				// MOVEMENT/ROTATION computation happens *always* but the fvar file variables below may override the results of this computation!
 				if (moveFlag) {
 					
-					
-					if (!noEdge) {
-						// wrap objects that floated past the edge of the screen
-						if (wrapEdge && (!canvasAABB.intersects(aabb) 
-										 || (is3D && (z > zBoundsFar 
-													  || z < zBoundsNear))))
-							wrapObject(o, aabb);
-						
-						else if (!wrapEdge) 
-							doWallBounce(o);
-					}
-					
+										
 					// initialize position iff k==0 and frameNum is a multiple of tframes
 					if ( !k && !(frameNum%tframes)) {
 						if (++o.vel_vec_i >= o.vel_vec.size()) {
@@ -822,6 +853,9 @@ void MovingObjects::doFrameDraw()
 						if (o.len_vec_i >= o.len_vec.size()) o.len_vec_i = 0;
 						
 						o.stepwise_vel_vec_i = 0; // if we use this vector, force it to 0 index
+						// force the stepwise gradient indices to 0
+						o.stepwise_grad_temp_vec_i = 0;
+						o.stepwise_grad_spat_vec_i = 0;
 
 						objLen = o.len_vec[o.len_vec_i].x;
 						objLen_min = o.len_vec[o.len_vec_i].y;
@@ -838,8 +872,11 @@ void MovingObjects::doFrameDraw()
 						objVely = o.vel_vec[o.vel_vec_i].y;
 						objVelz = o.vel_vec[o.vel_vec_i].z;
 						
-                        o.stepwise_vel_dir = Vec2(objVelx, objVely).normalized();  ///< only used iff o.stepwise_vel_vec is not empty!
+						SETUP_STEPWISE_VEL_DIR(objVelx,objVely); ///< only used iff o.stepwise_vel_vec is not empty!
 
+						// return to initial gradient params on a new trial
+						o.revertToOrigGradParams();
+						
 						// init position
 						//if (0 == rndtrial) {
 						// setup defaults for x,y,z and vx,vy,vz
@@ -857,13 +894,13 @@ void MovingObjects::doFrameDraw()
 							vx = ran1Gen()*objVelx*2 - objVelx;
 							vy = ran1Gen()*objVely*2 - objVely;
 							vz = ran1Gen()*objVelz*2 - objVelz;
-							o.stepwise_vel_dir = Vec2(vx, vy).normalized();  ///< only used iff o.stepwise_vel_vec is not empty!
+							SETUP_STEPWISE_VEL_DIR(vx,vy); ///< only used iff o.stepwise_vel_vec is not empty!
 						} else if (2 == rndtrial) {
 							// random position and direction
 							// static speed
 							applyRandomPositionForRndTrial_1_2_5(o);
 							applyRandomDirectionForRndTrial_2_4(o);
-							o.stepwise_vel_dir = Vec2(vx, vy).normalized();  ///< only used iff o.stepwise_vel_vec is not empty!
+							SETUP_STEPWISE_VEL_DIR(vx,vy); ///< only used iff o.stepwise_vel_vec is not empty!
 							
 						} else if (3 == rndtrial) {
 							// position at t = position(t-1) + vx, vy
@@ -876,7 +913,7 @@ void MovingObjects::doFrameDraw()
 							vx = ran1Gen()*objVelx*2. - objVelx;
 							vy = ran1Gen()*objVely*2. - objVely;
 							vz = ran1Gen()*objVelz*2. - objVelz; 
-							o.stepwise_vel_dir = Vec2(vx, vy).normalized();  ///< only used iff o.stepwise_vel_vec is not empty!
+							SETUP_STEPWISE_VEL_DIR(vx,vy); ///< only used iff o.stepwise_vel_vec is not empty!
 						} else if (4 == rndtrial) {
 							// position at t = position(t-1) + vx, vy
 							// static speed, random direction
@@ -886,7 +923,7 @@ void MovingObjects::doFrameDraw()
 								z = o.lastPos.z;
 							}
 							applyRandomDirectionForRndTrial_2_4(o);
-							o.stepwise_vel_dir = Vec2(vx, vy).normalized();  ///< only used iff o.stepwise_vel_vec is not empty!
+							SETUP_STEPWISE_VEL_DIR(vx,vy); ///< only used iff o.stepwise_vel_vec is not empty!
 						} else if (5 == rndtrial) {
 							// rndtrial = 5 is NEW, as specified by T.J. Wardill in January 2016
 							// we generate a random position (that is always random anywhere on the 2D screen, ignoring 3D)
@@ -906,18 +943,47 @@ void MovingObjects::doFrameDraw()
 						aabb = o.shape->AABB();
 					}
 					
+					
 					// APPLY STEPWISE MOVEMENT IF o.stepwise_vel_vec is defined
 					// force stepwise velocity if we have a stepwise velocity vector.. ignores objVelX & Y and forces
 					// velocity from objStepwiseVelN vector for object, using o.stepwise_vel_dir for the object (which may have been randomly generated for rndtrial>0)
 					if (o.stepwise_vel_vec.size()) {
 						if (unsigned(o.stepwise_vel_vec_i) >= unsigned(o.stepwise_vel_vec.size())) 
-							o.stepwise_vel_vec_i = 0;
+							o.stepwise_vel_vec_i = 0; ///< guard against realtime parameter changing the size of the stepwise_vel_vec below the index!
 						const double vmag = o.stepwise_vel_vec[o.stepwise_vel_vec_i];
-                        /*if (k+1 >= nSubFrames)*/ ++o.stepwise_vel_vec_i; // increment only once for every 'tFrame' notion of a frame, which is a graphics card frame.  Caused confusion before when I didn't do it like this (see emails with tjwardill 1/11/2016)
 						vx = vmag * o.stepwise_vel_dir.x;
 						vy = vmag * o.stepwise_vel_dir.y;
 					}
+
+					if (!noEdge) {
+						// wrap objects that floated past the edge of the screen
+						if (wrapEdge && (!canvasAABB.intersects(aabb) 
+										 || (is3D && (z > zBoundsFar 
+													  || z < zBoundsNear))))
+							wrapObject(o, aabb);
+						else if (!wrapEdge) {
+							// or bounce it if it requires bouncing..
+							const double saved_vx(vx), saved_vy(vy);
+							doWallBounce(o);				
+							if (o.stepwise_vel_vec.size()
+								&& (!eqf(saved_vx,vx) || !eqf(saved_vy,vy))) {
+								if ( !(eqf(vx,0.) && eqf(vy,0.)) ) 
+									SETUP_STEPWISE_VEL_DIR(vx,vy);
+								const double vmag = o.stepwise_vel_vec[o.stepwise_vel_vec_i];
+								// update new vx,vy based on new direction/heading vector
+								vx = vmag * o.stepwise_vel_dir.x;
+								vy = vmag * o.stepwise_vel_dir.y;
+							}								
+						}
+					}
 					
+					// increment only once for every 'tFrame' notion of a frame, which is a graphics card frame.  Caused confusion before when I didn't do it like this (see emails with tjwardill 1/11/2016)
+					if (unsigned(++o.stepwise_vel_vec_i) >= unsigned(o.stepwise_vel_vec.size())) 
+						o.stepwise_vel_vec_i = 0;
+
+					
+					
+					// update object position applying velocity vector o.v
 					{
 						Vec2 c = Shapes::Shape::canvasPosition(Vec3(x+vx+jitterx,y+vy+jittery,z+vz+jitterz));
 						// update position after delay period
@@ -947,6 +1013,43 @@ void MovingObjects::doFrameDraw()
 							o.lastPos = o.shape->position; // save last pos
 
 						}
+					}
+					
+					// update grating position/spin (note, this is slightly costly performance-wise)
+					Shapes::GradientShape *gshape = dynamic_cast<Shapes::GradientShape *>(o.shape);
+					if (gshape) {
+						bool changedSpatialFreq = false;
+						if (o.stepwise_grad_temp_vec.size()) {
+							if (unsigned(o.stepwise_grad_temp_vec_i) >= unsigned(o.stepwise_grad_temp_vec.size())) // guard
+								o.stepwise_grad_temp_vec_i = 0;
+							o.grad_temporal_freq = o.stepwise_grad_temp_vec[o.stepwise_grad_temp_vec_i];
+						}
+						if (o.stepwise_grad_spat_vec.size()) {
+							if (unsigned(o.stepwise_grad_spat_vec_i) >= unsigned(o.stepwise_grad_spat_vec.size())) // guard
+								o.stepwise_grad_spat_vec_i = 0;
+							float newfreq = o.stepwise_grad_spat_vec[o.stepwise_grad_spat_vec_i];
+							if ( (changedSpatialFreq = !feqf(newfreq, o.grad_freq) ) )
+								o.grad_freq = newfreq;
+						}
+						
+						// check if we need to update the animation state of the grating based on object params and/or stepwise param
+						if ( !feqf(o.grad_temporal_freq,0.f) 
+							 || !feqf(o.grad_spin,0.f) 
+							 || changedSpatialFreq ) 
+						{
+							o.grad_offset += dT * o.grad_temporal_freq;
+							o.grad_offset = fmod(o.grad_offset, 1.0);
+							o.grad_angle += dT * o.grad_spin;
+							while (o.grad_angle < -2.*M_PI) o.grad_angle += 4.*M_PI;
+							while (o.grad_angle > 2.*M_PI) o.grad_angle -= 4.*M_PI;
+							gshape->setGradient(o.grad_type, o.grad_freq, o.grad_angle, o.grad_offset, o.grad_min, o.grad_max);
+						}
+						
+						// safely update stepwise gradient param indices						
+						if (unsigned(++o.stepwise_grad_spat_vec_i) >= unsigned(o.stepwise_grad_spat_vec.size())) 
+							o.stepwise_grad_spat_vec_i = 0;
+						if (unsigned(++o.stepwise_grad_temp_vec_i) >= unsigned(o.stepwise_grad_temp_vec.size())) 
+							o.stepwise_grad_temp_vec_i = 0;
 					}
 					
 					// save current velocities, phi
@@ -1201,7 +1304,8 @@ void MovingObjects::doWallBounce(ObjData & o) const {
 	const Vec3 & p (o.shape->position);
 	Vec3 porig(p);
 	Vec3 & v (o.v);
-	Vec3 fpos = p + v; ///< future position
+	Vec3 fpos(p + v); ///< future position
+		
 	int dim = 0;
 	if (!eqf(v.x,0.)) ++dim;
 	if (!eqf(v.y,0.)) ++dim;
@@ -1237,7 +1341,7 @@ void MovingObjects::doWallBounce(ObjData & o) const {
 	if (aabb.bottom() < canvasAABB.bottom())
 		v = v.reflect(normals[2]), fpos = p + v, REDO_AABB();
 	if (aabb.top() > canvasAABB.top())
-		v = v.reflect(normals[3]), fpos = p + v, REDO_AABB();
+		v = v.reflect(normals[3]), fpos = p + v, REDO_AABB();	
 }
 
 void MovingObjects::ensureObjectIsInBounds(ObjData & o) const
@@ -1419,8 +1523,11 @@ bool MovingObjects::applyNewParamsAtRuntime()
 
 		ConfigSuppressesFrameVar csfv_dummy;
 		Vec3 savedV = o.v, savedVel = o.vel;
-		int saved_stepwise_vel_vec_i = o.stepwise_vel_vec_i;
+		int saved_stepwise_vel_vec_i = o.stepwise_vel_vec_i, 
+		    saved_stepwise_grad_temp_vec_i = o.stepwise_grad_temp_vec_i, 
+		    saved_stepwise_grad_spat_vec_i = o.stepwise_grad_spat_vec_i;
 		Vec2 saved_stepwise_vel_dir = o.stepwise_vel_dir;
+		Vec3f saved_grad_params(o.grad_offset, o.grad_angle, o.grad_freq);
 
 		if (!initObjectFromParams(o, csfv_dummy)) {
 			if (i) paramSuffixPop();
@@ -1430,6 +1537,11 @@ bool MovingObjects::applyNewParamsAtRuntime()
 		o.vel = savedVel;
 		o.stepwise_vel_vec_i = saved_stepwise_vel_vec_i;
 		o.stepwise_vel_dir = saved_stepwise_vel_dir;
+		o.grad_offset = saved_grad_params.v1;
+		o.grad_angle = saved_grad_params.v2;
+		o.grad_freq = saved_grad_params.v3;
+		o.stepwise_grad_temp_vec_i = saved_stepwise_grad_temp_vec_i;
+		o.stepwise_grad_spat_vec_i = saved_stepwise_grad_spat_vec_i;		
 		
 		// objtype
 		if (savedType != o.type) {

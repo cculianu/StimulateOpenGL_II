@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: January 16, 2016
+Last Updated: January 18, 2016
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -924,6 +924,21 @@ objGradFreqN (for objects 2 through numObj)
         Default value:    first object: 1.0 
                           subsequent objects: take on the value of the first
                           object by default (unless specified, of course).
+objGradTempFreq
+  *or*
+objGradTemporal
+  *or*
+objGradTempFreqN | objGradTemporalN
+       Synopsis:         Temporal frequency, or the number of complete bars
+                         (whose total width is specified as spatial_freq above) that
+                         pass a particular pixel on the screen per second.  Motion 
+                         is from right to left (unless an oblique angle is used for
+                         rotation, in which case motion would be reversed). This
+                         parameter can be used to animate the grating, as in the
+                         `Moving Grating' plugin's `temp_freq' parameter.
+       Datatype:         float
+       Possible values:  -inf - +inf
+
 
 objGradAngle
   *or*
@@ -941,6 +956,22 @@ objGradAngleN | objGradPhiN (for objects 2 through numObj)
         Default value:    first object: 0.0 
                           subsequent objects: take on the value of the first
                           object by default (unless specified, of course).
+
+objGradDAngle
+   *or*
+objGradSpin
+   *or*
+objGradDPhi
+   *or*
+objGradDAngleN | objGradSpinN | objGradDPhiN
+       Synopsis:         Specifies the angle in degrees that the grayscale 
+                         bars should be rotated every tFrames.  Rotation is
+                         counter-clockwise and is applied every tFrames in an
+                         additive fashion. 
+                         0 is perfectly vertical, 90 is perfectly horizontal,
+                         etc.                        
+       Datatype:         float
+       Possible values:  -359.9 - +359.9
 
 objGradMin *or* objGradientMin
        Synopsis:          Specifies the minimum intensity to use for the 
@@ -988,6 +1019,42 @@ objGradPhaseN (for objects 2 through numObj)
         Default value:    first object: 0.0 
                           subsequent objects: take on the value of the first
                           object by default (unless specified, of course).
+
+objGradStepwiseTempFreq
+  *or*
+objGradStepTempFreq
+  *or*
+objGradStepwiseTemporal
+  *or*
+objGradStepTemporal
+  *or*
+objGradStepwiseTempFreqN | objGradStepTempFreqN | objGradStepwiseTemporalN | objGradStepTemporal (for objects 2 through numObj)
+        Synopsis:         Specify 'stepwise' control of the object's gradient
+                          temporal frequency (see also `objGradTempFreq').
+                          Specify a vector of floats (comma-separated) which is
+                          to be the frame-by-frame values applied to the
+                          gradient's temporal frequency (scrolling/animation
+                          of gradient along object).
+        Datatype:         vector of floats (comma or space delimited)
+        Possible values:  -inf - +inf
+        Default value:    '' or empty (no stepwise control of temporal frequency)
+
+objGradStepwiseSpatial
+  *or*
+objGradStepSpatial
+  *or*
+objGradStepFreq
+  *or*
+objGradStepwiseSpatialN | objGradStepSpatialN | objGradStepFreqN (for objects 2 through numObj)
+        Synopsis:         Specify 'stepwise' control of the object's gradient
+                          spatial frequency (see also `objGradFreq').
+                          Specify a vector of floats (comma-separated) which is
+                          to be the frame-by-frame values applied to the
+                          gradient's spatial frequency (how many gradient bars
+                          appear on the object).
+        Datatype:         vector of floats (comma or space delimited)
+        Possible values:  -inf - +inf
+        Default value:    '' or empty (no stepwise control of spatial frequency)
                           
 objDiffuse
   *or* 

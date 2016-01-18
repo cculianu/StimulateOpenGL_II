@@ -74,12 +74,10 @@ void Sawtooth::drawFrame()
 		stop();
 	}
 
-	++loopct;
-
 	memset(colors[0], 0, sizeof(colors[0]));
 	
 	for (int i = 0; i < ((int)fps_mode)+1; ++i) {
-		if (cyccur >= cyclen) cyccur = 0;
+		if (cyccur >= cyclen) cyccur = 0, ++loopct;
 		int intensity = cyccur + intensity_low;
 		if (fps_mode == FPS_Single) {
 			colors[0][0] = colors[0][1] = colors[0][2] = intensity;	

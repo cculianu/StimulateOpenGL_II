@@ -145,7 +145,7 @@ void addFrame(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
 	if (c->w && c->h) {
 	  if (sx != c->w || sy != c->h) {
-		  mexErrMsgTxt("Passed-in frame is not the same size as the first frame in the animated gif!");  
+		  mexErrMsgTxt("Passed-in frame is not the same size as the first frame!");  
 	  }
 	}
 	c->w = sx;

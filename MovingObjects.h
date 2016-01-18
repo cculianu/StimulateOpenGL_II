@@ -53,19 +53,47 @@ private:
 		QVector<Vec2> len_vec;
 		QVector<Vec3> vel_vec; ///< new targetcycle/speedcycle support for length and velocity vectors
 		QVector<double> stepwise_vel_vec; ///< for rndtrial=5, where we read the velocity in a frame-by-frame manner for each frame 
-		Vec2 stepwise_vel_dir; ///< for rndtrial=5 ONLY -- in radians.. the orientation of our randomly generated direction for frame-by-frame motion
+		Vec2 stepwise_vel_dir; ///< for use only when stepwise_vel_vec is defined -- in radians.. the orientation of our randomly generated direction for frame-by-frame motion.. 
 		int len_vec_i, vel_vec_i, stepwise_vel_vec_i;
 		float color, 
 		      // params for sphere
 		      shininess, ambient, diffuse, emission, specular; // intensity value
 		
 		Shapes::GradientShape::GradType grad_type;
-		float grad_offset, grad_angle, grad_freq, grad_min, grad_max; ///< for Boxes or Ellipsoids that have a gradient. Only paid attention to if has_gradient is true.
+		float grad_offset, grad_angle, grad_freq, grad_min, grad_max, ///< for Boxes or Ellipsoids that have a gradient. Only paid attention to if has_gradient is true.
+		      grad_temporal_freq, grad_spin;
+		QVector<float> grad_params_orig; ///< original gradient params.  We return to this on a new rndtrial/when tframes loops..
+		
+		QVector<float> stepwise_grad_temp_vec, stepwise_grad_spat_vec; ///< stepwise temporal frequency and stepwise spacial frequency
+		int stepwise_grad_temp_vec_i, stepwise_grad_spat_vec_i;
 		
 		int debugLvl;		
-		
+				
 		ObjData(); // init all to 0
 		void initDefaults();	
+		
+		
+		void storeOrigGradParams() { 
+			grad_params_orig.clear();
+			grad_params_orig.push_back(grad_offset);
+			grad_params_orig.push_back(grad_angle);
+			grad_params_orig.push_back(grad_freq);
+			grad_params_orig.push_back(grad_min);
+			grad_params_orig.push_back(grad_max);
+			grad_params_orig.push_back(grad_temporal_freq);
+			grad_params_orig.push_back(grad_spin);
+		}
+		
+		void revertToOrigGradParams() {
+			if (grad_params_orig.size() != 7) return;
+			grad_offset = grad_params_orig[0];
+			grad_angle = grad_params_orig[1];
+			grad_freq = grad_params_orig[2];
+			grad_min = grad_params_orig[3];
+			grad_max = grad_params_orig[4];
+			grad_temporal_freq = grad_params_orig[5];
+			grad_spin = grad_params_orig[6];
+		}		
 	};
 
 	struct Obj2Render ///< used internally in doFrameDraw()
@@ -103,6 +131,7 @@ private:
 	int numObj;
 	int nSubFrames;
 	
+	double dT; ///< deltaT, the amount of time between frames (idealized, ignores dropped frames, etc)
 	bool savedrng;  
 	int saved_ran1state;
 	

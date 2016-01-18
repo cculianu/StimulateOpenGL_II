@@ -1,6 +1,6 @@
 %    myobj = AddFrame(myobj, frame[, compressionLevel])
 %
-%                Takes 2 arguments, the gifwriter class and a frame, an M x
+%                Takes 2 arguments, the fasmoviewriter class and a frame, an M x
 %                N matrix of (0,1) intensity (color) values.  Adds the
 %                frame to the movie file.  The optional third argument
 %                defines the compression level to use for the internal zLib

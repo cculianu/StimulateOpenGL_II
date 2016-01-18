@@ -196,6 +196,23 @@ QVector<double> parseCSV(const QString & text, const QRegExp & sepre)
 	return ret;
 }
 
+QVector<float> parseCSVf(const QString & text, const QRegExp & sepre)
+{
+	QVector<float> ret;
+	QStringList l = text.split(sepre, QString::SkipEmptyParts);
+	ret.reserve(l.count());
+	for (QStringList::const_iterator it = l.begin(); it != l.end(); ++it) {
+		bool ok;
+		float f = (*it).toFloat(&ok);
+		if (ok) {
+			ret.push_back(f);
+		} else
+			break; // give up on first non-parsed item
+	}
+	return ret;
+}
+	
+	
 QVector<QString> parseCSVStrings(const QString & text, const QRegExp & sepre)
 {
 	QVector<QString> ret;

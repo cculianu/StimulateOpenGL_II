@@ -42,7 +42,6 @@ public:
 	Vec3 color;     ///< defaults to gray
 	double angle; ///< the angle of rotation about the Z axis, in degrees
 	bool noMatrixAttribPush; ///< defaults to false, if true, don't do the glPushAttrib()/glPushMatrix calls as a performance hack
-	
 public:
 	Shape();
 	virtual ~Shape();

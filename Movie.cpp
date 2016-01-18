@@ -437,13 +437,13 @@ bool Movie::initFBOs()
 	};
 	
 	GLint t[] = {
-		0, h,
-		w, h,
-		w, 0,
+		0, h-1,
+		w-1, h-1,
+		w-1, 0,
 		0, 0,
 	};
-	 
-	/*GLint v[] = {
+	/* 
+	GLint v[] = {
 		xoff, yoff,
 		xoff, yoff + H,
 		xoff + W, yoff + H,

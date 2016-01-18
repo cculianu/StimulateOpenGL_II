@@ -961,6 +961,19 @@ template <> bool StimPlugin::getParam<QVector<double> >(const QString & name, QV
 	return b;
 }
 
+// specialization for QVector of floats -- a comma-separated list
+template <> bool StimPlugin::getParam<QVector<float> >(const QString & name, QVector<float> & out) const
+{
+	QString s;
+	bool b = getParam(name, s);
+	if (b) out=parseCSVf(s);
+	// save param type
+	paramTypes[(name+paramSuffix()).toLower()] = PT_FloatVector;
+	paramTypes[name.toLower()] = PT_FloatVector;
+	return b;
+}
+
+
 // specialization for QVector of QStrings -- a comma-separated list
 template <> bool StimPlugin::getParam<QVector<QString> >(const QString & name, QVector<QString> & out) const
 {
