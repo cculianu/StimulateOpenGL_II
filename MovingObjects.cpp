@@ -786,6 +786,13 @@ void MovingObjects::postWriteFrameVarsForWholeFrame()
 	}
 }
 
+static inline void SETUP_STEPWISE_VEL_DIR_HELPER(Vec2 & stepwise_vel_dir, double xxx, double yyy)
+{
+    if (eqf(xxx,0.) && eqf(yyy,0.))
+        stepwise_vel_dir = Vec2Zero;
+    else stepwise_vel_dir = Vec2(xxx,yyy).normalized();
+}
+
 void MovingObjects::doFrameDraw()
 {	
 	if (have_fv_input_file) 
@@ -796,9 +803,7 @@ void MovingObjects::doFrameDraw()
 	for (int k=0; k < nSubFrames; k++) {
 		
 		for (QList<ObjData>::iterator it = objs.begin(); it != objs.end(); ++it) {
-#    define SETUP_STEPWISE_VEL_DIR(xxx,yyy) ({ if (eqf(xxx,0.) && eqf(yyy,0.)) \
-                                                    o.stepwise_vel_dir = Vec2Zero; \
-                                               else o.stepwise_vel_dir = Vec2(xxx,yyy).normalized(); })			
+#    define SETUP_STEPWISE_VEL_DIR(xxx,yyy) SETUP_STEPWISE_VEL_DIR_HELPER(o.stepwise_vel_dir,xxx,yyy)
 			ObjData & o = *it;
 			int objName = o.objNum + 1;
 			QString suf = objName > 1 ? QString::number(objName) : "";
@@ -1037,11 +1042,11 @@ void MovingObjects::doFrameDraw()
 							 || !feqf(o.grad_spin,0.f) 
 							 || changedSpatialFreq ) 
 						{
-							o.grad_offset += dT * o.grad_temporal_freq;
-							o.grad_offset = fmod(o.grad_offset, 1.0);
-							o.grad_angle += dT * o.grad_spin;
-							while (o.grad_angle < -2.*M_PI) o.grad_angle += 4.*M_PI;
-							while (o.grad_angle > 2.*M_PI) o.grad_angle -= 4.*M_PI;
+                            o.grad_offset += float(dT) * o.grad_temporal_freq;
+                            o.grad_offset = fmodf(o.grad_offset, 1.0);
+                            o.grad_angle += float(dT) * o.grad_spin;
+                            while (o.grad_angle < (float)-2.*M_PI) o.grad_angle += float(4.*M_PI);
+                            while (o.grad_angle > (float)2.*M_PI) o.grad_angle -= float(4.*M_PI);
 							gshape->setGradient(o.grad_type, o.grad_freq, o.grad_angle, o.grad_offset, o.grad_min, o.grad_max);
 						}
 						
