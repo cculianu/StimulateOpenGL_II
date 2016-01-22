@@ -26,6 +26,7 @@ protected:
     void drawFrame(); ///< reimplemented
     bool processKey(int key); ///< remiplemented
 	/* virtual */ bool applyNewParamsAtRuntime(); ///< reimplemented from super
+    /*virtual */ void afterVSync(bool isSimulated = false);
 
 private:
     void initObjs();

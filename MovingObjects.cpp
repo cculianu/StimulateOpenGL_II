@@ -1614,3 +1614,14 @@ bool MovingObjects::applyNewParamsAtRuntime()
 	}
 	return true;
 }
+
+/*virtual */ void MovingObjects::afterVSync(bool isSimulated)
+{
+//	if (excessiveDebug) Debug() << " .. in after vsync ... ";
+	Shapes::GradientShape::doCacheGC();
+	StimPlugin::afterVSync(isSimulated);
+//	if (excessiveDebug) Debug() << " .. after vsync END. ";
+}
+
+
+

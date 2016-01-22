@@ -18,6 +18,8 @@
 higher number is better resolution, but sacrifices performance. */
 #define NUM_VERTICES_FOR_SPHEROIDS 32 /* number of vertices used to approximate spheres */
 
+#define THRESHOLD_FOR_CACHE_CLEANUP 32 /* number of display lists to store in cache before auto-cleanup of non-used display lists.  Tune this if you're getting dropped frames in MovingObjects with lots of objects..? */
+
 struct Rect {
 	Vec2 origin; // bottom-left corner
 	Vec2 size;   // width, height
@@ -74,7 +76,7 @@ protected:
 };
 
 	
-class GradientShape : public Shape {
+class GradientShape : public Shape {	
 public:
 	
 	enum GradType { None=0, Cos, Sin, Saw, Tri, Squ, N_GradTypes };
@@ -87,6 +89,8 @@ public:
 	void setGradient(GradType t, float freq, float angle, float offset, float min, float max);
 
 	virtual int typeId() const = 0;
+	
+	static void doCacheGC() { if (dcache) dcache->doAutoCleanup(); }
 	
 protected:
 
@@ -109,7 +113,7 @@ protected:
 	
 private:
 	struct TexCache {
-		TexCache() : size_max(0) {}
+		TexCache() : size_max(0), hits(0), misses(0) {}
 		~TexCache();
 
 		GLuint getAndRetain(GradType type, float min, float max);
@@ -118,6 +122,8 @@ private:
 				
 		unsigned size() const { return ref.size(); }
 		unsigned maxSize() const { return size_max; }
+		unsigned cacheHits() const { return hits; }
+		unsigned cacheMisses() const { return misses; }
 		
 	private:
 		typedef QMap<GLuint, int> RefctMap;
@@ -129,7 +135,7 @@ private:
 		RefctMap ref;
 		TexPropMap texProp;
 		PropTexMap propTex;
-		unsigned size_max; ///< debug stat...
+		unsigned size_max, hits, misses; ///< debug stat...
 	};
 	
 	static TexCache *tcache;
@@ -142,9 +148,10 @@ private:
 		RefctMap refs; /// maps dl_grad display lists to counters.. implementing shared display lists
 		Map dls;
 		Rev dlsRev;
-		unsigned size_max; ///< debug stat
+		unsigned size_max, hits, misses; ///< debug stat
+				
 	public:
-		DLCache() : size_max(0) {}
+		DLCache() : size_max(0), hits(0), misses(0) {}
 		~DLCache();
 		GLuint getAndRetain(const Vec5bf & props); ///< props are tex_id,freq,angle,offset!
 		unsigned count(GLuint dl) const;
@@ -152,6 +159,10 @@ private:
 		void retain(GLuint dl);		
 		unsigned size() const { return refs.size(); }
 		unsigned maxSize() const { return size_max; }
+		unsigned cacheHits() const { return hits; }
+		unsigned cacheMisses() const { return misses; }
+		void doAutoCleanup(); ///< do garbage collection on old display lists that aren't used.  Only done if the size of the cache exceeds THRESHOLD_FOR_CACHE_CLEANUP.  Called indirectly from MovingObjects::afterVSync()
+		
 	};
 	
 	static DLCache *dcache;

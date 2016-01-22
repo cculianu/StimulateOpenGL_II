@@ -77,13 +77,13 @@ GradientShape::~GradientShape()
 	if (dcache) dcache->release(dl);
 	dl = 0;
 	if (tcache && --tcache_ct <= 0) {
-		Debug() << "Gradient tex cache delete (cache current size: " << tcache->size() << " max size was: " << tcache->maxSize() << ")...";
+		Debug() << "Gradient tex cache delete (cache current size: " << tcache->size() << " max size was: " << tcache->maxSize() << " hits: " << tcache->cacheHits() << " misses: " << tcache->cacheMisses() << ")...";
 		delete tcache; 
 		tcache = 0;
 		tcache_ct = 0;
 	}
 	if (dcache && --dcache_ct <= 0) {
-		Debug() << "Display list cache delete (cache current size: " << dcache->size() << " max size was: " << dcache->maxSize() << ")...";
+		Debug() << "Display list cache delete (cache current size: " << dcache->size() << " max size was: " << dcache->maxSize() << " hits: " << dcache->cacheHits() << " misses: " << dcache->cacheMisses() << ")...";
 		delete dcache; 
 		dcache = 0;
 		dcache_ct = 0;
@@ -162,8 +162,10 @@ GLuint GradientShape::DLCache::getAndRetain(const Vec5bf & props)
 {
 	GLuint ret = 0;
 	Rev::const_iterator it = dlsRev.find(props);
-	if (it != dlsRev.end()) 
+	if (it != dlsRev.end()) { 
 		ret = it.value();
+		++hits;
+	}
 	if (!ret) {
 		ret = glGenLists(1);
 		if (excessiveDebug || myExcessiveDebug) Debug() << "DisplayList " << ret << " created.";
@@ -171,16 +173,43 @@ GLuint GradientShape::DLCache::getAndRetain(const Vec5bf & props)
 			dls[ret] = props;
 			dlsRev[props] = ret;
 		}
+		++misses;
 	}
 	retain(ret);
 	return ret;
 }
+
+void GradientShape::DLCache::doAutoCleanup()
+{
+	if (refs.count() < THRESHOLD_FOR_CACHE_CLEANUP) return;
+	int ct = 0;
+	QVector<unsigned> dls2del; dls2del.reserve(THRESHOLD_FOR_CACHE_CLEANUP);
+	for (RefctMap::const_iterator it = refs.begin(); it != refs.end(); ++it) 
+		if (it.value() <= 0) dls2del.push_back(it.key());
+	for (QVector<unsigned>::const_iterator it = dls2del.begin(); it != dls2del.end(); ++it) {
+		unsigned dl = *it;
+		if (dl) glDeleteLists(dl, 1);
+		if (myExcessiveDebug || excessiveDebug) Debug() << "DisplayList " << dl << " deleted.";
+		refs.remove(dl);
+		dls.remove(dl);
+		++ct;
+		for (Rev::iterator it = dlsRev.begin(); it != dlsRev.end(); ++it) {
+			if (it.value() == dl) { dlsRev.erase(it); break; }
+		}
+	}
+	if (ct && (myExcessiveDebug || excessiveDebug)) Debug() << "DLCache::doAutoCleanup() pruned " << ct << " unused display lists!";
+}
+	
 void GradientShape::DLCache::release(GLuint dl)
 {
 	if (!dl) return;
 	RefctMap::iterator it = refs.find(dl);
 	if (it != refs.end()) {
 		if (--(it.value()) <= 0) {
+			// NB: done in MovingObjects::afterVSync() as a performance optimization..
+			// doAutoCleanup();
+			
+			/*
 			if (dl) glDeleteLists(dl, 1);
 			if (myExcessiveDebug || excessiveDebug) Debug() << "DisplayList " << dl << " deleted.";
 			refs.erase(it);
@@ -189,6 +218,7 @@ void GradientShape::DLCache::release(GLuint dl)
 				dlsRev.remove(dlm_it.value());
 				dls.erase(dlm_it);
 			}
+			*/
 		}
 	}
 }
@@ -255,6 +285,7 @@ GLuint GradientShape::TexCache::getAndRetain(GradType t, float min, float max)
 		if (it2 != ref.end()) {
 			++it2.value();
 			ret = it.value();
+			++hits;
 		} else {
 			Error() << "INTERNAL ERROR IN GradientShape::TexCache::getAndRetain() -- prop is in propTex but not in ref! FIXME!";
 		}
@@ -269,6 +300,7 @@ GLuint GradientShape::TexCache::getAndRetain(GradType t, float min, float max)
 		} else if (t != None) {
 			Error() << "Got a 0 from GradientShape::TexCache::createTex()!";
 		}
+		++misses;
 	}
 	return ret;
 }
