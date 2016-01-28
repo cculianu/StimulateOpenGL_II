@@ -80,6 +80,8 @@ namespace DAQ
 	
 	bool WriteAO(const QString & devChanName, double volts);
 	
+	void ResetDAQ(); ///< Call this to re-initialize the DAQ subsystem.  Typically before a plugin starts.  Currently just closes all open AO handles.
+	
     /// returns true iff the device supports AI simultaneous sampling
     bool     SupportsAISimultaneousSampling(const QString & devname);
     

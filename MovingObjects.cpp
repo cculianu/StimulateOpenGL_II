@@ -229,7 +229,9 @@ bool MovingObjects::initObjectFromParams(ObjData & o, ConfigSuppressesFrameVar &
 		|| getParam("objGradFreq", o.grad_freq)
 		|| getParam("objGradFrequency", o.grad_freq) 
 		|| getParam("objGradientNum", o.grad_freq)
-		|| getParam("objGradNum", o.grad_freq))
+		|| getParam("objGradNum", o.grad_freq)
+		|| getParam("objGradSpatialFreq", o.grad_freq)
+		|| getParam("objGradSpatial", o.grad_freq) )
 	{}
 	if (getParam("objGradientTemporalFreq", o.grad_temporal_freq)
 		|| getParam("objGradientTemporal", o.grad_temporal_freq)

@@ -46,6 +46,7 @@ void StimPlugin::cleanup()
 	// clear pending DO/AO writes
 	pendingDOWrites.clear(); pendingAOWrites.clear();
 	if (!softCleanup) replay_param_history_on_soft_restart = false;
+	DAQ::ResetDAQ();
 }
 
 bool StimPlugin::saveData(bool use_gui)

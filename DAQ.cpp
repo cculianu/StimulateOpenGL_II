@@ -367,7 +367,56 @@ namespace DAQ
 		return true;
 #endif
     }
-
+	
+#ifndef FAKEDAQ
+	struct DAQTaskDesc {
+		TaskHandle taskHandle;
+		double minv, maxv;
+		
+		DAQTask() : taskHandle(0), minv(0.), maxv(0.) {}
+	};
+	
+	typedef QMap<QString, DAQTaskDesc> ActiveDAQHandles;
+	
+	static ActiveDAQHandles activeAOHandles;
+	
+	static DAQTaskDesc FindAOHandle(const QString & devChan) 
+	{
+		ActiveDAQHandles::iterator it = activeAOHandles.find(devChan);
+		if (it != activeAOHandles.end()) return it.value();
+		return DAQTaskDesc();
+	}
+	
+	static void ClearAOHandle(const QString & devChan) 
+	{
+		ActiveDAQHandles::iterator it = activeAOHandles.find(devChan);
+		if (it != activeAOHandles.end()) {
+			DAQTaskDesc & dtd = it.value();
+			if (dtd.taskHandle) {
+				DAQmxStopTask(dtd.taskHandle);
+				DAQmxClearTask(dtd.taskHandle);
+				dtd.taskHandle = 0;
+			}
+			activeAOHandles.erase(it);
+		}
+	}
+	
+	void ResetDAQ() 
+	{
+		for (ActiveAOHandles::iterator it = activeAOHandles.begin(); it != activeAOHandles.end(); ++it) {
+			DAQTaskDesc & dtd = it.value();			
+			if (dtd.taskHandle) {
+				DAQmxStopTask(dtd.taskHandle);
+				DAQmxClearTask(dtd.taskHandle);
+				dtd.taskHandle = 0;				
+			}
+		}
+		activeDAQHandles.clear();
+	}
+#else
+	void ResetDAQ() { Debug() << "DAQ::ResetDAQ() called, unimplemented in FakeDAQ."; }
+#endif
+	
 	bool WriteAO(const QString & devChan, double volts)
     {
         QString tmp;
@@ -379,42 +428,54 @@ namespace DAQ
 #else
         const char *callStr = "";
 		const double t0 = getTime();
-		static bool didProbe = false;
-        static DeviceRangeMap aoRanges;
-		
-		if (!didProbe) {
-			aoRanges = ProbeAllAORanges();
-			didProbe = true;
-		}
-		double minv = -5., maxv = 5.;
-		bool foundRange = false;
-		
-		for (DeviceRangeMap::const_iterator it = aoRanges.begin(); it != aoRanges.end(); ++it) {
-			const Range & r = it.value();
-			if (devChan.startsWith(it.key()) && volts <= r.max && volts >= r.min)
-				if (!foundRange || r.max-r.min < maxv-minv)
-					minv = r.min, maxv = r.max, foundRange = true;
-		}
-		
-        // Task parameters
+		// Task parameters
         int      error = 0;
         TaskHandle  taskHandle = 0;
         char        errBuff[2048];
-        
-        // Write parameters
-        float64      w_data [1];
+		DAQTaskDesc dtd = FindAOHandle(devChan);
+		bool dontClose = false;
 		
-        // Create Digital Output (DO) Task and Channel
-        DAQmxErrChk (DAQmxCreateTask ("", &taskHandle));
-        DAQmxErrChk (DAQmxCreateAOVoltageChan(taskHandle,devChan.toUtf8().constData(),"",minv,maxv,DAQmx_Val_Volts,NULL));
-		
-        // Start Task (configure port)
-        //DAQmxErrChk (DAQmxStartTask (taskHandle));
+		if (!dtd.taskHandle || volts > dtd.maxv || volts < dtd.minv) {
+			ClearAOHandle(devChan);
+			static bool didProbe = false;
+			static DeviceRangeMap aoRanges;
+			
+			if (!didProbe) {
+				aoRanges = ProbeAllAORanges();
+				didProbe = true;
+			}
+			double minv = -5., maxv = 5.;
+			bool foundRange = false;
+			
+			for (DeviceRangeMap::const_iterator it = aoRanges.begin(); it != aoRanges.end(); ++it) {
+				const Range & r = it.value();
+				if (devChan.startsWith(it.key()) && volts <= r.max && volts >= r.min)
+					if (!foundRange || r.max-r.min < maxv-minv)
+						minv = r.min, maxv = r.max, foundRange = true;
+			}
+					
+			// Write parameters
+			float64      w_data [1];
+			
+			// Create Digital Output (DO) Task and Channel
+			DAQmxErrChk (DAQmxCreateTask ("", &taskHandle));
+			DAQmxErrChk (DAQmxCreateAOVoltageChan(taskHandle,devChan.toUtf8().constData(),"",minv,maxv,DAQmx_Val_Volts,NULL));
+			
+			// Start Task (configure port)
+			//DAQmxErrChk (DAQmxStartTask (taskHandle));
+			
+			dtd.minv = minv;
+			dtd.maxv = maxv;
+			dtd.taskHandle = taskHandle;
+		} else
+			taskHandle = dtd.taskHandle;
 		
         //  Autostart ON
         w_data[0] = volts;
 				
         DAQmxErrChk (DAQmxWriteAnalogScalarF64(taskHandle,1,DAQ_TIMEOUT,w_data[0],NULL));
+		
+		activeAOHandles[devChan] = dtd;		dontClose = true;
 		
 		tmp.sprintf("Writing to AO: %s data: %f took %f secs", devChan.toUtf8().constData(),w_data[0],getTime()-t0);		
         Debug() << tmp;
@@ -425,7 +486,7 @@ namespace DAQ
         if (DAQmxFailed (error))
             DAQmxGetExtendedErrorInfo (errBuff, 2048);
 		
-        if (taskHandle != 0)
+        if (taskHandle != 0 && !dontClose)
 		{
 			DAQmxStopTask (taskHandle);
 			DAQmxClearTask (taskHandle);

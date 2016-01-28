@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: January 18, 2016
+Last Updated: January 22, 2016
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -905,9 +905,9 @@ objGradN (for objects 2 through numObj)
                           subsequent objects: take on the value of the first
                           object by default (unless specified, of course).
 
-objGradFreq
+objGradSpatialFreq | objGradSpatial | objGradFreq
   *or* 
-objGradFreqN (for objects 2 through numObj)
+objGradSpatialFreqN *or* objGradSpatialN *or* objGradFreqN (for objects 2 through numObj)
         Synopsis:         Specify the "width" (steepness) of the gradient 
                           used. This is the object gradient function's frequency 
                           argument which determines how long the period used in 
@@ -924,11 +924,10 @@ objGradFreqN (for objects 2 through numObj)
         Default value:    first object: 1.0 
                           subsequent objects: take on the value of the first
                           object by default (unless specified, of course).
-objGradTempFreq
+                          
+objGradTemporalFreq | objGradTempFreq | objGradTemporal
   *or*
-objGradTemporal
-  *or*
-objGradTempFreqN | objGradTemporalN
+objGradTemporalFreqN | objGradTempFreqN | objGradTemporalN (for objects 2 through numObj)
        Synopsis:         Temporal frequency, or the number of complete bars
                          (whose total width is specified as spatial_freq above) that
                          pass a particular pixel on the screen per second.  Motion 
