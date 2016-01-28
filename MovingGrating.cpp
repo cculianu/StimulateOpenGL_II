@@ -7,6 +7,34 @@ static double squarewave(double x) {
 	return -1.0;
 }
 
+static double trianglewave(double x) 
+{
+	static const double pio2 = M_PI/2.;
+	
+	x = fmod(x,2.*M_PI); // normalize to 1 full circle
+	if (x < 0.) x = 2.*M_PI + x; // normalize to all positive
+	
+	if (x >= 0. && x <= pio2) return x/pio2;
+	if (x > pio2 && x <= M_PI) return (M_PI-x)/pio2;
+	if (x > M_PI && x <= 3.*pio2) return -((x-M_PI)/pio2);
+	if (x > 3.*pio2 && x <= 2.*M_PI) return -((2.*M_PI-x)/pio2);
+	Error() << "MovingGrating.cpp trianglewave() reached end of function without returning a valid quantity! FIXME!!";
+	return 0.;
+}
+
+static double sawtoothwave(double x) {
+	x = fmod(x,2.*M_PI); // normalize to 1 full circle
+	if (x < 0.) x = 2.*M_PI + x; // normalize to all positive
+	x = x/(2.*M_PI); // normalize to 0->1
+	
+	static const double swfact = (1.0/0.95);
+	double f = x*swfact;
+	if (f >= 1.0) {
+		f = 1.0-((f-1.0)/(swfact-1.0));
+	}
+	return f*2.0 - 1.0;
+}
+
 MovingGrating::MovingGrating()
     : StimPlugin("MovingGrating"), spatial_freq(0.01f), temp_freq(1.0f), angle(0.f), dangle(0.f), tframes(-1), phase(0.0), tex(0)
 {
@@ -46,6 +74,9 @@ bool MovingGrating::initFromParams()
 	QString wave;
 	if (!getParam("wave", wave)) wave = "sin";
 	if (wave.toLower().startsWith("sq")) waveFunc = &squarewave;
+	else if (wave.toLower().startsWith("tr")) waveFunc = &trianglewave;
+	else if (wave.toLower().startsWith("co")) waveFunc = &cos;
+	else if (wave.toLower().startsWith("saw")) waveFunc = &sawtoothwave;
 	else waveFunc = &sin;
 	
 	return true;	

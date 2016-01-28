@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: January 22, 2016
+Last Updated: January 28, 2016
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -676,8 +676,19 @@ tframes
 wave
        Synopsis:         Specifies the function to use for generating waves.    
        Datatype:         string
-       Possible values:  `sine': generate sine waves. 
-                         `square': like a sine wave except there is no gray. 
+       Possible values:  `sine':   generate sine waves.
+                         `cosine': generate cosine waves.
+                         `square': like a sine wave except there is no gray.
+                         `tri`:    generate a triangle wave, which is like a
+                                   sine wave, except that it has straight lines
+                                   on the up/down slopes rather than curves
+                                   (looks like triangles on an oscilloscope),
+                                   producing a slightly different gradient look.
+                        `saw':     generate a sawtooth wave, which looks like
+                                   a bunch of right triangles (sawtooth shape)
+                                   on an oscilloscope.  The visual effect is one
+                                   of a gradient abruptly dropping off at the very
+                                   edge.
                          Either values are all on or all off.                     
        Default value:    `sine'
 
@@ -964,8 +975,8 @@ objGradDPhi
    *or*
 objGradDAngleN | objGradSpinN | objGradDPhiN
        Synopsis:         Specifies the angle in degrees that the grayscale 
-                         bars should be rotated every tFrames.  Rotation is
-                         counter-clockwise and is applied every tFrames in an
+                         bars should be rotated every frame.  Rotation is
+                         counter-clockwise and is applied every frame in an
                          additive fashion. 
                          0 is perfectly vertical, 90 is perfectly horizontal,
                          etc.                        
