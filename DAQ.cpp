@@ -19,6 +19,7 @@
 #include <QThread>
 #include <QPair>
 #include <QSet>
+#include <QMap>
 #include <QMutexLocker>
 #include "TypeDefs.h"
 
@@ -373,7 +374,7 @@ namespace DAQ
 		TaskHandle taskHandle;
 		double minv, maxv;
 		
-		DAQTask() : taskHandle(0), minv(0.), maxv(0.) {}
+        DAQTaskDesc() : taskHandle(0), minv(0.), maxv(0.) {}
 	};
 	
 	typedef QMap<QString, DAQTaskDesc> ActiveDAQHandles;
@@ -403,7 +404,7 @@ namespace DAQ
 	
 	void ResetDAQ() 
 	{
-		for (ActiveAOHandles::iterator it = activeAOHandles.begin(); it != activeAOHandles.end(); ++it) {
+        for (ActiveDAQHandles::iterator it = activeAOHandles.begin(); it != activeAOHandles.end(); ++it) {
 			DAQTaskDesc & dtd = it.value();			
 			if (dtd.taskHandle) {
 				DAQmxStopTask(dtd.taskHandle);
@@ -411,7 +412,7 @@ namespace DAQ
 				dtd.taskHandle = 0;				
 			}
 		}
-		activeDAQHandles.clear();
+        activeAOHandles.clear();
 	}
 #else
 	void ResetDAQ() { Debug() << "DAQ::ResetDAQ() called, unimplemented in FakeDAQ."; }
@@ -468,7 +469,7 @@ namespace DAQ
 		
 		activeAOHandles[devChan] = dtd;		dontClose = true;
 		
-		tmp.sprintf("Writing to AO: %s data: %f took %f secs", devChan.toUtf8().constData(),w_data[0],getTime()-t0);		
+        tmp.sprintf("Writing to AO: %s data: %f took %f secs", devChan.toUtf8().constData(),volts,getTime()-t0);
         Debug() << tmp;
 
 		
