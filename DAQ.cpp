@@ -430,12 +430,12 @@ namespace DAQ
 		const double t0 = getTime();
 		// Task parameters
         int      error = 0;
-        TaskHandle  taskHandle = 0;
         char        errBuff[2048];
 		DAQTaskDesc dtd = FindAOHandle(devChan);
+        TaskHandle   & taskHandle (dtd.taskHandle);
 		bool dontClose = false;
 		
-		if (!dtd.taskHandle || volts > dtd.maxv || volts < dtd.minv) {
+		if (!taskHandle || volts > dtd.maxv || volts < dtd.minv) {
 			ClearAOHandle(devChan);
 			static bool didProbe = false;
 			static DeviceRangeMap aoRanges;
@@ -444,7 +444,8 @@ namespace DAQ
 				aoRanges = ProbeAllAORanges();
 				didProbe = true;
 			}
-			double minv = -5., maxv = 5.;
+			double & minv = (dtd.minv), & maxv(dtd.maxv);	minv = -5.; maxv = 5.;
+			
 			bool foundRange = false;
 			
 			for (DeviceRangeMap::const_iterator it = aoRanges.begin(); it != aoRanges.end(); ++it) {
@@ -454,26 +455,16 @@ namespace DAQ
 						minv = r.min, maxv = r.max, foundRange = true;
 			}
 					
-			// Write parameters
-			float64      w_data [1];
-			
 			// Create Digital Output (DO) Task and Channel
 			DAQmxErrChk (DAQmxCreateTask ("", &taskHandle));
 			DAQmxErrChk (DAQmxCreateAOVoltageChan(taskHandle,devChan.toUtf8().constData(),"",minv,maxv,DAQmx_Val_Volts,NULL));
 			
 			// Start Task (configure port)
-			//DAQmxErrChk (DAQmxStartTask (taskHandle));
+			//DAQmxErrChk (DAQmxStartTask (taskHandle));			
+		} 
 			
-			dtd.minv = minv;
-			dtd.maxv = maxv;
-			dtd.taskHandle = taskHandle;
-		} else
-			taskHandle = dtd.taskHandle;
-		
-        //  Autostart ON
-        w_data[0] = volts;
-				
-        DAQmxErrChk (DAQmxWriteAnalogScalarF64(taskHandle,1,DAQ_TIMEOUT,w_data[0],NULL));
+        //  Autostart ON				
+        DAQmxErrChk (DAQmxWriteAnalogScalarF64(taskHandle,1,DAQ_TIMEOUT,float64(volts),NULL));
 		
 		activeAOHandles[devChan] = dtd;		dontClose = true;
 		
@@ -490,6 +481,8 @@ namespace DAQ
 		{
 			DAQmxStopTask (taskHandle);
 			DAQmxClearTask (taskHandle);
+			taskHandle = 0;
+			activeAOHandles.remove(devChan);
 		}
 		
         if (error) {
