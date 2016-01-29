@@ -300,6 +300,86 @@ namespace DAQ
         return "FakeDAQ";
 #endif
     }
+	
+#ifndef FAKEDAQ
+	struct DAQTaskDesc {
+		TaskHandle taskHandle;
+		double minv, maxv;
+		
+        DAQTaskDesc() : taskHandle(0), minv(0.), maxv(0.) {}
+	};
+	
+	typedef QMap<QString, DAQTaskDesc> ActiveDAQHandles;
+	
+	static ActiveDAQHandles activeAOHandles, activeDOHandles;
+	
+	static DAQTaskDesc FindAOHandle(const QString & devChan) 
+	{
+		ActiveDAQHandles::iterator it = activeAOHandles.find(devChan);
+		if (it != activeAOHandles.end()) return it.value();
+		return DAQTaskDesc();
+	}
+
+	static DAQTaskDesc FindDOHandle(const QString & devChan) 
+	{
+		ActiveDAQHandles::iterator it = activeDOHandles.find(devChan);
+		if (it != activeDOHandles.end()) return it.value();
+		return DAQTaskDesc();
+	}
+	
+	static void ClearAOHandle(const QString & devChan) 
+	{
+		ActiveDAQHandles::iterator it = activeAOHandles.find(devChan);
+		if (it != activeAOHandles.end()) {
+			DAQTaskDesc & dtd = it.value();
+			if (dtd.taskHandle) {
+				DAQmxStopTask(dtd.taskHandle);
+				DAQmxClearTask(dtd.taskHandle);
+				dtd.taskHandle = 0;
+			}
+			activeAOHandles.erase(it);
+		}
+	}
+
+	static void ClearDOHandle(const QString & devChan) 
+	{
+		ActiveDAQHandles::iterator it = activeDOHandles.find(devChan);
+		if (it != activeDOHandles.end()) {
+			DAQTaskDesc & dtd = it.value();
+			if (dtd.taskHandle) {
+				DAQmxStopTask(dtd.taskHandle);
+				DAQmxClearTask(dtd.taskHandle);
+				dtd.taskHandle = 0;
+			}
+			activeDOHandles.erase(it);
+		}
+	}
+	
+	void ResetDAQ() 
+	{
+        for (ActiveDAQHandles::iterator it = activeAOHandles.begin(); it != activeAOHandles.end(); ++it) {
+			DAQTaskDesc & dtd = it.value();			
+			if (dtd.taskHandle) {
+				DAQmxStopTask(dtd.taskHandle);
+				DAQmxClearTask(dtd.taskHandle);
+				dtd.taskHandle = 0;				
+			}
+		}
+        for (ActiveDAQHandles::iterator it = activeDOHandles.begin(); it != activeDOHandles.end(); ++it) {
+			DAQTaskDesc & dtd = it.value();
+			if (dtd.taskHandle) {
+				DAQmxStopTask(dtd.taskHandle);
+				DAQmxClearTask(dtd.taskHandle);
+				dtd.taskHandle = 0;				
+			}
+		}
+        activeAOHandles.clear();
+        activeDOHandles.clear();
+	}
+#else
+	void ResetDAQ() { Debug() << "DAQ::ResetDAQ() called, unimplemented in FakeDAQ."; }
+#endif
+	
 
 #define DEFAULT_DEV "Dev1"
 #define DEFAULT_DO 0
@@ -319,15 +399,21 @@ namespace DAQ
 		
         // Task parameters
         int      error = 0;
-        TaskHandle  taskHandle = 0;
         char        errBuff[2048];
+		DAQTaskDesc dtd = FindDOHandle(devChan);
+        TaskHandle   & taskHandle (dtd.taskHandle);
+		bool dontClose = false;		
         
         // Write parameters
         uint32      w_data [1];
 
-        // Create Digital Output (DO) Task and Channel
-        DAQmxErrChk (DAQmxCreateTask ("", &taskHandle));
-        DAQmxErrChk (DAQmxCreateDOChan(taskHandle,devChan.toUtf8().constData(),"",DAQmx_Val_ChanPerLine));
+		if (!taskHandle) {
+			ClearDOHandle(devChan);
+			
+			// Create Digital Output (DO) Task and Channel
+			DAQmxErrChk (DAQmxCreateTask ("", &taskHandle));
+			DAQmxErrChk (DAQmxCreateDOChan(taskHandle,devChan.toUtf8().constData(),"",DAQmx_Val_ChanPerLine));
+		}
 
         // Start Task (configure port)
         //DAQmxErrChk (DAQmxStartTask (taskHandle));
@@ -342,6 +428,8 @@ namespace DAQ
 
 
         DAQmxErrChk (DAQmxWriteDigitalScalarU32(taskHandle,1,DAQ_TIMEOUT,w_data[0],NULL));
+		
+		activeDOHandles[devChan] = dtd;    dontClose = true;
 
 		tmp.sprintf("Writing to DO: %s data: 0x%X took %f secs", devChan.toUtf8().constData(),(unsigned int)w_data[0],getTime()-t0);		
         Debug() << tmp;
@@ -352,10 +440,12 @@ namespace DAQ
         if (DAQmxFailed (error))
             DAQmxGetExtendedErrorInfo (errBuff, 2048);
 
-        if (taskHandle != 0)
+        if (taskHandle != 0 && !dontClose)
             {
                 DAQmxStopTask (taskHandle);
                 DAQmxClearTask (taskHandle);
+				taskHandle = 0;
+				activeDOHandles.remove(devChan);
             }
 
         if (error) {
@@ -368,56 +458,7 @@ namespace DAQ
 		return true;
 #endif
     }
-	
-#ifndef FAKEDAQ
-	struct DAQTaskDesc {
-		TaskHandle taskHandle;
-		double minv, maxv;
 		
-        DAQTaskDesc() : taskHandle(0), minv(0.), maxv(0.) {}
-	};
-	
-	typedef QMap<QString, DAQTaskDesc> ActiveDAQHandles;
-	
-	static ActiveDAQHandles activeAOHandles;
-	
-	static DAQTaskDesc FindAOHandle(const QString & devChan) 
-	{
-		ActiveDAQHandles::iterator it = activeAOHandles.find(devChan);
-		if (it != activeAOHandles.end()) return it.value();
-		return DAQTaskDesc();
-	}
-	
-	static void ClearAOHandle(const QString & devChan) 
-	{
-		ActiveDAQHandles::iterator it = activeAOHandles.find(devChan);
-		if (it != activeAOHandles.end()) {
-			DAQTaskDesc & dtd = it.value();
-			if (dtd.taskHandle) {
-				DAQmxStopTask(dtd.taskHandle);
-				DAQmxClearTask(dtd.taskHandle);
-				dtd.taskHandle = 0;
-			}
-			activeAOHandles.erase(it);
-		}
-	}
-	
-	void ResetDAQ() 
-	{
-        for (ActiveDAQHandles::iterator it = activeAOHandles.begin(); it != activeAOHandles.end(); ++it) {
-			DAQTaskDesc & dtd = it.value();			
-			if (dtd.taskHandle) {
-				DAQmxStopTask(dtd.taskHandle);
-				DAQmxClearTask(dtd.taskHandle);
-				dtd.taskHandle = 0;				
-			}
-		}
-        activeAOHandles.clear();
-	}
-#else
-	void ResetDAQ() { Debug() << "DAQ::ResetDAQ() called, unimplemented in FakeDAQ."; }
-#endif
-	
 	bool WriteAO(const QString & devChan, double volts)
     {
         QString tmp;
