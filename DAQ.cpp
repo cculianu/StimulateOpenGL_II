@@ -385,7 +385,7 @@ namespace DAQ
 #define DEFAULT_DO 0
 
 
-    bool WriteDO(const QString & devChan, bool onoff)
+    bool WriteDO(const QString & devChan, bool onoff, bool closeDevice)
     {
         QString tmp;
 #ifdef FAKEDAQ
@@ -429,7 +429,7 @@ namespace DAQ
 
         DAQmxErrChk (DAQmxWriteDigitalScalarU32(taskHandle,1,DAQ_TIMEOUT,w_data[0],NULL));
 		
-		activeDOHandles[devChan] = dtd;    dontClose = true;
+		activeDOHandles[devChan] = dtd;    dontClose = true && !closeDevice;
 
 		tmp.sprintf("Writing to DO: %s data: 0x%X took %f secs", devChan.toUtf8().constData(),(unsigned int)w_data[0],getTime()-t0);		
         Debug() << tmp;

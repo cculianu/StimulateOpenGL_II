@@ -75,7 +75,7 @@ namespace DAQ
     /// returns the number of physical channels in the AO subdevice for this device, or 0 if AO not supported on this device
     unsigned GetNAOChans(const QString & devname);
 
-	bool WriteDO(const QString & devChanName, bool hi_lo);
+	bool WriteDO(const QString & devChanName, bool hi_lo, bool closeDeviceAfterWrite = false);
 	bool DOChannelExists(const QString & devChan);
 	
 	bool WriteAO(const QString & devChanName, double volts);
