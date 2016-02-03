@@ -111,6 +111,52 @@ void StimPlugin::stop(bool doSave, bool useGui, bool softStop)
     initted = false;
 }
 
+void StimPlugin::initAODOOnlyFromParams()
+{
+	// DO/AO write params setDOlines setAOlines and setDOstates and setAOStates
+	QVector<QString> lines;
+	QVector<double> states;
+	pendingDOWrites.clear(); pendingAOWrites.clear();
+	bool hadl(false), hads(false);
+	
+	hadl = getParam("setDOlines", lines); 
+	hads = getParam("setDOstates", states);
+	
+	if ( hadl || hads ) {
+		if (lines.size() != states.size() || !hadl || !hads) 
+			Warning() << "Need to specify setDOlines= and setDOStates= together, and they must both contain the same number of elements!";
+		else {
+			for (int i = 0; i < lines.size(); ++i) {
+				PendingDAQWrite p;
+				p.devChanString = lines[i];
+				p.volts = states[i];
+				pendingDOWrites.push_back(p);
+			}
+		}
+		// XXX
+		Debug() << "Frame " << frameNum << " DO lines=" << joinCSV(lines) << " states=" << joinCSV(states);
+	}
+	lines.clear(); states.clear(); hadl = hads = false;
+	
+	hadl = getParam("setAOlines", lines); 
+	hads = getParam("setAOstates", states);
+	
+	if ( hadl || hads ) {
+		if (lines.size() != states.size() || !hadl || !hads) 
+			Warning() << "Need to specify setAOlines= and setAOStates= together, and they must both contain the same number of elements!";
+		else {
+			for (int i = 0; i < lines.size(); ++i) {
+				PendingDAQWrite p;
+				p.devChanString = lines[i];
+				p.volts = states[i];
+				pendingAOWrites.push_back(p);
+			}
+		}
+		// XXX
+		Debug() << "Frame " << frameNum << " AO lines=" << joinCSV(lines) << " states=" << joinCSV(states);
+	}		
+}
+
 bool StimPlugin::initFromParams()
 {
 	getParam("lmargin", lmargin);
@@ -286,48 +332,7 @@ bool StimPlugin::initFromParams()
 	}
 	
 	
-	// DO/AO write params setDOlines setAOlines and setDOstates and setAOStates
-	QVector<QString> lines;
-	QVector<double> states;
-	pendingDOWrites.clear(); pendingAOWrites.clear();
-	bool hadl(false), hads(false);
-			  
-	hadl = getParam("setDOlines", lines); 
-	hads = getParam("setDOstates", states);
-	
-	if ( hadl || hads ) {
-		if (lines.size() != states.size() || !hadl || !hads) 
-			Warning() << "Need to specify setDOlines= and setDOStates= together, and they must both contain the same number of elements!";
-		else {
-			for (int i = 0; i < lines.size(); ++i) {
-				PendingDAQWrite p;
-				p.devChanString = lines[i];
-				p.volts = states[i];
-				pendingDOWrites.push_back(p);
-			}
-		}
-		// XXX
-		Debug() << "Frame " << frameNum << " DO lines=" << joinCSV(lines) << " states=" << joinCSV(states);
-	}
-	lines.clear(); states.clear(); hadl = hads = false;
-
-	hadl = getParam("setAOlines", lines); 
-	hads = getParam("setAOstates", states);
-	
-	if ( hadl || hads ) {
-		if (lines.size() != states.size() || !hadl || !hads) 
-			Warning() << "Need to specify setAOlines= and setAOStates= together, and they must both contain the same number of elements!";
-		else {
-			for (int i = 0; i < lines.size(); ++i) {
-				PendingDAQWrite p;
-				p.devChanString = lines[i];
-				p.volts = states[i];
-				pendingAOWrites.push_back(p);
-			}
-		}
-		// XXX
-		Debug() << "Frame " << frameNum << " AO lines=" << joinCSV(lines) << " states=" << joinCSV(states);
-	}	
+	initAODOOnlyFromParams();
 	
 	return true;
 }
@@ -1434,34 +1439,58 @@ bool StimPlugin::parseParamHistoryString(QString & pluginName, QVector<ParamHist
 }
 
 // virtual
-void StimPlugin::checkPendingParamHistory()
+void StimPlugin::checkPendingParamHistory(bool *isAODOOnly)
 {
 	QMutexLocker l (&mut);
 	if (pendingParamHistory.size() && pendingParamHistory.head().frameNum == frameNum) {
-		setParams(pendingParamHistory.dequeue().params);
+		ParamHistoryEntry e = pendingParamHistory.dequeue();
+		if (isAODOOnly) {
+			*isAODOOnly = false;
+			for (ChangedParamMap::iterator it = e.changedParams.begin(); 
+				 it != e.changedParams.end(); ++it)  {
+				QString k = it.key();
+				if (!k.toLower().startsWith("setao") && !k.toLower().startsWith("setdo")) {
+					*isAODOOnly = false;
+					break;
+				} else
+					*isAODOOnly = true;
+			}
+		}
+		setParams(e.params);
 	}
 }
 
 void StimPlugin::doRealtimeParamUpdateHousekeeping()
 {
+
+	bool isAODOOnly = false;
 	
 	// pending param history support here -- dequeues queued params at appropriate times
-	checkPendingParamHistory();
+	checkPendingParamHistory(&isAODOOnly);
 
 #ifndef Q_OS_WIN
 #pragma mark Realtime param support here
 #endif
 	// realtime param update support HERE
 	if (gotNewParams) {
-		if ( !applyNewParamsAtRuntime_Base() || !applyNewParamsAtRuntime() ) {
-			// restore previous params...
-			mut.lock();
-			params = previous_params;
-			previous_params = previous_previous_params;
-			applyNewParamsAtRuntime_Base() && applyNewParamsAtRuntime();
-			mut.unlock();
-		} else
+		
+		if (isAODOOnly) {
+			Debug() << "Applying AO/DO only optimization on param change for framenum " << frameNum;
+			initAODOOnlyFromParams();
 			newParamsAccepted();
+		} else {
+			//Debug() << "NOT applying AO/DO only optimization on param change for framenum " << frameNum;
+				
+			if ( !applyNewParamsAtRuntime_Base() || !applyNewParamsAtRuntime() ) {
+				// restore previous params...
+				mut.lock();
+				params = previous_params;
+				previous_params = previous_previous_params;
+				applyNewParamsAtRuntime_Base() && applyNewParamsAtRuntime();
+				mut.unlock();
+			} else
+				newParamsAccepted();
+		}
 		gotNewParams = false;
 	}
 }

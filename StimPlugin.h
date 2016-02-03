@@ -440,7 +440,7 @@ protected:
 	    Default implementation: Pending params are used whenever their frameNum == this->framenum.  
 	    Called after the VSync by GLWindow::paintGL.  
 	    Reimplemented in CheckerFlicker subclass which has its own custom pending params rules.  */
-	virtual void checkPendingParamHistory();
+	virtual void checkPendingParamHistory(bool *isAODOOnlyChanges = 0);
 	
 	/// Just saves the current param history to a disk file in output dir, file name is based on plugin name and date, with .txt ext.
 	void saveParamHistoryToFile() const; 
@@ -449,6 +449,10 @@ protected:
 	/// draw this background image -- comes from param file 'bgImg' -- this variable is default 0
 	/// but if set, we use a background image
 	GLuint bgImg_tex, bgImg_h, bgImg_w; ///< initially 0
+	
+	
+	/// performance optimization for when doing fast param changes for AO/DO line updates..
+	void initAODOOnlyFromParams();
 	
 private:
     void computeFPS();
