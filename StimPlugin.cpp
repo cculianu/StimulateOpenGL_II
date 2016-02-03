@@ -111,16 +111,27 @@ void StimPlugin::stop(bool doSave, bool useGui, bool softStop)
     initted = false;
 }
 
-void StimPlugin::initAODOOnlyFromParams()
+void StimPlugin::initAODOOnlyFromParams(const ChangedParamMap *aodoonly)
 {
 	// DO/AO write params setDOlines setAOlines and setDOstates and setAOStates
 	QVector<QString> lines;
 	QVector<double> states;
 	pendingDOWrites.clear(); pendingAOWrites.clear();
 	bool hadl(false), hads(false);
-	
-	hadl = getParam("setDOlines", lines); 
-	hads = getParam("setDOstates", states);
+
+    int aoch = 0, doch = 0;
+
+    if (aodoonly) {
+        for (ChangedParamMap::const_iterator it = aodoonly->begin(); it != aodoonly->end(); ++it) {
+            if (it.key().toLower().startsWith("setaol")) aoch++;
+            if (it.key().toLower().startsWith("setdol")) doch++;
+            if (it.key().toLower().startsWith("setaos")) aoch++;
+            if (it.key().toLower().startsWith("setdos")) doch++;
+        }
+    }
+
+    hadl = getParam("setDOlines", lines) && (aodoonly ? doch : 1);
+    hads = getParam("setDOstates", states) && (aodoonly ? doch : 1);
 	
 	if ( hadl || hads ) {
 		if (lines.size() != states.size() || !hadl || !hads) 
@@ -138,8 +149,8 @@ void StimPlugin::initAODOOnlyFromParams()
 	}
 	lines.clear(); states.clear(); hadl = hads = false;
 	
-	hadl = getParam("setAOlines", lines); 
-	hads = getParam("setAOstates", states);
+    hadl = getParam("setAOlines", lines) && (aodoonly ? aoch : 1);
+    hads = getParam("setAOstates", states) && (aodoonly ? aoch : 1);
 	
 	if ( hadl || hads ) {
 		if (lines.size() != states.size() || !hadl || !hads) 
@@ -1439,7 +1450,7 @@ bool StimPlugin::parseParamHistoryString(QString & pluginName, QVector<ParamHist
 }
 
 // virtual
-void StimPlugin::checkPendingParamHistory(bool *isAODOOnly)
+void StimPlugin::checkPendingParamHistory(bool *isAODOOnly, ChangedParamMap *aodoparams)
 {
 	QMutexLocker l (&mut);
 	if (pendingParamHistory.size() && pendingParamHistory.head().frameNum == frameNum) {
@@ -1455,6 +1466,7 @@ void StimPlugin::checkPendingParamHistory(bool *isAODOOnly)
 				} else
 					*isAODOOnly = true;
 			}
+            if (*isAODOOnly && aodoparams) *aodoparams = e.changedParams;
 		}
 		setParams(e.params);
 	}
@@ -1464,9 +1476,10 @@ void StimPlugin::doRealtimeParamUpdateHousekeeping()
 {
 
 	bool isAODOOnly = false;
-	
+    ChangedParamMap changedAODO;
+
 	// pending param history support here -- dequeues queued params at appropriate times
-	checkPendingParamHistory(&isAODOOnly);
+    checkPendingParamHistory(&isAODOOnly, &changedAODO);
 
 #ifndef Q_OS_WIN
 #pragma mark Realtime param support here
@@ -1476,7 +1489,7 @@ void StimPlugin::doRealtimeParamUpdateHousekeeping()
 		
 		if (isAODOOnly) {
 			Debug() << "Applying AO/DO only optimization on param change for framenum " << frameNum;
-			initAODOOnlyFromParams();
+            initAODOOnlyFromParams(&changedAODO);
 			newParamsAccepted();
 		} else {
 			//Debug() << "NOT applying AO/DO only optimization on param change for framenum " << frameNum;
