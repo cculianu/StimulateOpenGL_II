@@ -168,6 +168,10 @@ void StimPlugin::initAODOOnlyFromParams(const ChangedParamMap *aodoonly)
 	}		
 }
 
+/* static */ const QString StimPlugin::FTStateNames[N_FTStates] = {
+	"ftrack_track", "ftrack_off", "ftrack_change", "ftrack_start", "ftrack_end"
+};
+
 bool StimPlugin::initFromParams()
 {
 	getParam("lmargin", lmargin);
@@ -181,17 +185,8 @@ bool StimPlugin::initFromParams()
 		glScissor(0,0,width(),height());
 	}
 	
-	// setup ft state colors initially to be all white for all states, except off where it's black
-	const char *ftColorParamNames[N_FTStates] = {
-		// NB: order of these MUST match the FTState enum!!
-		"ftrack_track_color",  // FT_Track
-		"ftrack_off_color",    // FT_Off
-		"ftrack_change_color", // FT_Change
-		"ftrack_start_color",  // FT_Start
-		"ftrack_end_color",    // FT_End		
-	};
 	for (int i = 0; i < N_FTStates; ++i) {
-		QString n = ftColorParamNames[i];
+		const QString n (FTStateNames[i] + "_color");
 		QVector<double> cv;
 		QString c;
 		if ( ! getParam(n, cv) ) {
@@ -573,6 +568,8 @@ void StimPlugin::drawFTBox()
 */
 
 void StimPlugin::afterVSync(bool b) { (void)b; /* nothing.. */ }
+
+void StimPlugin::afterFTBoxDraw() { /* nothing.. */ }
 
 bool StimPlugin::openOutputFile(bool use_gui)
 {

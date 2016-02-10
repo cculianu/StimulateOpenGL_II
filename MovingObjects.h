@@ -27,6 +27,7 @@ protected:
     bool processKey(int key); ///< remiplemented
 	/* virtual */ bool applyNewParamsAtRuntime(); ///< reimplemented from super
     /*virtual */ void afterVSync(bool isSimulated = false);
+	/*virtual */ void afterFTBoxDraw(); 
 
 private:
     void initObjs();
@@ -165,7 +166,7 @@ private:
 	//// used for bounds checking for object bouncing, vector of size 6
 	QVector<Vec3> frustumNormals, boxNormals; ///< 0 = left edge, 1= right edge, 2 = bottom edge, 3 = top edge, 4 = near zbound, 5 = far zbounds
 	
-	enum FVCols { FV_frameNum=0, FV_objNum, FV_subFrameNum, FV_objType, FV_x, FV_y, FV_r1, FV_r2, FV_phi, FV_color, FV_z, FV_zScaled, 
+	enum FVCols { FV_frameNum=0, FV_objNum, FV_subFrameNum, FV_objType, FV_x, FV_y, FV_r1, FV_r2, FV_phi, FV_color, FV_z, FV_zScaled, FV_FTrackState,
 		          N_FVCols };
 	struct ConfigSuppressesFrameVar {
 		bool col[N_FVCols]; ///< iff elements of array here are true, the config file suppresses framevar, and not vice-versa 

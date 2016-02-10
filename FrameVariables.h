@@ -4,6 +4,7 @@
 #include <QFile>
 #include <QString>
 #include <QVector>
+#include <QList>
 
 #include "Util.h"
 
@@ -28,6 +29,17 @@ public:
 
 	void push(double varval0...); ///< all vars must be doubles, and they must be the same number of parameters as the variableNames() list length!
 	void push(const QVector<double> & vec); ///< like above but uses a vector rather than a variadic function
+	
+	// Queue related methods added 2/10/2016 in order to support plugins appending frametrack state
+	// to framevar file.  Since the frametrack state is determined after the plugin is run,
+	// plugins need to enqueue their framevars in their drawFrame() method, then in their
+	// 'afterFTBoxDraw()' method, they would access the enqueue vars and write the correct framevar
+	// to the last column of the variables queued.
+	void enqueue(const QVector<double> & vec);
+	void enqueue(double varval0...);
+	void commitQueue();
+	unsigned queueCount() const { return varQueue.size(); }
+	QList<QVector<double> > & getQueue() { return varQueue; }
 	
 	/// read back the contents of the file to a vector and return it
 	static bool readAllFromFile(const QString & filename, QVector<double> & out, int * nrows_out = 0, int * ncols_out = 0, bool matlab = true);
@@ -76,6 +88,8 @@ private:
 	static QStringList lastFileNames;
 	static QString lastFileName();
 	static void pushLastFileName(const QString & fn);
+	
+	QList<QVector<double> > varQueue;
 	
 	// lastread stuff
 	struct Input {

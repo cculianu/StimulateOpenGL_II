@@ -102,8 +102,8 @@ bool MovingGrating::init()
 {
 	if (!initFromParams()) return false;
 	phase = 0.0;
-	frameVars->setVariableNames(QString("frameNum phase spatial_freq angle min_color max_color").split(" "));
-	frameVars->setVariableDefaults(QVector<double>() << 0. << 0. << spatial_freq <<  angle << min_color << max_color);
+	frameVars->setVariableNames(QString("frameNum phase spatial_freq angle min_color max_color ftrackBoxState(0=ON,1=off,2=change,3=start,4=end,-1=undefined)").split(" "));
+	frameVars->setVariableDefaults(QVector<double>() << 0. << 0. << spatial_freq <<  angle << min_color << max_color << -1.);
 
     if (!tex) {
         glGenTextures(1, &tex);
@@ -206,7 +206,7 @@ void MovingGrating::drawFrame()
             //Debug() << "redefine texture time (subimage) = " << ((Util::getTime()-t0)*1e3) << " msec";
         }
 
-        if (!fv.size()) frameVars->push(double(frameNum), phase, spatial_freq, angle, min_color, max_color);
+        if (!fv.size()) frameVars->enqueue(double(frameNum), phase, spatial_freq, angle, min_color, max_color, -1);
 
         const float w = width()*2, h = height()*2, hw=w/2., hh=h/2.;
         
@@ -253,5 +253,17 @@ void MovingGrating::drawFrame()
 bool MovingGrating::applyNewParamsAtRuntime() 
 {
 	return initFromParams();
+}
+
+/* reimplemented from super */
+void MovingGrating::afterFTBoxDraw()
+{
+	if (!frameVars || !frameVars->queueCount()) return;
+	for (QList<QVector<double> >::iterator it = frameVars->getQueue().begin();  it != frameVars->getQueue().end(); ++it)
+	{
+		QVector<double> & b(*it);
+		if (b.size() >= 7) b[b.size()-1] = double(currentFTState);
+	}
+	frameVars->commitQueue();
 }
 

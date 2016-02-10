@@ -437,6 +437,7 @@ void GLWindow::paintGL()
 				if (running) { // NB: drawFrame may have called stop(), thus NULLing this pointer, so check it again
 					running->advanceFTState(); // NB: this asserts FT_Start/FT_Change/FT_End flag, if need be, etc, and otherwise decides whith FT color to us.  Looks at running->nFrames, etc
 					running->drawFTBox();
+					running->afterFTBoxDraw();
 					if (debugLogFrames) running->logBackbufferToDisk();
 					++running->frameNum;
 					if (running->delay <= 0 && running->frameNum == 1)

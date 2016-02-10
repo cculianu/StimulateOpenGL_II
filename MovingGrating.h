@@ -40,6 +40,7 @@ protected:
     void drawFrame();
     bool init();
 	/* virtual */ bool applyNewParamsAtRuntime();
+	/* virtual */ void afterFTBoxDraw(); 
 
 private:
 	bool initFromParams();

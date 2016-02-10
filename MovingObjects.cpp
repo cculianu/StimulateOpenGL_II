@@ -487,7 +487,7 @@ bool MovingObjects::init()
 	//if (!dontInitFvars) {
 		ObjData o = objs.front();
 		double x = o.pos_o.x, y = o.pos_o.y, r1 = o.len_vec.front().x, r2 = o.len_vec.front().y;
-		frameVars->setVariableNames(   QString(          "frameNum objNum subFrameNum objType(0=box,1=ellipse,2=sphere) x y r1 r2 phi color z zScaled").split(QString(" ")));
+		frameVars->setVariableNames(   QString(          "frameNum objNum subFrameNum objType(0=box,1=ellipse,2=sphere) x y r1 r2 phi color z zScaled ftrackBoxState(0=ON,1=off,2=change,3=start,4=end,-1=undefined)").split(QString(" ")));
 		frameVars->setVariableDefaults(QVector<double>()  << 0     << 0   << 0        << o.type                << x
 									                                                                             << y
 									                                                                               << r1
@@ -495,7 +495,8 @@ bool MovingObjects::init()
 									                                                                                    << o.phi_o
 									                                                                                         << o.color 
 																																   << 0.0
-																																	   << 1.0);
+																																	   << 1.0 
+																																				      << -1.0);
 		frameVars->setPrecision(10, 9);
 		frameVars->setPrecision(11, 9);
 		
@@ -783,7 +784,7 @@ void MovingObjects::postWriteFrameVarsForWholeFrame()
 				stop();
 				return;
 			}
-			frameVars->push(fv);
+			frameVars->enqueue(fv);
 		}
 	}
 }
@@ -1192,6 +1193,7 @@ void MovingObjects::doFrameDraw()
 					fv[FV_color] = objcolor;
 					fv[FV_z] = o.shape->position.z;
 					fv[FV_zScaled] = o.shape->distance();
+					fv[FV_FTrackState] = -1.0;
 				}
 			}
 		} // end obj loop
@@ -1625,5 +1627,15 @@ bool MovingObjects::applyNewParamsAtRuntime()
 //	if (excessiveDebug) Debug() << " .. after vsync END. ";
 }
 
-
+/* reimplemented from super */
+void MovingObjects::afterFTBoxDraw()
+{
+	if (!frameVars || !frameVars->queueCount()) return;
+	for (QList<QVector<double> >::iterator it = frameVars->getQueue().begin();  it != frameVars->getQueue().end(); ++it)
+	{
+		QVector<double> & b(*it);
+		if (b.size() > int(FV_FTrackState)) b[FV_FTrackState] = double(currentFTState);
+	}
+	frameVars->commitQueue();
+}
 

@@ -269,6 +269,13 @@ protected:
     /// If isSimulated = true this means we are in getFrameNum() call
     /// and not actually drawing to screen. 
     virtual void afterVSync(bool isSimulated = false);
+	
+	/// \brief Called immediately after the frametrack box is drawn
+	///
+	/// Reimplement to do stuff in the plugin right after the frametrack box
+	/// has been drawn.  This function was added 2/10/2016 as a way to append
+	/// frametrack box state to the framevar file.
+	virtual void afterFTBoxDraw(); 
 
 	/// \brief Called during plugin start to ask the plugin how much of a delay it needs before it is considered initialized.
 	///
@@ -312,8 +319,7 @@ protected:
 public:
 	enum FTState {
 		// NB: if changing order of these or number of these please update the 
-		//     'ftColorParamNames' local variable in the StimPlugin::start() 
-		//     function in StimPlugin.cpp!
+		//     'FTStateNames' static variable in StimPlugin.cpp!
 		FT_Track = 0,
 		FT_Off,
 		FT_Change,
@@ -321,6 +327,10 @@ public:
 		FT_End,
 		N_FTStates
 	};	
+	/// These state names used for plugin parameter names.  
+	/// Plugin parameters have _color appended to these names!
+	static const QString FTStateNames[N_FTStates];
+	
 protected:
 	
 	Vec3 ftStateColors[N_FTStates];

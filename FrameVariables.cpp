@@ -143,6 +143,28 @@ void FrameVariables::push(double varval0...) ///< all vars must be doubles, and 
 	push(vec);
 }
 
+void FrameVariables::enqueue(const QVector<double> & vec) 
+{
+	varQueue.push_back(vec);
+}
+void FrameVariables::enqueue(double varval0...) 
+{
+	QVector<double> vec(n_fields);
+	va_list ap;
+	va_start(ap, varval0);
+	vec[0] = varval0;
+	for (int i = 1; i < (int)n_fields; ++i)
+		vec[i] = va_arg(ap, double);
+	va_end(ap);
+	enqueue(vec);
+}
+void FrameVariables::commitQueue() 
+{
+	for (QList<QVector<double> >::iterator it = varQueue.begin(); it != varQueue.end(); ++it) {
+		push(*it);
+	}
+	varQueue.clear();
+}
 
 bool FrameVariables::readAllFromFile(QVector<double> & out, int * nrows_out, int * ncols_out, bool matlab) const
 {
@@ -212,6 +234,7 @@ bool FrameVariables::readAllFromFile(const QString &fn, QVector<double> & out, i
 
 void FrameVariables::finalize()
 {
+	commitQueue();
 	ts.flush();
 	f.close();
 }
