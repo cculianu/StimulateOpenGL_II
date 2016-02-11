@@ -1,6 +1,6 @@
 StimulateOpenGL II Plugin Parameter Documentation
 Calin A. Culianu <calin.culianu@gmail.com>
-Last Updated: January 28, 2016
+Last Updated: February 11, 2016
 
 Below is a list of plugins and the configuration parameters that they
 accept.  Note parameters *are not* case sensitive.
@@ -672,6 +672,13 @@ tframes
        Datatype:         integer
        Possible values:  0 - +2147483647
        Default value:    0 (off)
+
+tframesDO
+       Synopsis:         Specifies a digital output line to set to HIGH for 1 
+	                     frame every tFrames.  Only used if tframes is nonzero.
+       Datatype:         string
+       Possible values:  Any NI device path eg: /Dev1/port0/line0
+       Default value:    empty string (disabled)	  
 
 wave
        Synopsis:         Specifies the function to use for generating waves.    
@@ -1499,6 +1506,13 @@ tFrames
         Datatype:         integer
         Possible values:  0 - +2147483647
         Default value:    4320000 (approx 10 hours at 120fps)
+
+tframesDO
+       Synopsis:         Specifies a digital output line to set to HIGH for 1 
+	                     frame every tFrames.  Only used if tframes is nonzero.
+       Datatype:         string
+       Possible values:  Any NI device path eg: /Dev1/port0/line0
+       Default value:    empty string (disabled)	  	
 
 wrapEdge
         Synopsis:         NOTE: This parameter only takes effect if noEdge=false.

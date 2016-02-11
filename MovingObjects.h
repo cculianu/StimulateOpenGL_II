@@ -138,7 +138,7 @@ private:
 	int saved_ran1state;
 	
 	int rndtrial;
-	int tframes;
+    int tframes; QString tframesDO;
 	int rseed;
 	int jittermag;	
 	bool jitterlocal;

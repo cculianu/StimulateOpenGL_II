@@ -1,4 +1,5 @@
 #include "MovingGrating.h"
+#include "DAQ.h"
 
 #define TEXWIDTH 2048
 
@@ -55,7 +56,15 @@ bool MovingGrating::initFromParams()
 	if( !getParam("dangle", dangle) ) dangle = 0.f;
 	
 	if( !getParam("tframes", tframes) )	tframes = -1;
-	
+
+    tframesDO = "";
+    if (getParam("tframesDO", tframesDO) && tframesDO.size()) {
+        if (!DAQ::DOChannelExists(tframesDO)) {
+            Error() << "tframesDO=" << tframesDO << " -- not a valid digital output channel!";
+            return false;
+        }
+    }
+
 	if ( !getParam("min_color", min_color)) min_color = 0.0;
 	if ( !getParam("max_color", max_color)) max_color = 1.;
 	
@@ -119,6 +128,13 @@ static inline bool my_feqf(const float f1, const float f2) {
 
 void MovingGrating::drawFrame()
 {
+    if (tframesDO.length() && tframes > 0) {
+        if (!(frameNum%tframes))
+            DAQ::WriteDO(tframesDO, true);  // set tframesDO line high every tframes, if using tframes
+        else if (frameNum && !((frameNum-1)%(tframes)))
+            DAQ::WriteDO(tframesDO, false); // set tframesDO line low the frame after tframes, if using tframes
+    }
+
     const int nIters = int(fps_mode)+1;
     QVector<QVector<double> > fvs_cached;
     fvs_cached.reserve(nIters);
@@ -186,7 +202,7 @@ void MovingGrating::drawFrame()
         
         if (spatial_freq < 0.) spatial_freq = -spatial_freq;
                     
-        if ((frameNum > 0) && tframes > 0 && !(frameNum % tframes)) {		
+        if ((frameNum > 0) && tframes > 0 && !(frameNum % tframes) && !k) {
             if (ftChangeEvery < 1) ftAssertions[FT_Change] = true;		
             angle = angle + dangle;
         }

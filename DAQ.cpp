@@ -140,7 +140,7 @@ namespace DAQ
 		for (DAQ::DeviceChanMap::const_iterator it = chanMap.begin(); it != chanMap.end(); ++it) {
 			for (QStringList::const_iterator it2 = (*it).begin(); it2 != (*it).end(); ++it2) {			
 				const QString & item (*it2);
-				if (0 == item.compare(devChan, Qt::CaseInsensitive)) {
+                if (0 == item.compare(devChan, Qt::CaseInsensitive) || 0 == (QString("/")+item).compare(devChan, Qt::CaseInsensitive)) {
 					return true;
 				}
 			}

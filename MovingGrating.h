@@ -24,6 +24,7 @@ class MovingGrating : public StimPlugin
     float angle; ///< in degrees, how much the bars are rotated
 	float dangle; ///< delta-angle.  every tframes modify the angle by this amount
 	int tframes;
+    QString tframesDO;
 
 	float min_color,max_color; ///< actual intensities used scaled to this range. This param should be clamped between [0,1]
 	

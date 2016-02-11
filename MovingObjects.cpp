@@ -1,6 +1,7 @@
 #include "MovingObjects.h"
 #include "Shapes.h"
 #include "GLHeaders.h"
+#include "DAQ.h"
 #include <math.h>
 
 #define DEFAULT_TYPE BoxType
@@ -402,6 +403,14 @@ bool MovingObjects::init()
 		return false;	
 	}
 
+    tframesDO = "";
+    if (getParam("tframesDO", tframesDO) && tframesDO.size()) {
+        if (!DAQ::DOChannelExists(tframesDO)) {
+            Error() << "tframesDO=" << tframesDO << " -- not a valid digital output channel!";
+            return false;
+        }
+    }
+
 	if (!getParam("ft_change_frame_cycle", ftChangeEvery) && !getParam("ftrack_change_frame_cycle",ftChangeEvery) 
 		&& !getParam("ftrack_change_cycle",ftChangeEvery) && !getParam("ftrack_change",ftChangeEvery)) 
 		ftChangeEvery = 0; // override default for movingobjects it is 0 which means autocompute
@@ -800,6 +809,13 @@ void MovingObjects::doFrameDraw()
 {	
 	if (have_fv_input_file) 
 		preReadFrameVarsForWholeFrame();
+
+    if (tframesDO.length() && tframes > 0) {
+        if (!(frameNum%tframes))
+            DAQ::WriteDO(tframesDO, true);  // set tframesDO line high every tframes, if using tframes
+        else if (frameNum && !((frameNum-1)%(tframes)))
+            DAQ::WriteDO(tframesDO, false); // set tframesDO line low the frame after tframes, if using tframes
+    }
 
 	QMap <double, Obj2Render> objs2Render; ///< objects will be rendered in this order, this is ordered in reverse depth order
 	
