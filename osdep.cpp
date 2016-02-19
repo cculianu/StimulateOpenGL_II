@@ -21,7 +21,7 @@
 #include <X11/Xlib.h>
 #endif
 
-#ifdef Q_WS_MACX
+#ifdef Q_OS_DARWIN
 #include <agl.h>
 #include <gl.h>
 #include <unistd.h>
@@ -356,7 +356,7 @@ void setVSyncMode(bool vsync)
         Warning() << "VSync mode could not be " << vsms(vsync) << " because wglSwapIntervalEXT is missing.";
     }
 }
-#elif defined (Q_WS_MACX)
+#elif defined (Q_OS_DARWIN)
 
 void setVSyncMode(bool vsync)
 {
@@ -566,7 +566,7 @@ void socketNoNagle(int sock)
 #  include <netinet/tcp.h>
 #  include <arpa/inet.h>
 namespace Util {
-void socketNoNagle(int sock)
+void socketNoNagle(long sock)
 {
     long flag = 1;
     int ret = setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<void *>(&flag), sizeof(flag));

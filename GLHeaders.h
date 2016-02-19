@@ -18,7 +18,7 @@
 #include <windows.h>
 #include <wingdi.h>
 #endif
-#ifdef Q_WS_MACX
+#ifdef Q_OS_DARWIN
 #  include <gl.h>
 #  include <glext.h>
 #  include <glu.h>

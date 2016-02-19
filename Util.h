@@ -107,7 +107,7 @@ extern unsigned getNProcessors();
 extern QString getHostName();
 
 /// turns off Nagle algorithm for socket sock
-extern void socketNoNagle(int sock);
+extern void socketNoNagle(long sock);
 
 /// returns the number of bytes of physical memory of the current machine.
 extern unsigned long long getHWPhysMem();

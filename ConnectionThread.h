@@ -19,7 +19,11 @@ class ConnectionThread : public QThread
 {
 public:
     /// Construct a connectionthread given a connected network socket.
+#if QT_VERSION >= 0x050000
+    ConnectionThread(qintptr socketdescr, QObject *parent = 0);
+#else
     ConnectionThread(int socketdescr, QObject *parent = 0);
+#endif
     /// Reimplemented from QObject so that we can post events to main thread from client threads
     bool eventFilter(QObject *, QEvent *); 
 protected:
@@ -31,7 +35,11 @@ protected:
     void run();
 private:
     QString processLine(QTcpSocket & sock, const QString & line);
+#if QT_VERSION >= 0x050000
+    qintptr sockdescr;
+#else
     int sockdescr;
+#endif
 };
 
 #endif

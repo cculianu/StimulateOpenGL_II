@@ -383,7 +383,12 @@ void StimApp::initServer()
     public:
         MyTcpServer(StimApp *parent) : QTcpServer(parent) {}
     protected:
-        void incomingConnection(int sock) {
+#if QT_VERSION >= 0x050000
+        void incomingConnection(qintptr sock)
+#else
+        void incomingConnection(int sock)
+#endif
+        {
             QThread *thr = new ConnectionThread(sock, this);
             Connect(thr, SIGNAL(finished()), thr, SLOT(deleteLater()));
             thr->start();

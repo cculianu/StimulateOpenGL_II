@@ -122,7 +122,11 @@ namespace {
     };
 }
 
+#if QT_VERSION >= 0x050000
+ConnectionThread::ConnectionThread(qintptr sfd, QObject *parent)
+#else
 ConnectionThread::ConnectionThread(int sfd, QObject *parent)
+#endif
     : QThread(parent), sockdescr(sfd)
 {
     installEventFilter(this);
