@@ -9,6 +9,7 @@ INCLUDEPATH += . SFMT
 
 CONFIG += qt thread warn_on
 QT += core network gui opengl
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 # Input
 HEADERS +=  Version.h StimApp.h Util.h RNG.h ConsoleWindow.h GLHeaders.h \
@@ -57,15 +58,27 @@ win32 {
         QMAKE_CFLAGS_RELEASE += -D_WIN32_WINNT=0x0400
         QMAKE_CXXFLAGS_DEBUG += -D_WIN32_WINNT=0x0400
         QMAKE_CXXFLAGS_RELEASE += -D_WIN32_WINNT=0x0400
-        LIBS += $${PWD}/NI/NIDAQmx.lib WS2_32.lib opengl32.lib
+        LIBS += $${PWD}/NI/NIDAQmx.lib WS2_32.lib
 #        LIBS += DelayImp.lib
-        DEFINES += HAVE_NIDAQmx 
-#        LIBS += -lws2_32
+        DEFINES += HAVE_NIDAQmx WIN32
         RC_FILE += WinResources.rc
         QMAKE_CFLAGS_RELEASE -= /O2 /O1 -O1 -O2
         QMAKE_CXXFLAGS_RELEASE -= /O2 /O1 -O1 -O2
         QMAKE_CFLAGS_RELEASE += -arch:SSE2 -Ox
         QMAKE_CXXFLAGS_RELEASE += -arch:SSE2 -Ox
 #        QMAKE_LFLAGS += /DELAYLOAD:"nicaiu.dll"
+
+        greaterThan(QT_MAJOR_VERSION, 4) {
+            LIBS += opengl32.lib GDI32.lib GLU32.lib user32.lib
+#            QMAKE_LFLAGS += /VERBOSE:LIB
+        }
+
+        contains(QMAKE_TARGET.arch, x86_64) {
+            DEFINES += WIN64
+            LIBS -= $${PWD}/NI/NIDAQmx.lib
+            LIBS += $${PWD}/NI/x64/NIDAQmx.lib
+            QMAKE_CFLAGS_RELEASE -= -arch:SSE2
+            QMAKE_CXXFLAGS_RELEASE -= -arch:SSE2
+        }
 }
 

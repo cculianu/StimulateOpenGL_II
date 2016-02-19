@@ -630,7 +630,7 @@ unsigned getPid()
 	
 	
 #ifdef Q_OS_WIN /* Hack for now to get windows to see the framebuffer ext stuff */
-#  if QT_VERSION < 0x050000
+//#  ifndef WIN64
 	GLAPI void APIENTRY glDeleteFramebuffersEXT (GLsizei s, const GLuint *a)
 	{
 		typedef void (APIENTRY *Fun_t)(GLsizei, const GLuint *);
@@ -735,7 +735,11 @@ unsigned getPid()
 		} else
 			fun(target,buffer);
 	}
-	GLAPI void APIENTRY glBufferData(GLenum target, GLsizei size, const GLvoid * data, GLenum usage)
+#if defined(WIN64) && QT_VERSION >= 0x050000
+    GLAPI void APIENTRY glBufferData(GLenum target, GLsizeiptr size, const GLvoid * data, GLenum usage)
+#else
+    GLAPI void APIENTRY glBufferData(GLenum target, GLsizei size, const GLvoid * data, GLenum usage)
+#endif
 	{
 		typedef void (APIENTRY *Fun_t) (GLenum, GLsizei, const GLvoid *, GLenum);
 		static Fun_t fun = 0;
@@ -767,5 +771,5 @@ unsigned getPid()
 		}
 		return fun(target);	
 	}
-#  endif
+//#  endif
 #endif

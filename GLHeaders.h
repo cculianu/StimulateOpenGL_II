@@ -133,7 +133,7 @@
 #ifndef GL_DYNAMIC_READ
 #define GL_DYNAMIC_READ                   0x88E9
 #endif
-#if QT_VERSION < 0x050000
+#ifndef WIN64
 extern "C" {
  GLAPI void APIENTRY glDeleteFramebuffersEXT (GLsizei, const GLuint *);
  GLAPI void APIENTRY glGenFramebuffersEXT (GLsizei, GLuint *);
