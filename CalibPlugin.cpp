@@ -6,11 +6,11 @@ CalibPlugin::CalibPlugin()
     Connect(this, SIGNAL(refreshRateCalibrated(unsigned)), StimApp::instance(), SLOT(calibratedRefresh(unsigned)));
 }
 
-void CalibPlugin::stop(bool doSave, bool use_gui)
+void CalibPlugin::stop(bool doSave, bool use_gui, bool softStop)
 {
     const bool wasEnabled = stimApp()->spikeGLNotifyParams.enabled;
     stimApp()->spikeGLNotifyParams.enabled = false; // suppress for this plugin
-    StimPlugin::stop(doSave, use_gui);
+    StimPlugin::stop(doSave, use_gui, softStop);
     stimApp()->spikeGLNotifyParams.enabled = wasEnabled;
 }
 

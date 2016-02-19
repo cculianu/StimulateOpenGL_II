@@ -188,7 +188,7 @@ QString ConnectionThread::processLine(QTcpSocket & sock,
 {
     Debug() << "Got Line: " << line;
     QStringList toks = line.split(QRegExp("\\s+"), QString::SkipEmptyParts);
-    if (toks.size() < 1) return false;
+    if (toks.size() < 1) return QString::null;
     QString cmd = toks.front();
     toks.pop_front();
     cmd = cmd.toUpper();

@@ -839,11 +839,12 @@ void GLWindow::pauseUnpause()
     paused = !paused;
     Log() << (paused ? "Paused" : "Unpaused");
     if (!paused && !running->frameNum && running->needNotifyStart
-		&& ((stimApp()->spikeGLNotifyParams.nloopsNotifyPerIter || running->loopCt == 0)) ) 
-		if (stimApp()->spikeGLNotifyParams.enabled) 
-			running->notifySpikeGLAboutStart();  
-		else
-			running->notifySpikeGLAboutParams();
+            && ((stimApp()->spikeGLNotifyParams.nloopsNotifyPerIter || running->loopCt == 0)) ) {
+        if (stimApp()->spikeGLNotifyParams.enabled)
+            running->notifySpikeGLAboutStart();
+        else
+            running->notifySpikeGLAboutParams();
+    }
 }
 
 QList<QString> GLWindow::plugins() const

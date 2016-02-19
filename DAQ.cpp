@@ -389,7 +389,7 @@ namespace DAQ
     {
         QString tmp;
 #ifdef FAKEDAQ
-		(void)devChan; (void)onoff;
+        (void)devChan; (void)onoff; (void)closeDevice;
 		tmp.sprintf("Writing to fake DO: %s data: %s", devChan.toUtf8().constData(), onoff ? "line_hi" : "line_lo");
         Debug() << tmp;
 		return true;

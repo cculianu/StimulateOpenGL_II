@@ -32,7 +32,7 @@ public:
     /// Reimplemented from super to suppress SpikeGL notify
     bool start(bool startUnpaused = false);
     /// Reimplemented from super to suppress SpikeGL notify
-    void stop(bool doSave = false, bool use_gui = false);
+    void stop(bool doSave = false, bool use_gui = false, bool softStop = false);
 
 protected:
     /// Draws a random background color to the screen.

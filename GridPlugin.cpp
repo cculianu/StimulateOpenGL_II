@@ -6,7 +6,7 @@ GridPlugin::GridPlugin(const QString &name)
 
 GridPlugin::~GridPlugin() { destroyGrid(); }
 
-void GridPlugin::stop() { StimPlugin::stop(); destroyGrid(); }
+void GridPlugin::stop(bool doSave, bool use_gui, bool softStop) { StimPlugin::stop(doSave,use_gui,softStop); destroyGrid(); }
 
 void GridPlugin::destroyGrid() 
 {

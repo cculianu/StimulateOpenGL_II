@@ -199,7 +199,7 @@ protected:
 	/// Called by GLWindow.cpp when new parameters are accepted.  Overrides StimPlugin parent and sets a flag.  The actual param history is pushed once the new frame hits the screen!
 	virtual void newParamsAccepted();
 	/// Reimplemented from StimPlugin for our custom param history pending checks
-	virtual void checkPendingParamHistory();
+    virtual void checkPendingParamHistory(bool *isAODOOnlyChanges = 0, ChangedParamMap *aodoOnlyParams = 0);
 };
 
 

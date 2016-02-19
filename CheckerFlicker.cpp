@@ -11,6 +11,9 @@
 #include <windows.h>
 #include <wingdi.h>
 #endif
+#ifdef UNIX
+#include <unistd.h>
+#endif
 #include "GLHeaders.h"
 #include "CheckerFlicker.h"
 #include "ZigguratGauss.h"
@@ -972,8 +975,10 @@ void CheckerFlicker::newParamsAccepted() {
 
 
 //virtual 
-void CheckerFlicker::checkPendingParamHistory() 
+void CheckerFlicker::checkPendingParamHistory(bool *isAODOOnlyChanges, ChangedParamMap *aodoOnlyParams)
 {
+    (void)isAODOOnlyChanges; (void)aodoOnlyParams; // for now we don't call super.  *gulp*
+
 	sharedParamsRWLock.lockForWrite();
 	unsigned nExtra = nums.size();
 	FrameCreator *fc = 0;
