@@ -553,7 +553,7 @@ QString getHostName()
 
 #ifdef Q_OS_WIN
 
-void socketNoNagle(int sock)
+void socketNoNagle(long sock)
 {
     BOOL flag = 1;
     int ret = setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char *>(&flag), sizeof(flag));
@@ -630,7 +630,7 @@ unsigned getPid()
 	
 	
 #ifdef Q_OS_WIN /* Hack for now to get windows to see the framebuffer ext stuff */
-//#if defined(__GNUC__ ) || defined(_MSC_VER)
+#  if QT_VERSION < 0x050000
 	GLAPI void APIENTRY glDeleteFramebuffersEXT (GLsizei s, const GLuint *a)
 	{
 		typedef void (APIENTRY *Fun_t)(GLsizei, const GLuint *);
@@ -767,5 +767,5 @@ unsigned getPid()
 		}
 		return fun(target);	
 	}
-//#endif	
+#  endif
 #endif

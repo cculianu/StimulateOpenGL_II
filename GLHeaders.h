@@ -133,6 +133,7 @@
 #ifndef GL_DYNAMIC_READ
 #define GL_DYNAMIC_READ                   0x88E9
 #endif
+#if QT_VERSION < 0x050000
 extern "C" {
  GLAPI void APIENTRY glDeleteFramebuffersEXT (GLsizei, const GLuint *);
  GLAPI void APIENTRY glGenFramebuffersEXT (GLsizei, GLuint *);
@@ -149,6 +150,7 @@ extern "C" {
  GLAPI void * APIENTRY glMapBuffer(GLenum target, GLenum access);	
  GLAPI GLboolean APIENTRY glUnmapBuffer(GLenum target);
 }
+#endif
 
 //#endif // __GNUC__
 #endif // Q_OS_WIN

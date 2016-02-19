@@ -57,7 +57,7 @@ win32 {
         QMAKE_CFLAGS_RELEASE += -D_WIN32_WINNT=0x0400
         QMAKE_CXXFLAGS_DEBUG += -D_WIN32_WINNT=0x0400
         QMAKE_CXXFLAGS_RELEASE += -D_WIN32_WINNT=0x0400
-        LIBS += $${PWD}/NI/NIDAQmx.lib WS2_32.lib
+        LIBS += $${PWD}/NI/NIDAQmx.lib WS2_32.lib opengl32.lib
 #        LIBS += DelayImp.lib
         DEFINES += HAVE_NIDAQmx 
 #        LIBS += -lws2_32
