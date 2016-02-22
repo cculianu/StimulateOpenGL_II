@@ -116,7 +116,7 @@ public:
     /// Returns the status bar string that this plugin would like the UI to display
     const QString & getSBString() const { return customStatusBarString; }
     /// Returns the number of missed frames that the plugin has encountered thus far
-    unsigned getNumMissedFrames() const { return missedFrames.size(); }
+    unsigned getNumMissedFrames() const { return unsigned(missedFrames.size()); }
 
 	/// \brief Inform calling code if this plugin is initializing or not
 	/// If true, the plugin is ready, if false, need to wait

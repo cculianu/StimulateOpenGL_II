@@ -431,7 +431,7 @@ namespace DAQ
 		
 		activeDOHandles[devChan] = dtd;    dontClose = true && !closeDevice;
 
-		tmp.sprintf("Writing to DO: %s data: 0x%X took %f secs", devChan.toUtf8().constData(),(unsigned int)w_data[0],getTime()-t0);		
+        tmp.sprintf("Writing to DO: %s data: 0x%X took %f ms", devChan.toUtf8().constData(),(unsigned int)w_data[0],(getTime()-t0)*1e3);
         Debug() << tmp;
 
 
@@ -510,7 +510,7 @@ namespace DAQ
 		
 		activeAOHandles[devChan] = dtd;		dontClose = true;
 		
-        tmp.sprintf("Writing to AO: %s data: %f took %f secs", devChan.toUtf8().constData(),volts,getTime()-t0);
+        tmp.sprintf("Writing to AO: %s data: %f took %f ms", devChan.toUtf8().constData(),volts,(getTime()-t0)*1e3);
         Debug() << tmp;
 
 		

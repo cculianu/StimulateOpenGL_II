@@ -93,7 +93,7 @@ public:
 
     Frame *popOne() { Frame *f; QMutexLocker l(&mut); f = frames.front(); frames.pop_front(); return f; }
 
-    unsigned nWaiting() { QMutexLocker l(&mut); return frames.size(); }
+    unsigned nWaiting() { QMutexLocker l(&mut); return unsigned(frames.size()); }
 protected:
     /// The frame creation thread function
     void run();
@@ -801,7 +801,7 @@ void CheckerFlicker::afterVSync(bool isSimulated)
     } // else.. multiprocessor mode -- we have at least 1 FrameCreator thread, so harvest frames here
 
    
-    const unsigned nQMax = MAX((fcs.size() ? (fbo/fcs.size()) : 0),1);
+    const unsigned nQMax = MAX((fcs.size() ? (fbo/unsigned(fcs.size())) : 0),1);
     lastAvgTexSubImgProcTime = 0.0;
     for (std::vector<FrameCreator *>::iterator fcit = fcs.begin(); fcit != fcs.end(); ++fcit) {
         FrameCreator *fc = *fcit;
@@ -871,7 +871,7 @@ void CheckerFlicker::afterVSync(bool isSimulated)
         s.sprintf("cycletimeleft: %g ms thrdct: %d haveMore: %d createMore: %d nWaiting: %u nConsecSkips: %d lastFramegen: %d ms required: %d ms",  cycleTimeLeft*1e3, (int)fcs.size(), (int)havmor, (int)avail, (unsigned)nwait, (int)nConsecSkips, (int)lastFramegen, int((1e3/getHWRefreshRate())*fcs.size()));
         Debug() << s;
         // now, create new threads to keep up, if available
-        int ncoresavail = getNProcessors() - fcs.size() - 1; // allow 1 proc to be used for main thread always
+        int ncoresavail = int(getNProcessors()) - int(fcs.size()) - 1; // allow 1 proc to be used for main thread always
         if (ncoresavail < 0) ncoresavail = 0;
         if (ncoresavail && fcs.size() < nCoresMax-1) {
             Warning() << "You have " << ncoresavail << " cores available, creating  a new FrameCreator thread to compensate.";
@@ -980,7 +980,7 @@ void CheckerFlicker::checkPendingParamHistory(bool *isAODOOnlyChanges, ChangedPa
     (void)isAODOOnlyChanges; (void)aodoOnlyParams; // for now we don't call super.  *gulp*
 
 	sharedParamsRWLock.lockForWrite();
-	unsigned nExtra = nums.size();
+    unsigned nExtra = unsigned(nums.size());
 	FrameCreator *fc = 0;
 	if (fcs.size()) {
 		fc = fcs.front();

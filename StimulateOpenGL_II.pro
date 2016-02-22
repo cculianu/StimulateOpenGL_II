@@ -58,15 +58,14 @@ win32 {
         QMAKE_CFLAGS_RELEASE += -D_WIN32_WINNT=0x0400
         QMAKE_CXXFLAGS_DEBUG += -D_WIN32_WINNT=0x0400
         QMAKE_CXXFLAGS_RELEASE += -D_WIN32_WINNT=0x0400
-        LIBS += $${PWD}/NI/NIDAQmx.lib WS2_32.lib
-#        LIBS += DelayImp.lib
+        LIBS += $${PWD}/NI/NIDAQmx.lib WS2_32.lib DelayImp.lib
         DEFINES += HAVE_NIDAQmx WIN32
         RC_FILE += WinResources.rc
         QMAKE_CFLAGS_RELEASE -= /O2 /O1 -O1 -O2
         QMAKE_CXXFLAGS_RELEASE -= /O2 /O1 -O1 -O2
         QMAKE_CFLAGS_RELEASE += -arch:SSE2 -Ox
         QMAKE_CXXFLAGS_RELEASE += -arch:SSE2 -Ox
-#        QMAKE_LFLAGS += /DELAYLOAD:"nicaiu.dll"
+        QMAKE_LFLAGS += /DELAYLOAD:"nicaiu.dll"
 
         greaterThan(QT_MAJOR_VERSION, 4) {
             LIBS += opengl32.lib GDI32.lib GLU32.lib user32.lib

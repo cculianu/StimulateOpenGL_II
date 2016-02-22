@@ -149,7 +149,7 @@ bool         FM_AddFrame(FM_Context *c, const void *pixels,
 		}		
 		FM_Header h;
 		if ( fread(&h, sizeof(h), 1, c->file) == 1 ) {
-			h.nFrames = c->imgOffsets.size();
+            h.nFrames = uint32_t(c->imgOffsets.size());
 			h.width = c->width;
 			h.height = c->height;
 			fseeko(c->file, 0, SEEK_SET);
@@ -415,7 +415,7 @@ bool FM_CheckForErrors(const char *filename, void *arg, FM_ProgressFn pfun, FM_E
 		if (efun) efun(arg, errmsg);
 		return false;
 	}
-	const unsigned n = c->imgOffsets.size();
+    const unsigned n = unsigned(c->imgOffsets.size());
 	int lastpct = -1;
 	for (unsigned i = 0; i < n; ++i) {
 		FM_Image *img = FM_ReadFrame(c, i, &errmsg);
@@ -452,7 +452,7 @@ void         FM_Close(FM_Context *c)
 			// update header
 			fseeko(c->file, 0, SEEK_END);
 			h.indexRecordOffset = ftello(c->file);
-			h.nFrames = c->imgOffsets.size();
+            h.nFrames = unsigned(c->imgOffsets.size());
 			fseeko(c->file, 0, SEEK_SET);
 			fwrite(&h, sizeof(h), 1, c->file);
 		}

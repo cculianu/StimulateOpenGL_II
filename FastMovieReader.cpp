@@ -48,7 +48,7 @@ bool FastMovieReader::canRead(const QString &fileName)
 int FastMovieReader::imageCount() const
 {
 	if (!ctx && !open()) return 0;
-	if (ctx) return ctx->imgOffsets.size();
+    if (ctx) return int(ctx->imgOffsets.size());
 	return 0;
 }
 
