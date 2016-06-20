@@ -1522,7 +1522,7 @@ double MovingObjects::zToDistance(double z) const
 bool MovingObjects::applyNewParamsAtRuntime()
 {
 	ChangedParamMap m = paramsThatChanged();
-	/*Debug() << "PARAM TYPES:";
+    /*Debug() << "PARAM TYPES:";
 	for (ParamTypeMap::const_iterator it = paramTypes.begin(); it != paramTypes.end(); ++it) {
 		QString pt;
 		switch(it.value()) {
@@ -1532,7 +1532,7 @@ bool MovingObjects::applyNewParamsAtRuntime()
 			default: pt = "other"; break;
 		}
 		Debug() << it.key() << " = " << pt;
-	}*/
+    }*/
 	if (m.contains("numobj") || m.contains("numobjs")) {
 		Warning() << "Got new 'numObj' parameter, but changing numObj at runtime for movingObjects is not supported!";
 	}
