@@ -474,7 +474,7 @@ void GLWindow::paintGL()
 		boxSelector->draw();
 
 		glFlush();
-		processFrameShare(GL_BACK);
+        processFrameShare(GL_BACK);
 
 		swapBuffers();// should wait for vsync...   
 
@@ -518,7 +518,7 @@ void GLWindow::paintGL()
 		if (boxSelector->draw(GL_FRONT)) 
 			glFlush(); // flush required when drawing to the front buffer..
 
-			processFrameShare(GL_FRONT);
+            processFrameShare(GL_FRONT);
 
         // don't swap buffers here to avoid frame ghosts in 'A' Mode on Windows.. We get frame ghosts in Windows in 'A' mode when paused or not running because we didn't draw a new frame if paused, and so swapping the buffers causes previous frames to appear onscreen
     }
