@@ -81,3 +81,7 @@ win32 {
         }
 }
 
+
+RESOURCES += \
+    shaders.qrc
+

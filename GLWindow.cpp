@@ -9,6 +9,14 @@
 #include "StimPlugin.h"
 #include "DAQ.h"
 
+#include <QOpenGLShaderProgram>
+#include <QOpenGLFrameBufferObject>
+#include <QOpenGLContext>
+#include <QOpenGLFunctions>
+#include <QOpenGLTexture>
+#include <QImage>
+#include <QColor>
+
 #define WINDOW_TITLE "StimulateOpenGL II - GLWindow"
 
 GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
@@ -19,9 +27,10 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 															(frameless ? Qt::FramelessWindowHint : (Qt::WindowFlags)0))), 
        aMode(false), running(0), paused(false), tooFastWarned(false),  
        lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.), delayCtr(0), delayt0(0.), 
-       delayFPS(0.), debugLogFrames(false), clearColor(0.5,0.5,0.5), fs_w(0), fs_h(0), fs_pbo_ix(0), fs_delay_ctr(1.0f)
+       delayFPS(0.), debugLogFrames(false), clearColor(0.5,0.5,0.5), fs_w(0), fs_h(0), fs_pbo_ix(0), fs_delay_ctr(1.0f), shader(0), fbo(0), hotspotTex(0), hotspotImg(1,1,QImage::Format_ARGB32)
 
 {
+    hotspotImg.setPixelColor(QPoint(0,0),QColor(255,255,255,255));
     memset(fs_pbo, 0, sizeof fs_pbo);
 	memset(fs_bytesz, 0, sizeof fs_bytesz);
 	if (fshare.shm) {
@@ -79,10 +88,70 @@ GLWindow::~GLWindow() {
 	criticalCleanup();
 }
 
+void GLWindow::setupShaders()
+{
+    delete shader; shader = 0;
+
+    shader = new QOpenGLShaderProgram(this);
+    shader->addShaderFromSourceFile(QOpenGLShader::Fragment,":/Shaders/frag_shader.frag");
+    if (!shader->link()) {
+        Error() << ">>>>>>  POSSIBLY FATAL: shader link error:" << shader->log();
+    }
+}
+
+void GLWindow::shaderApplyAndDraw()
+{
+    if (!fbo || !shader) return;
+    if (!fbo->isValid()) {
+        Error() << "INTERNAL: FBO is invalid in shaderApplyAndDraw()";
+    }
+
+    const int texUnit = 7, hotspotUnit = 8;
+
+    shader->bind();
+    shader->setUniformValue("srcTex", texUnit);
+    shader->setUniformValue("hotspots", hotspotUnit);
+
+
+    /* draw the texture... applying hotspots */
+    {
+        const int w = win_width, h = win_height;
+        const GLint v[] = {
+            0,0, w,0, w,h, 0,h
+        }, t[] = {
+            0,0, w,0, w,h, 0,h
+        };
+        QOpenGLContext::currentContext()->functions()->glActiveTexture(GL_TEXTURE0+hotspotUnit);
+        glBindTexture(GL_TEXTURE_RECTANGLE, hotspotTex->textureId());
+        QOpenGLContext::currentContext()->functions()->glActiveTexture(GL_TEXTURE0+texUnit);
+        glBindTexture(GL_TEXTURE_RECTANGLE, fbo->texture());
+        glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        // render our vertex and coord buffers which don't change.. just the texture changes
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        GLfloat c[4];
+        glGetFloatv(GL_CURRENT_COLOR, c);
+        glColor4f(1.f,1.f,1.f,1.f);
+        glVertexPointer(2, GL_INT, 0, v);
+        glTexCoordPointer(2, GL_INT, 0, t);
+        glDrawArrays(GL_QUADS, 0, 4);
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+        QOpenGLContext::currentContext()->functions()->glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_RECTANGLE, 0);
+        glColor4f(c[0],c[1],c[2],c[3]);
+    }
+
+    shader->release();
+}
+
 void GLWindow::criticalCleanup() { 
 	if (fshare.shm) { fshare.lock(); fshare.shm->stimgl_pid = 0; fshare.unlock(); }
 	if (fs_pbo[0]) { glDeleteBuffers(N_PBOS, fs_pbo); memset(fs_pbo, 0, sizeof fs_pbo); }
 	if (clrImg_tex) glDeleteTextures(1, &clrImg_tex), clrImg_tex = clrImg_w = clrImg_h = 0; 
+    delete shader, shader = 0;
+    delete fbo, fbo = 0;
 }
 
 void GLWindow::setClearColor(const QString & c)
@@ -129,6 +198,7 @@ void GLWindow::moveEvent(QMoveEvent *evt)
 void GLWindow::initializeGL()
 {
     Debug() << "initializeGL()";
+
     // to make the system fast, make sure that a lot of stuff that OpenGL is capable of is disabled
     glDisable( GL_DEPTH_TEST );
     glDisable( GL_ALPHA_TEST );
@@ -143,6 +213,8 @@ void GLWindow::initializeGL()
     glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
 	
 	boxSelector->init();
+
+    setupShaders();
 }
 
 // setup viewport, projection etc.:
@@ -158,7 +230,21 @@ void GLWindow::resizeGL(int w, int h)
 	win_width = w;
 	win_height = h;
 	hw_refresh = getHWRefreshRate();
-	fs_rect = fs_rect_saved = boxSelector->getBox();
+    fs_rect = fs_rect_saved = boxSelector->getBox();
+
+    // scale the hotspot correction image to the new size...
+    if (hotspotTex) delete hotspotTex;
+    hotspotTex = new QOpenGLTexture(QOpenGLTexture::TargetRectangle);
+    hotspotTex->create();
+    hotspotTex->setData(hotspotImg.scaled(QSize(w,h), Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+
+    if (fbo) delete fbo;
+    fbo = new QOpenGLFramebufferObject(w, h, GL_TEXTURE_RECTANGLE);
+    if (!fbo->isValid()) {
+        Error() << "FBO IS INVALID! WHY?!";
+    }
+    QOpenGLFramebufferObject::bindDefault(); // why do i need to call this???
+
 }
 
 void GLWindow::clearScreen()
@@ -431,8 +517,13 @@ void GLWindow::paintGL()
 				}
 				
 				glEnable(GL_SCISSOR_TEST); /// < the frame happens within our scissor rect, (lmargin, etc support)
+                if (fbo &&
+                    !fbo->bind())
+                    Error() << "FBO bind() returned false!";
 				running->drawFrame();
-				glDisable(GL_SCISSOR_TEST);
+                if (fbo && fbo->isBound()) fbo->release();
+				glDisable(GL_SCISSOR_TEST);                
+                shaderApplyAndDraw(); // renders the above FBO to screen, having applied the shader to it
 				
 				if (running) { // NB: drawFrame may have called stop(), thus NULLing this pointer, so check it again
 					running->advanceFTState(); // NB: this asserts FT_Start/FT_Change/FT_End flag, if need be, etc, and otherwise decides whith FT color to us.  Looks at running->nFrames, etc

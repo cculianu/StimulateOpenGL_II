@@ -3,6 +3,7 @@
 
 #include <QGLWidget>
 #include <QList>
+#include <QImage>
 #include "Util.h"
 #include "StimGL_SpikeGL_Integration.h"
 #include "GLBoxSelector.h"
@@ -10,7 +11,9 @@
 class StimPlugin;
 class QTimer;
 class StimApp;
-
+class QOpenGLShaderProgram;
+class QOpenGLFramebufferObject;
+class QOpenGLTexture;
 
 /**
    \brief The main Open GL display window.
@@ -145,6 +148,14 @@ private:
 	
 	GLuint clrImg_tex, clrImg_w, clrImg_h;
 	void clearScreen();
+
+    QOpenGLShaderProgram *shader;
+    QOpenGLFramebufferObject *fbo;
+    QOpenGLTexture *hotspotTex;
+    QImage hotspotImg;
+
+    void setupShaders();
+    void shaderApplyAndDraw();
 };
 
 #endif
