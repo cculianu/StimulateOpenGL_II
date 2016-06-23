@@ -178,7 +178,7 @@ public:
 		psfmt32[0] = r;
 
 		count--;
-		for (i = 1, j = 0; (j < count) && (j < key_length); j++) {
+                for (i = 1, j = 0; (j < count) && (unsigned(j) < key_length); j++) {
 			r = func1(psfmt32[i] ^ psfmt32[(i + mid) % N32] ^ psfmt32[(i + N32 - 1) % N32]);
 			psfmt32[(i + mid) % N32] += r;
 			r += init_key[j] + i;

@@ -34,7 +34,11 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 {
     if (defaultHotspotImg.isNull()) {
         defaultHotspotImg = QImage(1,1,QImage::Format_ARGB32);
+#if QT_VERSION >= 0x050600
         defaultHotspotImg.setPixelColor(QPoint(0,0),QColor(255,255,255,255));
+#else
+        defaultHotspotImg.setPixel(QPoint(0,0),0xffffffff);
+#endif
     }
 
     hotspotImg = defaultHotspotImg;
@@ -104,7 +108,12 @@ void GLWindow::setupShaders()
     shader->addShaderFromSourceFile(QOpenGLShader::Fragment,":/Shaders/frag_shader.frag");
     if (!shader->link()) {
         Error() << ">>>>>>  POSSIBLY FATAL: shader link error:" << shader->log();
+        delete shader, shader = 0;
     }
+#ifdef Q_OS_DARWIN
+    // for now -- on OSX, we disable the shader stuff because it's broken/not working and I don't have time to troubleshoot it
+    delete shader, shader = 0;
+#endif
 }
 
 void GLWindow::shaderApplyAndDraw()
@@ -112,6 +121,7 @@ void GLWindow::shaderApplyAndDraw()
     if (!fbo || !shader) return;
     if (!fbo->isValid()) {
         Error() << "INTERNAL: FBO is invalid in shaderApplyAndDraw()";
+        return;
     }
 
     const int texUnit = 7, hotspotUnit = 8;
@@ -243,13 +253,14 @@ void GLWindow::resizeGL(int w, int h)
 
     setupHotspotTex();
 
-    if (fbo) delete fbo;
-    fbo = new QOpenGLFramebufferObject(w, h, GL_TEXTURE_RECTANGLE);
-    if (!fbo->isValid()) {
-        Error() << "FBO IS INVALID! WHY?!";
+    if (fbo) delete fbo, fbo = 0;
+    if (shader) {
+        fbo = new QOpenGLFramebufferObject(w, h, GL_TEXTURE_RECTANGLE);
+        if (!fbo->isValid()) {
+            Error() << "FBO IS INVALID! WHY?!";
+        }
+        QOpenGLFramebufferObject::bindDefault(); // why do i need to call this???
     }
-    QOpenGLFramebufferObject::bindDefault(); // why do i need to call this???
-
 }
 
 void GLWindow::setupHotspotTex()
