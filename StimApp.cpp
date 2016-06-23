@@ -952,7 +952,7 @@ void StimApp::globalDefaultsDialog()
         if (glWindow) {
             glWindow->setClearColor(g.interTrialBg); // take effect right now!
             if (g.doHotspotCorrection)
-                glWindow->setHotspot(GetHotspotImageXFormedForFilename(g.hotspotImageFile, g.hsAdj));
+                glWindow->setHotspot(GetHotspotImageXFormed(g.hotspotImageFile, g.hsAdj, glWinSize));
             else
                 glWindow->clearHotspot();
         }
@@ -1080,29 +1080,6 @@ void StimApp::hotspotAdjResetSlot()
     tmphs->sb_xtrans->setValue(0);
     tmphs->sb_ytrans->setValue(0);
     hotspotAdjSlot();
-}
-
-/*static*/ QTransform StimApp::hsadj2xform(const GlobalDefaults::HSAdjust & adj, qreal xlat_x, qreal xlat_y)
-{
-    QTransform ret;
-
-    ret.translate(xlat_x, xlat_y);
-    ret.rotate(adj.zrot, Qt::ZAxis);
-    ret.rotate(adj.yrot, Qt::YAxis);
-    ret.rotate(adj.xrot, Qt::XAxis);
-    ret.translate(-xlat_x, -xlat_y);
-    ret.scale(adj.zoom,adj.zoom);
-    ret.translate(adj.xtrans, adj.ytrans);
-
-    return ret;
-}
-
-/*static*/ QImage StimApp::GetHotspotImageXFormedForFilename(const QString & fn, const GlobalDefaults::HSAdjust & adj)
-{
-  QImage img(fn);
-
-  QTransform xform = hsadj2xform(adj, qreal(img.width())/2.0, qreal(img.height()/2.0));
-  return img.transformed(xform, Qt::SmoothTransformation);
 }
 
 /*static*/ QImage StimApp::GetHotspotImageXFormed(const QString & fn, const GlobalDefaults::HSAdjust & adj, const QSize & destSz)
