@@ -28,7 +28,8 @@ SOURCES +=  main.cpp StimApp.cpp Util.cpp RNG.cpp ConsoleWindow.cpp \
             MovingObjects.cpp Movie.cpp GifReader.cpp FastMovieFormat.cpp \
             FastMovieReader.cpp GLBoxSelector.cpp
 
-FORMS += SpikeGLIntegration.ui ParamDefaultsWindow.ui
+FORMS += SpikeGLIntegration.ui ParamDefaultsWindow.ui \
+    HotspotConfig.ui
 
 unix {
         LIBS += -lm

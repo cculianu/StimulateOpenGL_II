@@ -62,6 +62,10 @@ public:
 	 void setClearColor(const QString & c);
 	 Util::Vec3 getClearColor() const { return clearColor; }
 
+     const QImage & hotspot() const { return hotspotImg; }
+     void setHotspot(const QImage &img);
+     void clearHotspot(); ///< turns off hotspot processing
+
 public slots:
     /// Toggles the paused/unpaused state of the plugin execution engine.
     void pauseUnpause();
@@ -152,10 +156,12 @@ private:
     QOpenGLShaderProgram *shader;
     QOpenGLFramebufferObject *fbo;
     QOpenGLTexture *hotspotTex;
+    static QImage defaultHotspotImg;
     QImage hotspotImg;
 
     void setupShaders();
     void shaderApplyAndDraw();
+    void setupHotspotTex();
 };
 
 #endif

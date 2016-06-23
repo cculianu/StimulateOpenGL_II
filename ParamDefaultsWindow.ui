@@ -401,6 +401,71 @@
         </property>
        </spacer>
       </item>
+      <item row="8" column="0" rowspan="2" colspan="3">
+       <widget class="QGroupBox" name="groupBox">
+        <property name="title">
+         <string>Shaders</string>
+        </property>
+        <widget class="QCheckBox" name="chk_hotspot">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>20</y>
+           <width>181</width>
+           <height>26</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Hotspot Correction Shader</string>
+         </property>
+        </widget>
+        <widget class="QCheckBox" name="warpingChk">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>50</y>
+           <width>181</width>
+           <height>26</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>'Warping' Shader</string>
+         </property>
+        </widget>
+        <widget class="QPushButton" name="but_hotspot">
+         <property name="geometry">
+          <rect>
+           <x>200</x>
+           <y>20</y>
+           <width>85</width>
+           <height>26</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Configure...</string>
+         </property>
+        </widget>
+        <widget class="QPushButton" name="pushButton_2">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="geometry">
+          <rect>
+           <x>200</x>
+           <y>50</y>
+           <width>85</width>
+           <height>26</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Configure...</string>
+         </property>
+        </widget>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

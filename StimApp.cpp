@@ -26,9 +26,12 @@
 #include <QPainter>
 #include <QDir>
 #include <QDesktopWidget>
+#include <QGraphicsView>
+#include <QGraphicsScene>
 #include "StimGL_SpikeGL_Integration.h"
 #include "ui_SpikeGLIntegration.h"
 #include "ui_ParamDefaultsWindow.h"
+#include "ui_HotspotConfig.h"
 #include "DAQ.h"
 
 #define DEFAULT_WIN_SIZE QSize(800,600)
@@ -70,7 +73,7 @@ namespace {
 StimApp * StimApp::singleton = 0;
 
 StimApp::StimApp(int & argc, char ** argv)
-    : QApplication(argc, argv, true), consoleWindow(0), glWindow(0), glWinHasFrame(true), debug(false), initializing(true), server(0), nLinesInLog(0), nLinesInLogMax(1000), glWinSize(DEFAULT_WIN_SIZE) /* default plugin size */
+    : QApplication(argc, argv, true), consoleWindow(0), glWindow(0), glWinHasFrame(true), debug(false), initializing(true), server(0), nLinesInLog(0), nLinesInLogMax(1000), glWinSize(DEFAULT_WIN_SIZE) /* default plugin size */, tmphs(0)
 {
     if (singleton) {
         QMessageBox::critical(0, "Invariant Violation", "Only 1 instance of StimApp allowed per application!");
@@ -151,6 +154,8 @@ void StimApp::createGLWindow(bool initPlugs)
     glWindow->move(0,0);
     
     if (initPlugs) glWindow->initPlugins();
+
+    if (globalDefaults.doHotspotCorrection) glWindow->setHotspot(GetHotspotImageXFormed(globalDefaults.hotspotImageFile,globalDefaults.hsAdj,glWinSize));
 }
 
 #ifndef Q_OS_WIN
@@ -446,6 +451,8 @@ void StimApp::loadSettings()
 	defs.ftrack_change_color = settings.value("ftrack_change_color", defs.ftrack_change_color).toString();
 	defs.ftrack_start_color = settings.value("ftrack_start_color", defs.ftrack_start_color).toString();
 	defs.ftrack_end_color = settings.value("ftrack_end_color", defs.ftrack_end_color).toString();
+    defs.hotspotImageFile = settings.value("hotspot_image_filename", defs.hotspotImageFile).toString();
+    defs.doHotspotCorrection = settings.value("hotspot_correction_enabled", defs.doHotspotCorrection).toBool();
     qstrncpy(defs.color_order, settings.value("color_order", defs.color_order).toString().toUtf8().constData(), 4);
 	defs.fps_mode = settings.value("fps_mode", defs.fps_mode).toInt();
 	defs.DO_with_vsync = settings.value("DO_with_vsync", defs.DO_with_vsync).toString();
@@ -453,6 +460,13 @@ void StimApp::loadSettings()
 		defs.DO_with_vsync = "off";
 	}
 	defs.interTrialBg = settings.value("clearColor_interTrialBg", defs.interTrialBg).toString();
+
+    defs.hsAdj.xrot  = settings.value("hs_xrot", 0.).toDouble();
+    defs.hsAdj.yrot  = settings.value("hs_yrot", 0.).toDouble();
+    defs.hsAdj.zrot  = settings.value("hs_zrot", 0.).toDouble();
+    defs.hsAdj.zoom  = settings.value("hs_zoom", 1.).toDouble();
+    defs.hsAdj.xtrans= settings.value("hs_xtrans", 0).toInt();
+    defs.hsAdj.ytrans= settings.value("hs_ytrans", 0).toInt();
 }
 
 void StimApp::saveSettings()
@@ -494,8 +508,15 @@ void StimApp::saveSettings()
 	settings.setValue("fps_mode", defs.fps_mode);
 	settings.setValue("DO_with_vsync", defs.DO_with_vsync);
 	settings.setValue("clearColor_interTrialBg", defs.interTrialBg);
+    settings.setValue("hotspot_image_filename", defs.hotspotImageFile);
+    settings.setValue("hotspot_correction_enabled", defs.doHotspotCorrection);
+    settings.setValue("hs_xrot", defs.hsAdj.xrot);
+    settings.setValue("hs_yrot", defs.hsAdj.yrot);
+    settings.setValue("hs_zrot", defs.hsAdj.zrot);
+    settings.setValue("hs_zoom", defs.hsAdj.zoom);
+    settings.setValue("hs_xtrans", defs.hsAdj.xtrans);
+    settings.setValue("hs_ytrans", defs.hsAdj.ytrans);
 }
-
 
 void StimApp::lockMouseKeyboard()
 {
@@ -890,6 +911,8 @@ void StimApp::globalDefaultsDialog()
 	controls.le_ftrack_start->setText(g.ftrack_start_color);
 	controls.le_ftrack_end->setText(g.ftrack_end_color);
 	controls.le_inter_trial_bg->setText(g.interTrialBg);
+    controls.chk_hotspot->setChecked(g.doHotspotCorrection);
+
 	DAQ::DeviceChanMap chanMap (DAQ::ProbeAllDOChannels());
 	int selected = 0;
 	for (DAQ::DeviceChanMap::const_iterator it = chanMap.begin(); it != chanMap.end(); ++it) {
@@ -903,6 +926,12 @@ void StimApp::globalDefaultsDialog()
 	}
 	controls.cb_do_with_vsync->setCurrentIndex(selected);
 	
+    Connect(controls.but_hotspot, SIGNAL(clicked()), this, SLOT(configureHotspotDialog()));
+
+    QString saved_hsimg = g.hotspotImageFile;
+    QImage saved_qimg = glWindow->hotspot();
+    GlobalDefaults::HSAdjust saved_adj = g.hsAdj;
+
     if ( dlg.exec() == QDialog::Accepted ) {
 		g.fps_mode = controls.cb_fps_mode->currentIndex();
 		qstrncpy(g.color_order, controls.cb_color_order->currentText().toLatin1().constData(), 4);
@@ -919,7 +948,183 @@ void StimApp::globalDefaultsDialog()
 		g.ftrack_start_color = controls.le_ftrack_start->text();
 		g.ftrack_end_color = controls.le_ftrack_end->text();
 		g.interTrialBg = controls.le_inter_trial_bg->text();
-		if (glWindow) glWindow->setClearColor(g.interTrialBg); // take effect right now!
+        g.doHotspotCorrection = controls.chk_hotspot->isChecked();
+        if (glWindow) {
+            glWindow->setClearColor(g.interTrialBg); // take effect right now!
+            if (g.doHotspotCorrection)
+                glWindow->setHotspot(GetHotspotImageXFormedForFilename(g.hotspotImageFile, g.hsAdj));
+            else
+                glWindow->clearHotspot();
+        }
+    } else {
+        g.hotspotImageFile = saved_hsimg;
+        g.hsAdj = saved_adj;
+        glWindow->setHotspot(saved_qimg);
     }
+
     saveSettings();
+}
+
+void StimApp::configureHotspotDialog()
+{
+    QDialog dlg(consoleWindow);
+    dlg.setWindowIcon(consoleWindow->windowIcon());
+    dlg.setModal(true);
+
+    Ui::HotspotConfig h;
+    h.setupUi(&dlg);
+
+    GlobalDefaults & g(globalDefaults);
+
+    h.lbl_windims->setText(QString("%1 x %2").arg(g.mon_x_pix).arg(g.mon_y_pix));
+    h.lbl_filename->setText(g.hotspotImageFile.length() ? g.hotspotImageFile : "NONE SPECIFIED");
+    h.dsb_xrot->setValue(g.hsAdj.xrot);
+    h.dsb_yrot->setValue(g.hsAdj.yrot);
+    h.dsb_zrot->setValue(g.hsAdj.zrot);
+    h.dsb_zoom->setValue(g.hsAdj.zoom*100.0);
+    h.sb_xtrans->setValue(g.hsAdj.xtrans);
+    h.sb_ytrans->setValue(g.hsAdj.ytrans);
+
+    tmphs = &h;
+    QTimer::singleShot(100,this,SLOT(gotNewHSFile())); // need to call this from a timer becuase geometry is weird before dialog is shown..
+
+    Connect(h.but_load, SIGNAL(clicked()), this, SLOT(loadHSClicked()));
+
+    Connect(h.dsb_xrot, SIGNAL(valueChanged(double)), this, SLOT(hotspotAdjSlot()));
+    Connect(h.dsb_yrot, SIGNAL(valueChanged(double)), this, SLOT(hotspotAdjSlot()));
+    Connect(h.dsb_zrot, SIGNAL(valueChanged(double)), this, SLOT(hotspotAdjSlot()));
+    Connect(h.dsb_zoom, SIGNAL(valueChanged(double)), this, SLOT(hotspotAdjSlot()));
+    Connect(h.sb_xtrans, SIGNAL(valueChanged(int)), this, SLOT(hotspotAdjSlot()));
+    Connect(h.sb_ytrans, SIGNAL(valueChanged(int)), this, SLOT(hotspotAdjSlot()));
+    Connect(h.but_reset, SIGNAL(clicked()), this, SLOT(hotspotAdjResetSlot()));
+
+    GlobalDefaults::HSAdjust saved_adj = g.hsAdj;
+
+    if ( dlg.exec() == QDialog::Accepted ) {
+        g.hotspotImageFile = h.lbl_filename->text();
+    } else
+        g.hsAdj = saved_adj;
+
+    tmphs = 0;
+}
+
+void StimApp::gotNewHSFile()
+{
+    if (!tmphs) return;
+
+    QImage img(tmphs->lbl_filename->text());
+    int origW = img.width(), origH = img.height();
+    QPixmap pm;
+    QGraphicsScene *oldsc = tmphs->graphicsView->scene(), *newsc = new QGraphicsScene(tmphs->graphicsView);
+    if (!img.isNull()) {
+
+        img = GetHotspotImageXFormed(tmphs->lbl_filename->text(),globalDefaults.hsAdj,glWinSize);
+
+        pm.convertFromImage(img);
+        newsc->addPixmap(pm);
+        tmphs->lbl_filedims->setText(QString("%1 x %2").arg(origW).arg(origH));
+
+        // live preview
+        glWindow->setHotspot(img);
+    } else {
+        tmphs->lbl_filedims->setText("<font color=red><b>Image file invalid/unspecified</b></font>");
+    }
+    tmphs->graphicsView->setTransform(QTransform());
+    tmphs->graphicsView->setScene(newsc);
+    if (oldsc) delete oldsc;
+    QSize sz = tmphs->graphicsView->viewport()->size();
+    QRectF r = newsc->sceneRect();
+    qreal sx = r.width()/float(sz.width()), sy = r.height()/float(sz.height());
+    if (sx > 0.f && sy > 0.f ) {
+        if ( sx > 1.1 || sy > 1.1 || sx < 0.9 || sy < 0.9) {
+            tmphs->graphicsView->scale(1./sx - 0.01,1./sy - 0.01);
+        }
+    }
+}
+
+void StimApp::loadHSClicked()
+{
+    if (!tmphs) return;
+
+    QFileInfo fi(tmphs->lbl_filename->text());
+    QString dir;
+    if (fi.dir().exists()) dir = fi.dir().canonicalPath();
+    QString fn = QFileDialog::getOpenFileName(glWindow, "Load Hotspot Image", dir);
+    if (fn.length()) {
+        tmphs->lbl_filename->setText(fn);
+        gotNewHSFile();
+    }
+}
+
+void StimApp::hotspotAdjSlot()
+{
+    if (!tmphs) return;
+    GlobalDefaults::HSAdjust adj;
+    adj.xrot = tmphs->dsb_xrot->value();
+    adj.yrot = tmphs->dsb_yrot->value();
+    adj.zrot = tmphs->dsb_zrot->value();
+    adj.zoom = tmphs->dsb_zoom->value()/100.0;
+    adj.xtrans = tmphs->sb_xtrans->value();
+    adj.ytrans = tmphs->sb_ytrans->value();
+    globalDefaults.hsAdj = adj;
+    gotNewHSFile();
+}
+
+void StimApp::hotspotAdjResetSlot()
+{
+    if (!tmphs) return;
+    tmphs->dsb_xrot->setValue(0.);
+    tmphs->dsb_yrot->setValue(0.);
+    tmphs->dsb_zrot->setValue(0.);
+    tmphs->dsb_zoom->setValue(100.);
+    tmphs->sb_xtrans->setValue(0);
+    tmphs->sb_ytrans->setValue(0);
+    hotspotAdjSlot();
+}
+
+/*static*/ QTransform StimApp::hsadj2xform(const GlobalDefaults::HSAdjust & adj, qreal xlat_x, qreal xlat_y)
+{
+    QTransform ret;
+
+    ret.translate(xlat_x, xlat_y);
+    ret.rotate(adj.zrot, Qt::ZAxis);
+    ret.rotate(adj.yrot, Qt::YAxis);
+    ret.rotate(adj.xrot, Qt::XAxis);
+    ret.translate(-xlat_x, -xlat_y);
+    ret.scale(adj.zoom,adj.zoom);
+    ret.translate(adj.xtrans, adj.ytrans);
+
+    return ret;
+}
+
+/*static*/ QImage StimApp::GetHotspotImageXFormedForFilename(const QString & fn, const GlobalDefaults::HSAdjust & adj)
+{
+  QImage img(fn);
+
+  QTransform xform = hsadj2xform(adj, qreal(img.width())/2.0, qreal(img.height()/2.0));
+  return img.transformed(xform, Qt::SmoothTransformation);
+}
+
+/*static*/ QImage StimApp::GetHotspotImageXFormed(const QString & fn, const GlobalDefaults::HSAdjust & adj, const QSize & destSz)
+{
+  QImage img(fn), destImg(destSz.width(),destSz.height(),QImage::Format_ARGB32);
+  QTransform xf;
+  QPainter p(&destImg);
+
+  p.begin(&destImg);
+  p.setPen(QColor(Qt::white));
+  p.setBrush(QBrush(QColor(Qt::white)));
+  p.fillRect(QRect(0,0,destSz.width(),destSz.height()),p.brush());
+  xf.translate(destImg.width()/2.0,destImg.height()/2.0);
+  xf.rotate(adj.zrot, Qt::ZAxis);
+  xf.rotate(adj.yrot, Qt::YAxis);
+  xf.rotate(adj.xrot, Qt::XAxis);
+  xf.translate(-destImg.width()/2.0,-destImg.height()/2.0);
+  p.setTransform(xf);
+  if (!eqf(adj.zoom,1.0)) img = img.scaled(img.width()*adj.zoom, img.height()*adj.zoom, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+  QRect drect = QRect(0,0,destImg.width(), destImg.height()), srect(-adj.xtrans,adj.ytrans,drect.width(),drect.height());
+  p.setClipRegion(QRegion(0,0,destImg.width(),destImg.height()));
+  p.drawImage(drect,img,srect);
+  p.end();
+  return destImg;
 }

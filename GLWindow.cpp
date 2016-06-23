@@ -19,6 +19,8 @@
 
 #define WINDOW_TITLE "StimulateOpenGL II - GLWindow"
 
+/* static */ QImage GLWindow::defaultHotspotImg;
+
 GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
     : QGLWidget((QWidget *)0,0,static_cast<Qt::WindowFlags>(
 #ifdef Q_OS_WIN														
@@ -27,10 +29,16 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 															(frameless ? Qt::FramelessWindowHint : (Qt::WindowFlags)0))), 
        aMode(false), running(0), paused(false), tooFastWarned(false),  
        lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.), delayCtr(0), delayt0(0.), 
-       delayFPS(0.), debugLogFrames(false), clearColor(0.5,0.5,0.5), fs_w(0), fs_h(0), fs_pbo_ix(0), fs_delay_ctr(1.0f), shader(0), fbo(0), hotspotTex(0), hotspotImg(1,1,QImage::Format_ARGB32)
+       delayFPS(0.), debugLogFrames(false), clearColor(0.5,0.5,0.5), fs_w(0), fs_h(0), fs_pbo_ix(0), fs_delay_ctr(1.0f), shader(0), fbo(0), hotspotTex(0)
 
 {
-    hotspotImg.setPixelColor(QPoint(0,0),QColor(255,255,255,255));
+    if (defaultHotspotImg.isNull()) {
+        defaultHotspotImg = QImage(1,1,QImage::Format_ARGB32);
+        defaultHotspotImg.setPixelColor(QPoint(0,0),QColor(255,255,255,255));
+    }
+
+    hotspotImg = defaultHotspotImg;
+
     memset(fs_pbo, 0, sizeof fs_pbo);
 	memset(fs_bytesz, 0, sizeof fs_bytesz);
 	if (fshare.shm) {
@@ -150,8 +158,9 @@ void GLWindow::criticalCleanup() {
 	if (fshare.shm) { fshare.lock(); fshare.shm->stimgl_pid = 0; fshare.unlock(); }
 	if (fs_pbo[0]) { glDeleteBuffers(N_PBOS, fs_pbo); memset(fs_pbo, 0, sizeof fs_pbo); }
 	if (clrImg_tex) glDeleteTextures(1, &clrImg_tex), clrImg_tex = clrImg_w = clrImg_h = 0; 
-    delete shader, shader = 0;
-    delete fbo, fbo = 0;
+    if (shader) delete shader, shader = 0;
+    if (fbo) delete fbo, fbo = 0;
+    if (hotspotTex) delete hotspotTex, hotspotTex = 0;
 }
 
 void GLWindow::setClearColor(const QString & c)
@@ -232,11 +241,7 @@ void GLWindow::resizeGL(int w, int h)
 	hw_refresh = getHWRefreshRate();
     fs_rect = fs_rect_saved = boxSelector->getBox();
 
-    // scale the hotspot correction image to the new size...
-    if (hotspotTex) delete hotspotTex;
-    hotspotTex = new QOpenGLTexture(QOpenGLTexture::TargetRectangle);
-    hotspotTex->create();
-    hotspotTex->setData(hotspotImg.scaled(QSize(w,h), Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+    setupHotspotTex();
 
     if (fbo) delete fbo;
     fbo = new QOpenGLFramebufferObject(w, h, GL_TEXTURE_RECTANGLE);
@@ -246,6 +251,29 @@ void GLWindow::resizeGL(int w, int h)
     QOpenGLFramebufferObject::bindDefault(); // why do i need to call this???
 
 }
+
+void GLWindow::setupHotspotTex()
+{
+    const int w = win_width, h = win_height;
+
+    if (QGLContext::currentContext() != context()) context()->makeCurrent();
+
+    // scale the hotspot correction image to the new size...
+    if (hotspotTex) delete hotspotTex;
+    hotspotTex = new QOpenGLTexture(QOpenGLTexture::TargetRectangle);
+    hotspotTex->create();
+    hotspotTex->setData(hotspotImg.scaled(QSize(w,h), Qt::IgnoreAspectRatio, Qt::SmoothTransformation).mirrored(false,true));
+}
+
+void GLWindow::setHotspot(const QImage &img)
+{
+    if (img.isNull()) hotspotImg = defaultHotspotImg;
+    else hotspotImg = img;
+    setupHotspotTex();
+}
+
+void GLWindow::clearHotspot() { setHotspot(QImage()); }
+
 
 void GLWindow::clearScreen()
 {

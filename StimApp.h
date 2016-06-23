@@ -30,11 +30,14 @@
 #include <QMutex>
 #include <QMutexLocker>
 #include <QSize>
+#include <QTransform>
 #include "Util.h"
 class QTextEdit;
 class ConsoleWindow;
 class GLWindow;
 class QTcpServer;
+namespace Ui { class HotspotConfig; }
+
 /**
    \brief The central class to the program that more-or-less encapsulates most objects and data in the program.
 
@@ -68,7 +71,7 @@ public:
 		int mon_x_pix, mon_y_pix, ftrackbox_x, ftrackbox_y, ftrackbox_w, Nblinks;
 		char color_order[4];
 		int fps_mode;
-		QString 
+        QString
 			ftrack_track_color, 
 			ftrack_off_color,
 			ftrack_change_color,
@@ -78,7 +81,17 @@ public:
 		
 		QString DO_with_vsync;
 
-		GlobalDefaults() : mon_x_pix(800), mon_y_pix(600), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), Nblinks(1), fps_mode(2), DO_with_vsync("off") {
+        QString hotspotImageFile;
+        bool doHotspotCorrection;
+
+        struct HSAdjust {
+            double xrot, yrot, zrot, zoom;
+            int xtrans, ytrans;
+
+            HSAdjust() : xrot(0.), yrot(0.), zrot(0.), zoom(1.0), xtrans(0), ytrans(0) {}
+        } hsAdj;
+
+        GlobalDefaults() : mon_x_pix(800), mon_y_pix(600), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), Nblinks(1), fps_mode(2), DO_with_vsync("off"), hotspotImageFile(""), doHotspotCorrection(false) {
 			qstrncpy(color_order, "brg", 4);
 			ftrack_track_color = ftrack_change_color = ftrack_start_color = ftrack_end_color = "1, 1, 1";
 			ftrack_off_color = "0, 0, 0";			
@@ -200,11 +213,19 @@ protected slots:
 
     void quitCleanup();
 
+private slots:
+    void configureHotspotDialog();
+    void gotNewHSFile();
+    void loadHSClicked();
+    void hotspotAdjSlot();
+    void hotspotAdjResetSlot();
+
 private:
     void initServer();
     void initPlugins();
     void createAppIcon();
     void createGLWindow(bool initPlugins = true);
+    static QImage GetHotspotImageXFormed(const QString & fn, const GlobalDefaults::HSAdjust &, const QSize & desiredSize);
 
     mutable QMutex mut; ///< used to lock outDir param for now
     ConsoleWindow *consoleWindow;
@@ -221,6 +242,8 @@ private:
     static StimApp *singleton;
     unsigned nLinesInLog, nLinesInLogMax;
     QSize glWinSize;
+
+    Ui::HotspotConfig *tmphs;
 };
 
 #endif
