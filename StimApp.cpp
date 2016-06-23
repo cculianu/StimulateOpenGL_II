@@ -999,11 +999,14 @@ void StimApp::configureHotspotDialog()
     Connect(h.but_reset, SIGNAL(clicked()), this, SLOT(hotspotAdjResetSlot()));
 
     GlobalDefaults::HSAdjust saved_adj = g.hsAdj;
+    QImage saved_img = glWindow->hotspot();
 
     if ( dlg.exec() == QDialog::Accepted ) {
         g.hotspotImageFile = h.lbl_filename->text();
-    } else
+    } else {
         g.hsAdj = saved_adj;
+        glWindow->setHotspot(saved_img);
+    }
 
     tmphs = 0;
 }
