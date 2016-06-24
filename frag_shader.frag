@@ -18,13 +18,13 @@ void main(void)
     vec2 st = texCoord.st;
 
     if (do_warping != 0) {
-        st = gl_FragCoord.xy;
+        //st = gl_FragCoord.xy;
         const ivec2 size = textureSize(srcTex);
         const int w = size.x, h = size.y;
 
         ivec2 sti = ivec2(int(st.x), int(st.y));
-        uvec4 c = texelFetch(warp, sti);
-        //uvec4 c = texture(warp,st);
+        //uvec4 c = texelFetch(warp, sti);
+        uvec4 c = texture(warp,st);
 
         uint x = c.r*uint(256) + c.g;
         uint y = c.b*uint(256) + c.a;

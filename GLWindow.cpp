@@ -311,10 +311,10 @@ void GLWindow::setupWarpTex()
     QImage img = warpImg.scaled(QSize(w,h), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
     warpTex = new QOpenGLTexture(QOpenGLTexture::TargetRectangle);
     warpTex->setFormat(QOpenGLTexture::RGBA8U);
-    warpTex->setMagnificationFilter(QOpenGLTexture::Nearest);
-    warpTex->setMinificationFilter(QOpenGLTexture::Nearest);
-//    warpTex->setMagnificationFilter(QOpenGLTexture::Linear);
-//    warpTex->setMinificationFilter(QOpenGLTexture::Linear);
+//    warpTex->setMagnificationFilter(QOpenGLTexture::Nearest);
+//    warpTex->setMinificationFilter(QOpenGLTexture::Nearest);
+    warpTex->setMagnificationFilter(QOpenGLTexture::Linear);
+    warpTex->setMinificationFilter(QOpenGLTexture::Linear);
     warpTex->setSize(w,h);
     warpTex->allocateStorage(QOpenGLTexture::RGBA, QOpenGLTexture::UInt32_RGBA8);
 //    warpTex->create();
