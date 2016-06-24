@@ -16,6 +16,7 @@
 #include <QOpenGLTexture>
 #include <QImage>
 #include <QColor>
+#include <QOpenGLPixelTransferOptions>
 
 #define WINDOW_TITLE "StimulateOpenGL II - GLWindow"
 
@@ -29,7 +30,7 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 															(frameless ? Qt::FramelessWindowHint : (Qt::WindowFlags)0))), 
        aMode(false), running(0), paused(false), tooFastWarned(false),  
        lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.), delayCtr(0), delayt0(0.), 
-       delayFPS(0.), debugLogFrames(false), clearColor(0.5,0.5,0.5), fs_w(0), fs_h(0), fs_pbo_ix(0), fs_delay_ctr(1.0f), shader(0), fbo(0), hotspotTex(0)
+       delayFPS(0.), debugLogFrames(false), clearColor(0.5,0.5,0.5), fs_w(0), fs_h(0), fs_pbo_ix(0), fs_delay_ctr(1.0f), shader(0), fbo(0), hotspotTex(0), warpTex(0)
 
 {
     if (defaultHotspotImg.isNull()) {
@@ -106,6 +107,7 @@ void GLWindow::setupShaders()
 
     shader = new QOpenGLShaderProgram(this);
     shader->addShaderFromSourceFile(QOpenGLShader::Fragment,":/Shaders/frag_shader.frag");
+    shader->addShaderFromSourceFile(QOpenGLShader::Vertex,":/Shaders/vert_shader.vert");
     if (!shader->link()) {
         Error() << ">>>>>>  POSSIBLY FATAL: shader link error:" << shader->log();
         delete shader, shader = 0;
@@ -124,11 +126,13 @@ void GLWindow::shaderApplyAndDraw()
         return;
     }
 
-    const int texUnit = 7, hotspotUnit = 8;
+    const int texUnit = 7, hotspotUnit = 8, warpUnit = 9;
 
     shader->bind();
     shader->setUniformValue("srcTex", texUnit);
     shader->setUniformValue("hotspots", hotspotUnit);
+    shader->setUniformValue("warp", warpUnit);
+    shader->setUniformValue("do_warping", warpTex ? 1 : 0);
 
 
     /* draw the texture... applying hotspots */
@@ -139,6 +143,12 @@ void GLWindow::shaderApplyAndDraw()
         }, t[] = {
             0,0, w,0, w,h, 0,h
         };
+        if (warpTex) {
+            QOpenGLContext::currentContext()->functions()->glActiveTexture(GL_TEXTURE0+warpUnit);
+            glBindTexture(GL_TEXTURE_RECTANGLE, warpTex->textureId());
+//            glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+//            glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        }
         QOpenGLContext::currentContext()->functions()->glActiveTexture(GL_TEXTURE0+hotspotUnit);
         glBindTexture(GL_TEXTURE_RECTANGLE, hotspotTex->textureId());
         QOpenGLContext::currentContext()->functions()->glActiveTexture(GL_TEXTURE0+texUnit);
@@ -171,6 +181,7 @@ void GLWindow::criticalCleanup() {
     if (shader) delete shader, shader = 0;
     if (fbo) delete fbo, fbo = 0;
     if (hotspotTex) delete hotspotTex, hotspotTex = 0;
+    if (warpTex) delete warpTex, warpTex = 0;
 }
 
 void GLWindow::setClearColor(const QString & c)
@@ -252,6 +263,7 @@ void GLWindow::resizeGL(int w, int h)
     fs_rect = fs_rect_saved = boxSelector->getBox();
 
     setupHotspotTex();
+    setupWarpTex();
 
     if (fbo) delete fbo, fbo = 0;
     if (shader) {
@@ -270,9 +282,10 @@ void GLWindow::setupHotspotTex()
     if (QGLContext::currentContext() != context()) context()->makeCurrent();
 
     // scale the hotspot correction image to the new size...
-    if (hotspotTex) delete hotspotTex;
+    if (hotspotTex) delete hotspotTex, hotspotTex = 0;
     hotspotTex = new QOpenGLTexture(QOpenGLTexture::TargetRectangle);
-    hotspotTex->create();
+    hotspotTex->setMagnificationFilter(QOpenGLTexture::Linear);
+    hotspotTex->setMinificationFilter(QOpenGLTexture::Linear);
     hotspotTex->setData(hotspotImg.scaled(QSize(w,h), Qt::IgnoreAspectRatio, Qt::SmoothTransformation).mirrored(false,true));
 }
 
@@ -285,6 +298,38 @@ void GLWindow::setHotspot(const QImage &img)
 
 void GLWindow::clearHotspot() { setHotspot(QImage()); }
 
+
+void GLWindow::setupWarpTex()
+{
+    const int w = win_width, h = win_height;
+
+    if (QGLContext::currentContext() != context()) context()->makeCurrent();
+
+    // scale the hotspot correction image to the new size...
+    if (warpTex) delete warpTex, warpTex = 0;
+    if (warpImg.isNull()) return;
+    QImage img = warpImg.scaled(QSize(w,h), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    warpTex = new QOpenGLTexture(QOpenGLTexture::TargetRectangle);
+    warpTex->setFormat(QOpenGLTexture::RGBA8U);
+    warpTex->setMagnificationFilter(QOpenGLTexture::Nearest);
+    warpTex->setMinificationFilter(QOpenGLTexture::Nearest);
+//    warpTex->setMagnificationFilter(QOpenGLTexture::Linear);
+//    warpTex->setMinificationFilter(QOpenGLTexture::Linear);
+    warpTex->setSize(w,h);
+    warpTex->allocateStorage(QOpenGLTexture::RGBA, QOpenGLTexture::UInt32_RGBA8);
+//    warpTex->create();
+//    warpTex->setData(warpImg.scaled(QSize(w,h), Qt::IgnoreAspectRatio, Qt::SmoothTransformation)/*.mirrored(false,true)*/);
+ //   QOpenGLPixelTransferOptions opts;
+//    opts.setRowLength(img.width()); opts.setImageHeight(img.height());
+    warpTex->setData(QOpenGLTexture::RGBA_Integer, QOpenGLTexture::UInt32_RGBA8, img.bits());
+}
+
+void GLWindow::setWarp(const QImage &img) { ///< this image has a special format where pixels are ar,gb -> x,y location (scaled to img width/height) to grab the source pixel
+    warpImg = img;
+    setupWarpTex();
+}
+
+void GLWindow::clearWarp() { setWarp(QImage()); }
 
 void GLWindow::clearScreen()
 {
@@ -866,6 +911,7 @@ StimPlugin *GLWindow::pluginFind(const QString &name, bool casesensitive)
 #include "MovingObjects_Old.h"
 #include "MovingObjects.h"
 #include "Movie.h"
+#include "DummyPlugin.h"
 
 void GLWindow::initPlugins()
 {
@@ -884,6 +930,7 @@ void GLWindow::initPlugins()
     new MovingObjects_Old();  // experiment plugin.. bouncey square!
 	new MovingObjects();   // experiment plugin.. bouncey square, ellipses, and spheres on steroids!
     new Movie(); // plays GIF animation movies!
+    new DummyPlugin(); // used internally
     // TODO: more plugins here
 
     Log() << "Initialized " << pluginsList.size() << " plugins.";

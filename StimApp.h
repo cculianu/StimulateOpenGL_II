@@ -36,7 +36,7 @@ class QTextEdit;
 class ConsoleWindow;
 class GLWindow;
 class QTcpServer;
-namespace Ui { class HotspotConfig; }
+namespace Ui { class HotspotConfig; class WarpingConfig; }
 
 /**
    \brief The central class to the program that more-or-less encapsulates most objects and data in the program.
@@ -81,8 +81,8 @@ public:
 		
 		QString DO_with_vsync;
 
-        QString hotspotImageFile;
-        bool doHotspotCorrection;
+        QString hotspotImageFile, warpingFile;
+        bool doHotspotCorrection, doWarping;
 
         struct HSAdjust {
             double xrot, yrot, zrot, zoom;
@@ -91,7 +91,7 @@ public:
             HSAdjust() : xrot(0.), yrot(0.), zrot(0.), zoom(1.0), xtrans(0), ytrans(0) {}
         } hsAdj;
 
-        GlobalDefaults() : mon_x_pix(800), mon_y_pix(600), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), Nblinks(1), fps_mode(2), DO_with_vsync("off"), hotspotImageFile(""), doHotspotCorrection(false) {
+        GlobalDefaults() : mon_x_pix(800), mon_y_pix(600), ftrackbox_x(0), ftrackbox_y(0), ftrackbox_w(0), Nblinks(1), fps_mode(2), DO_with_vsync("off"), hotspotImageFile(""), warpingFile(""), doHotspotCorrection(false), doWarping(false) {
 			qstrncpy(color_order, "brg", 4);
 			ftrack_track_color = ftrack_change_color = ftrack_start_color = ftrack_end_color = "1, 1, 1";
 			ftrack_off_color = "0, 0, 0";			
@@ -220,12 +220,17 @@ private slots:
     void hotspotAdjSlot();
     void hotspotAdjResetSlot();
 
+    void configureWarpingDialog();
+    void loadWarpClicked();
+    void gotNewWarpingFile();
+
 private:
     void initServer();
     void initPlugins();
     void createAppIcon();
     void createGLWindow(bool initPlugins = true);
     static QImage GetHotspotImageXFormed(const QString & fn, const GlobalDefaults::HSAdjust &, const QSize & desiredSize);
+    static QImage parseWarpingFile(const QString &fname, const QSize & desiredSize);
 
     mutable QMutex mut; ///< used to lock outDir param for now
     ConsoleWindow *consoleWindow;
@@ -244,6 +249,7 @@ private:
     QSize glWinSize;
 
     Ui::HotspotConfig *tmphs;
+    Ui::WarpingConfig *tmpwc;
 };
 
 #endif

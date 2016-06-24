@@ -18,7 +18,8 @@ HEADERS +=  Version.h StimApp.h Util.h RNG.h ConsoleWindow.h GLHeaders.h \
             ZigguratGauss.h StimParams.h StimGL_SpikeGL_Integration.h \
             FrameVariables.h Flicker.h Flicker_RGBW.h Sawtooth.h DAQ.h \
             TypeDefs.h Shapes.h MovingObjects.h Movie.h GifReader.h \
-            FastMovieFormat.h FastMovieReader.h GLBoxSelector.h
+            FastMovieFormat.h FastMovieReader.h GLBoxSelector.h \
+    DummyPlugin.h
 SOURCES +=  main.cpp StimApp.cpp Util.cpp RNG.cpp ConsoleWindow.cpp \
             GLWindow.cpp osdep.cpp ConnectionThread.cpp \
             StimPlugin.cpp CalibPlugin.cpp MovingObjects_Old.cpp \
@@ -26,10 +27,12 @@ SOURCES +=  main.cpp StimApp.cpp Util.cpp RNG.cpp ConsoleWindow.cpp \
             StimParams.cpp StimGL_SpikeGL_Integration.cpp FrameVariables.cpp \
             Flicker.cpp Flicker_RGBW.cpp Sawtooth.cpp DAQ.cpp Shapes.cpp \
             MovingObjects.cpp Movie.cpp GifReader.cpp FastMovieFormat.cpp \
-            FastMovieReader.cpp GLBoxSelector.cpp
+            FastMovieReader.cpp GLBoxSelector.cpp \
+    DummyPlugin.cpp
 
 FORMS += SpikeGLIntegration.ui ParamDefaultsWindow.ui \
-    HotspotConfig.ui
+    HotspotConfig.ui \
+    WarpingConfig.ui
 
 unix {
         LIBS += -lm

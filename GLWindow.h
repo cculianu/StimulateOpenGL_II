@@ -66,6 +66,10 @@ public:
      void setHotspot(const QImage &img);
      void clearHotspot(); ///< turns off hotspot processing
 
+     const QImage & warp() const { return warpImg; }
+     void setWarp(const QImage &img); ///< this image has a special format where pixels are ar,gb -> x,y location (scaled to img width/height) to grab the source pixel
+     void clearWarp();
+
 public slots:
     /// Toggles the paused/unpaused state of the plugin execution engine.
     void pauseUnpause();
@@ -155,13 +159,14 @@ private:
 
     QOpenGLShaderProgram *shader;
     QOpenGLFramebufferObject *fbo;
-    QOpenGLTexture *hotspotTex;
+    QOpenGLTexture *hotspotTex, *warpTex;
     static QImage defaultHotspotImg;
-    QImage hotspotImg;
+    QImage hotspotImg, warpImg;
 
     void setupShaders();
     void shaderApplyAndDraw();
     void setupHotspotTex();
+    void setupWarpTex();
 };
 
 #endif

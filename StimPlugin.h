@@ -351,9 +351,9 @@ protected:
 	
 	QList<QString> paramSuffixStack; ///< used in conjunction with getParam, setParam to add suffixes to the params passed to getParam()..
 	
-    void notifySpikeGLAboutStart();
-    void notifySpikeGLAboutStop();
-    void notifySpikeGLAboutParams();
+    virtual void notifySpikeGLAboutStart();
+    virtual void notifySpikeGLAboutStop();
+    virtual void notifySpikeGLAboutParams();
 
     /// plugin-level mutex -- used in a couple of functions and you may reuse it yourself as well
     mutable QMutex mut; 

@@ -32,6 +32,7 @@
 #include "ui_SpikeGLIntegration.h"
 #include "ui_ParamDefaultsWindow.h"
 #include "ui_HotspotConfig.h"
+#include "ui_WarpingConfig.h"
 #include "DAQ.h"
 
 #define DEFAULT_WIN_SIZE QSize(800,600)
@@ -73,7 +74,7 @@ namespace {
 StimApp * StimApp::singleton = 0;
 
 StimApp::StimApp(int & argc, char ** argv)
-    : QApplication(argc, argv, true), consoleWindow(0), glWindow(0), glWinHasFrame(true), debug(false), initializing(true), server(0), nLinesInLog(0), nLinesInLogMax(1000), glWinSize(DEFAULT_WIN_SIZE) /* default plugin size */, tmphs(0)
+    : QApplication(argc, argv, true), consoleWindow(0), glWindow(0), glWinHasFrame(true), debug(false), initializing(true), server(0), nLinesInLog(0), nLinesInLogMax(1000), glWinSize(DEFAULT_WIN_SIZE) /* default plugin size */, tmphs(0), tmpwc(0)
 {
     if (singleton) {
         QMessageBox::critical(0, "Invariant Violation", "Only 1 instance of StimApp allowed per application!");
@@ -156,6 +157,7 @@ void StimApp::createGLWindow(bool initPlugs)
     if (initPlugs) glWindow->initPlugins();
 
     if (globalDefaults.doHotspotCorrection) glWindow->setHotspot(GetHotspotImageXFormed(globalDefaults.hotspotImageFile,globalDefaults.hsAdj,glWinSize));
+    if (globalDefaults.doWarping) glWindow->setWarp(parseWarpingFile(globalDefaults.warpingFile,glWinSize));
 }
 
 #ifndef Q_OS_WIN
@@ -467,6 +469,9 @@ void StimApp::loadSettings()
     defs.hsAdj.zoom  = settings.value("hs_zoom", 1.).toDouble();
     defs.hsAdj.xtrans= settings.value("hs_xtrans", 0).toInt();
     defs.hsAdj.ytrans= settings.value("hs_ytrans", 0).toInt();
+
+    defs.warpingFile = settings.value("warping_file", "").toString();
+    defs.doWarping = settings.value("warp_enabled", false).toBool();
 }
 
 void StimApp::saveSettings()
@@ -516,6 +521,9 @@ void StimApp::saveSettings()
     settings.setValue("hs_zoom", defs.hsAdj.zoom);
     settings.setValue("hs_xtrans", defs.hsAdj.xtrans);
     settings.setValue("hs_ytrans", defs.hsAdj.ytrans);
+
+    settings.setValue("warping_file", defs.warpingFile);
+    settings.setValue("warp_enabled", defs.doWarping);
 }
 
 void StimApp::lockMouseKeyboard()
@@ -912,6 +920,7 @@ void StimApp::globalDefaultsDialog()
 	controls.le_ftrack_end->setText(g.ftrack_end_color);
 	controls.le_inter_trial_bg->setText(g.interTrialBg);
     controls.chk_hotspot->setChecked(g.doHotspotCorrection);
+    controls.warpingChk->setChecked(g.doWarping);
 
 	DAQ::DeviceChanMap chanMap (DAQ::ProbeAllDOChannels());
 	int selected = 0;
@@ -927,9 +936,10 @@ void StimApp::globalDefaultsDialog()
 	controls.cb_do_with_vsync->setCurrentIndex(selected);
 	
     Connect(controls.but_hotspot, SIGNAL(clicked()), this, SLOT(configureHotspotDialog()));
+    Connect(controls.but_warping, SIGNAL(clicked()), this, SLOT(configureWarpingDialog()));
 
-    QString saved_hsimg = g.hotspotImageFile;
-    QImage saved_qimg = glWindow->hotspot();
+    QString saved_hsimg = g.hotspotImageFile, saved_warping = g.warpingFile;
+    QImage saved_qimg = glWindow->hotspot(), saved_wimg = glWindow->warp();
     GlobalDefaults::HSAdjust saved_adj = g.hsAdj;
 
     if ( dlg.exec() == QDialog::Accepted ) {
@@ -949,17 +959,24 @@ void StimApp::globalDefaultsDialog()
 		g.ftrack_end_color = controls.le_ftrack_end->text();
 		g.interTrialBg = controls.le_inter_trial_bg->text();
         g.doHotspotCorrection = controls.chk_hotspot->isChecked();
+        g.doWarping = controls.warpingChk->isChecked();
         if (glWindow) {
             glWindow->setClearColor(g.interTrialBg); // take effect right now!
             if (g.doHotspotCorrection)
                 glWindow->setHotspot(GetHotspotImageXFormed(g.hotspotImageFile, g.hsAdj, glWinSize));
             else
                 glWindow->clearHotspot();
+            if (g.doWarping)
+                glWindow->setWarp(parseWarpingFile(g.warpingFile, glWinSize));
+            else
+                glWindow->clearWarp();
         }
     } else {
         g.hotspotImageFile = saved_hsimg;
-        g.hsAdj = saved_adj;
+        g.hsAdj = saved_adj;       
         glWindow->setHotspot(saved_qimg);
+        g.warpingFile = saved_warping;
+        glWindow->setWarp(saved_wimg);
     }
 
     saveSettings();
@@ -1001,12 +1018,22 @@ void StimApp::configureHotspotDialog()
     GlobalDefaults::HSAdjust saved_adj = g.hsAdj;
     QImage saved_img = glWindow->hotspot();
 
+    StimPlugin *p = glWindow->runningPlugin(), *dummy = 0;
+
+    if (!p) {
+        // run this dummy plugin so we can get live previews of the hotspot image...
+        p = glWindow->pluginFind("DummyPlugin");
+        if (p) (dummy=p)->start(true);
+    }
+
     if ( dlg.exec() == QDialog::Accepted ) {
         g.hotspotImageFile = h.lbl_filename->text();
     } else {
         g.hsAdj = saved_adj;
         glWindow->setHotspot(saved_img);
     }
+
+    if (dummy && glWindow->runningPlugin() == dummy) dummy->stop();
 
     tmphs = 0;
 }
@@ -1111,4 +1138,128 @@ void StimApp::hotspotAdjResetSlot()
   p.drawImage(drect,img,srect);
   p.end();
   return destImg;
+}
+
+void StimApp::gotNewWarpingFile()
+{
+    if (!tmpwc) return;
+
+    QImage img = parseWarpingFile(tmpwc->lbl_filename->text(), glWinSize);
+    if (img.isNull()) {
+        tmpwc->lbl_filedims->setText("<font color=red><b>File invalid/unspecified</b></font>");
+    } else {
+        tmpwc->lbl_filedims->setText(QString("%1 x %2").arg(img.width()).arg(img.height()));
+    }
+    glWindow->setWarp(img);
+}
+
+void StimApp::loadWarpClicked()
+{
+    if (!tmpwc) return;
+
+    QFileInfo fi(tmpwc->lbl_filename->text());
+    QString dir;
+    if (fi.dir().exists()) dir = fi.dir().canonicalPath();
+    QString fn = QFileDialog::getOpenFileName(glWindow, "Load Warping Config", dir);
+    if (fn.length()) {
+        tmpwc->lbl_filename->setText(fn);
+        gotNewWarpingFile();
+    }
+}
+
+void StimApp::configureWarpingDialog()
+{
+    QDialog dlg(consoleWindow);
+    dlg.setWindowIcon(consoleWindow->windowIcon());
+    dlg.setModal(true);
+
+    GlobalDefaults & g(globalDefaults);
+    Ui::WarpingConfig w;
+    w.setupUi(&dlg);
+
+    tmpwc = &w;
+
+    QString saved_warpingfile = g.warpingFile;
+    QImage saved_warp = glWindow->warp();
+
+    w.lbl_filename->setText(g.warpingFile.length() ? g.warpingFile : "NONE SPECIFIED");
+    w.lbl_windims->setText(QString("%1 x %2").arg(glWinSize.width()).arg(glWinSize.height()));
+    w.lbl_filedims->setText("");
+
+    gotNewWarpingFile();
+
+    Connect(w.but_load, SIGNAL(clicked()), this, SLOT(loadWarpClicked()));
+
+    StimPlugin *p = glWindow->runningPlugin(), *dummy = 0;
+    StimParams orig_params;
+
+    if (!p) {
+        // run this dummy plugin so we can get live previews of the hotspot image...
+        p = glWindow->pluginFind("DummyPlugin");
+        if (p) {
+            StimParams prm = (orig_params=p->getParams()); prm["grid_w"] = 10; p->setParams(prm);
+            (dummy=p)->start(true);
+        }
+    }
+
+
+    if ( dlg.exec() == QDialog::Accepted ) {
+        g.warpingFile = w.lbl_filename->text();
+    } else {
+        g.warpingFile = saved_warpingfile;
+        glWindow->setWarp(saved_warp);
+    }
+
+    if (dummy && glWindow->runningPlugin() == dummy) dummy->stop(), dummy->setParams(orig_params);
+
+    tmpwc = 0;
+}
+
+/* static */ QImage StimApp::parseWarpingFile(const QString & fname, const QSize & destSize)
+{
+    QImage ret;
+    QFile f(fname);
+    QSize dims;
+    const int col_width = destSize.width();
+    if (destSize.width() > 0 && destSize.height() > 0 && f.exists() && f.open(QFile::ReadOnly)) {
+        QVector<qreal> nums;  nums.reserve(col_width*2000);
+        QTextStream ts(&f);
+
+        while (ts.status() == QTextStream::Ok && !ts.atEnd()) {
+            qreal n;
+            ts >> n;
+            if (ts.status() == QTextStream::Ok) nums.push_back(n);
+            else break;
+        }
+        //Debug() << "read: " << nums.length() << " numbers from file...";
+        if (nums.size() >= col_width*2) {
+            dims.setWidth(col_width);
+            dims.setHeight((nums.size()/2)/col_width);
+            if (dims != destSize) {
+                Warning() << "Warping config file size != gl window dimensions!";
+            }
+            ret = QImage(dims, QImage::Format_ARGB32);
+            QVector<qreal>::iterator it = nums.begin();
+            for (int r = 0; r < dims.height() && it != nums.end(); ++r) {
+                QRgb *line = reinterpret_cast<QRgb *>(ret.scanLine(r));
+                for (int c = 0; c < dims.width() && it != nums.end(); ++c) {
+                    qreal x = *it++, y = *it++;
+                    // scale values to 0->1.0 (sort of an s,t type of param), then fixed-point them onto 16-bit (0->65535)
+                    x = (x / qreal(destSize.width())) * 65535.0;
+                    y = (y / qreal(destSize.height())) * 65535.0;
+                    if (x < 0.) x = 0.; if (x > 65535.) x = 65535.;
+                    if (y < 0.) y = 0.; if (y > 65535.) y = 65535.;
+                    unsigned int xx = qRound(x), yy = qRound(y);
+                    line[c] = QRgb( QRgb((xx<<16)&0xffff0000) | QRgb(yy&0x0000ffff) );
+                    /*{ // debug
+                        if (c != qRound((double(xx)/65535.0)*destSize.width()) || r != qRound((double(yy)/65535.0)*destSize.height()))
+                            Debug() << "x,y=" << c << "," << r << " -> " << xx << "," << yy << " -> " << qRound((double(xx)/65535.0)*destSize.width()) << "," << qRound((double(yy)/65535.0)*destSize.height());
+
+                    }*/
+                }
+            }
+        }
+    }
+    if (ret.isNull() && f.exists()) Warning() << "Parse error reading warping config file: " << fname;
+    return ret;
 }

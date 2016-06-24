@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>640</width>
-    <height>430</height>
+    <height>480</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -404,7 +404,7 @@
       <item row="8" column="0" rowspan="2" colspan="3">
        <widget class="QGroupBox" name="groupBox">
         <property name="title">
-         <string>Shaders</string>
+         <string>Shaders*</string>
         </property>
         <widget class="QCheckBox" name="chk_hotspot">
          <property name="geometry">
@@ -421,7 +421,7 @@
         </widget>
         <widget class="QCheckBox" name="warpingChk">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <property name="geometry">
           <rect>
@@ -448,9 +448,9 @@
           <string>Configure...</string>
          </property>
         </widget>
-        <widget class="QPushButton" name="pushButton_2">
+        <widget class="QPushButton" name="but_warping">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <property name="geometry">
           <rect>
@@ -462,6 +462,28 @@
          </property>
          <property name="text">
           <string>Configure...</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_18">
+         <property name="geometry">
+          <rect>
+           <x>20</x>
+           <y>90</y>
+           <width>301</width>
+           <height>40</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>7</pointsize>
+           <italic>true</italic>
+          </font>
+         </property>
+         <property name="text">
+          <string>* Note: Shaders are only in effect when a plugin is actually running</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
          </property>
         </widget>
        </widget>
