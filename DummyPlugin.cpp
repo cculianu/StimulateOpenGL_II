@@ -35,7 +35,7 @@ void DummyPlugin::drawFrame()
 
     if (grid_w > 0) {
         const int w = width(), h = height();
-        glLineWidth(2);
+        glLineWidth(1);
         //glLineStipple(1,0xf0f0);
         //glEnable(GL_LINE_STIPPLE);
         const int factor = frameNum/*/4*/;

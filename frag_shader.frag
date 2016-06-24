@@ -22,19 +22,19 @@ void main(void)
         const ivec2 size = textureSize(srcTex);
         const int w = size.x, h = size.y;
 
-        ivec2 sti = ivec2(int(st.x), int(st.y));
+        //ivec2 sti = ivec2(round(st.x), round(st.y));
         //uvec4 c = texelFetch(warp, sti);
         uvec4 c = texture(warp,st);
 
         uint x = c.r*uint(256) + c.g;
         uint y = c.b*uint(256) + c.a;
 
-        double xx = double(x)/65535.0;
-        double yy = double(y)/65535.0;
-        xx *= double(w);  yy *= double(h);
+        float xx = float(x)/65535.0;
+        float yy = float(y)/65535.0;
+        xx *= float(w);  yy *= float(h);
 
         st = vec2(float(xx), float(yy));
-        sti = ivec2(float(st.x),float(st.y));
+        //sti = ivec2(float(st.x),float(st.y));
 
         //vec4 hspot = texelFetch(hotspots, sti);
         //gl_FragColor = texelFetch(srcTex, sti)*hspot;

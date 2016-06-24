@@ -146,15 +146,13 @@ void GLWindow::shaderApplyAndDraw()
         if (warpTex) {
             QOpenGLContext::currentContext()->functions()->glActiveTexture(GL_TEXTURE0+warpUnit);
             glBindTexture(GL_TEXTURE_RECTANGLE, warpTex->textureId());
-//            glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-//            glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         }
         QOpenGLContext::currentContext()->functions()->glActiveTexture(GL_TEXTURE0+hotspotUnit);
         glBindTexture(GL_TEXTURE_RECTANGLE, hotspotTex->textureId());
         QOpenGLContext::currentContext()->functions()->glActiveTexture(GL_TEXTURE0+texUnit);
         glBindTexture(GL_TEXTURE_RECTANGLE, fbo->texture());
-        glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         // render our vertex and coord buffers which don't change.. just the texture changes
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -284,6 +282,8 @@ void GLWindow::setupHotspotTex()
     // scale the hotspot correction image to the new size...
     if (hotspotTex) delete hotspotTex, hotspotTex = 0;
     hotspotTex = new QOpenGLTexture(QOpenGLTexture::TargetRectangle);
+//    hotspotTex->setMagnificationFilter(QOpenGLTexture::Nearest);
+//    hotspotTex->setMinificationFilter(QOpenGLTexture::Nearest);
     hotspotTex->setMagnificationFilter(QOpenGLTexture::Linear);
     hotspotTex->setMinificationFilter(QOpenGLTexture::Linear);
     hotspotTex->setData(hotspotImg.scaled(QSize(w,h), Qt::IgnoreAspectRatio, Qt::SmoothTransformation).mirrored(false,true));
