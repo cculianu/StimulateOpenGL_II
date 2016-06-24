@@ -1,4 +1,4 @@
-#version 130
+//#version 130
 #extension GL_ARB_texture_rectangle : enable
 
 uniform sampler2DRect srcTex;

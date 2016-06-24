@@ -1087,11 +1087,15 @@ void StimApp::hotspotAdjResetSlot()
 
 /*static*/ QImage StimApp::GetHotspotImageXFormed(const QString & fn, const GlobalDefaults::HSAdjust & adj, const QSize & destSz)
 {
-  QImage img(fn), destImg(destSz.width(),destSz.height(),QImage::Format_ARGB32);
+  QImage img(fn);
+  if (img.isNull()) {
+      // invalid image.. so return a null image which is fine for glWindow class to basically turn hotspots off
+      return img;
+  }
+  QImage destImg(destSz.width(),destSz.height(),QImage::Format_ARGB32);
   QTransform xf;
   QPainter p(&destImg);
 
-  p.begin(&destImg);
   p.setPen(QColor(Qt::white));
   p.setBrush(QBrush(QColor(Qt::white)));
   p.fillRect(QRect(0,0,destSz.width(),destSz.height()),p.brush());

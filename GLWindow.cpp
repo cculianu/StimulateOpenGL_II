@@ -112,7 +112,7 @@ void GLWindow::setupShaders()
     }
 #ifdef Q_OS_DARWIN
     // for now -- on OSX, we disable the shader stuff because it's broken/not working and I don't have time to troubleshoot it
-    delete shader, shader = 0;
+//    delete shader, shader = 0;
 #endif
 }
 
