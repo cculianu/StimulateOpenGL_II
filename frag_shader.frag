@@ -11,11 +11,11 @@ uniform int do_warping;
 
 in vec4 gl_FragCoord;
 layout ( location = 0 ) out vec4 gl_FragColor;
-in vec4 myCoord;
+in vec4 texCoord;
 
 void main(void)
 {
-    vec2 st = myCoord.st;
+    vec2 st = texCoord.st;
 
     if (do_warping != 0) {
         st = gl_FragCoord.xy;

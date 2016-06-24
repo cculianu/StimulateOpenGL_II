@@ -2,10 +2,10 @@
 attribute vec4 qt_MultiTexCoord0;
 uniform mat4 qt_ModelViewProjectionMatrix;
 */
-out vec4 myCoord;
+out vec4 texCoord;
 
 void main(void)
 {
     gl_Position = ftransform();
-    myCoord = gl_MultiTexCoord0;
+    texCoord = gl_MultiTexCoord0;
 }
