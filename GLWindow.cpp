@@ -550,20 +550,21 @@ void GLWindow::paintGL()
 				running->customStatusBarString.sprintf("Delay counter: %d", delayCtr);
 				doBufSwap = true;
 			} else if (running) { // note: code above may have stopped plugin, check if it's still running
-			
-				if (!running->pluginDoesOwnClearing) {
+
+                if (fbo && !fbo->bind())
+                    Error() << "FBO bind() returned false!";
+
+                if (!running->pluginDoesOwnClearing)
 					running->clearScreen();
-				}
+
 				
 				glEnable(GL_SCISSOR_TEST); /// < the frame happens within our scissor rect, (lmargin, etc support)
-                if (fbo &&
-                    !fbo->bind())
-                    Error() << "FBO bind() returned false!";
 				running->drawFrame();
+                glDisable(GL_SCISSOR_TEST);
+
                 if (fbo && fbo->isBound()) fbo->release();
-				glDisable(GL_SCISSOR_TEST);                
                 shaderApplyAndDraw(); // renders the above FBO to screen, having applied the shader to it
-				
+
 				if (running) { // NB: drawFrame may have called stop(), thus NULLing this pointer, so check it again
 					running->advanceFTState(); // NB: this asserts FT_Start/FT_Change/FT_End flag, if need be, etc, and otherwise decides whith FT color to us.  Looks at running->nFrames, etc
 					running->drawFTBox();
