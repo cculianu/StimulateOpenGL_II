@@ -55,9 +55,9 @@ void Frame::setupTexCoords()
 	// populate our tex coord buffer and vertex buffer basedo n Nx, Ny, lmargin, rmargin, etc
 	GLint texCoordsTmp[] = {
 		0,0,
-		w,0,
-		w,h,
-		0,h
+        int(w),0,
+        int(w),int(h),
+        0,int(h)
 	};
 	
 	GLint verticesTmp[] = {

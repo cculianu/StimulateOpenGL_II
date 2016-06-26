@@ -243,7 +243,7 @@ void MovingGrating::drawFrame()
 
         GLfloat v[] = { -hw,-hh, hw,-hh, hw,hh, -hw,hh };
         const double bw = (spatial_freq <= 0. ? 1.0 : 1.0/spatial_freq);
-        GLfloat t[] = { 0.f+phase, w/bw+phase, w/bw+phase, 0.f+phase };
+        GLfloat t[] = { 0.f+float(phase), w/float(bw+phase), w/float(bw+phase), 0.f+float(phase) };
         
         glVertexPointer(2, GL_FLOAT, 0, v);
         glTexCoordPointer(1, GL_FLOAT, 0, t);

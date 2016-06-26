@@ -42,10 +42,10 @@ bool Flicker::initFromParams()
 	
 	// verify params
 	GLint v[4][2] = {
-		{ 0         ,  0          },
-		{ 0         ,  height()   },
-		{ width()   ,  height()   },
-		{ width()   ,  0          },
+        { 0              ,  0               },
+        { 0              ,  int(height())   },
+        { int(width())   ,  int(height())   },
+        { int(width())   ,  0               },
 	};
 	memcpy(vertices, v, sizeof(v));
 	

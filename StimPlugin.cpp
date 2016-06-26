@@ -729,8 +729,8 @@ void StimPlugin::clearScreen(int extra)
    const int v[] = {
    lmargin,bmargin, lmargin+w,bmargin, lmargin+w,h+bmargin, lmargin,h+bmargin
 */
-			const int w = parent->win_width, h = parent->win_height;
-			const int v[] = {
+            const GLuint w = parent->win_width, h = parent->win_height;
+            const GLuint v[] = {
 				0,0, w,0, w,h, 0,h
 			}, t[] = {
 				0,0, bgImg_w,0, bgImg_w,bgImg_h, 0,bgImg_h
@@ -746,8 +746,8 @@ void StimPlugin::clearScreen(int extra)
 			GLfloat c[4];
 			glGetFloatv(GL_CURRENT_COLOR, c);
 			glColor4f(1.,1.,1.,1.);			
-			glVertexPointer(2, GL_INT, 0, v);
-			glTexCoordPointer(2, GL_INT, 0, t);
+            glVertexPointer(2, GL_UNSIGNED_INT, 0, v);
+            glTexCoordPointer(2, GL_UNSIGNED_INT, 0, t);
 			glDrawArrays(GL_QUADS, 0, 4);
 			glDisableClientState(GL_VERTEX_ARRAY);
 			glDisableClientState(GL_TEXTURE_COORD_ARRAY);			

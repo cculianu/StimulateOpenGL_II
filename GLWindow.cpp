@@ -336,11 +336,11 @@ void GLWindow::clearScreen()
 	if (clrImg_tex) {
 		/* draw the texture... */ 
 		{
-			const int w = win_width, h = win_height;
-			const int v[] = {
+            const GLint w = win_width, h = win_height;
+            const GLint v[] = {
 				0,0, w,0, w,h, 0,h
 			}, t[] = {
-				0,0, clrImg_w,0, clrImg_w,clrImg_h, 0,clrImg_h
+                0,0, int(clrImg_w),0, int(clrImg_w),int(clrImg_h), 0,int(clrImg_h)
 			};
 			bool wasEnabled = glIsEnabled(GL_TEXTURE_RECTANGLE_ARB);
 			if (!wasEnabled) glEnable(GL_TEXTURE_RECTANGLE_ARB);
@@ -353,8 +353,8 @@ void GLWindow::clearScreen()
 			GLfloat c[4];
 			glGetFloatv(GL_CURRENT_COLOR, c);
 			glColor4f(1.,1.,1.,1.);
-			glVertexPointer(2, GL_INT, 0, v);
-			glTexCoordPointer(2, GL_INT, 0, t);
+            glVertexPointer(2, GL_INT, 0, v);
+            glTexCoordPointer(2, GL_INT, 0, t);
 			glDrawArrays(GL_QUADS, 0, 4);
 			glDisableClientState(GL_VERTEX_ARRAY);
 			glDisableClientState(GL_TEXTURE_COORD_ARRAY);			

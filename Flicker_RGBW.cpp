@@ -70,9 +70,9 @@ bool Flicker_RGBW::initFromParams()
 	for (int i = 0; i < 4; ++i) memcpy(colors[i], color, sizeof(color));
 	GLint v[4][2] = {
 		{ 0         ,  0          },
-		{ 0         ,  height()   },
-		{ width()   ,  height()   },
-		{ width()   ,  0          },
+        { 0         ,  int(height())   },
+        { int(width())   ,  int(height())   },
+        { int(width())   ,  0          },
 	};
 	memcpy(vertices, v, sizeof(v));
 
