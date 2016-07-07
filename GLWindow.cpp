@@ -33,6 +33,9 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
        delayFPS(0.), debugLogFrames(false), clearColor(0.5,0.5,0.5), fs_w(0), fs_h(0), fs_pbo_ix(0), fs_delay_ctr(1.0f), shader(0), fbo(0), hotspotTex(0), warpTex(0)
 
 {
+    hasNvidia = false;
+    shaderNeedsSize = false;
+
     if (defaultHotspotImg.isNull()) {
         defaultHotspotImg = QImage(1,1,QImage::Format_ARGB32);
 #if QT_VERSION >= 0x050600
@@ -104,18 +107,32 @@ GLWindow::~GLWindow() {
 void GLWindow::setupShaders()
 {
     delete shader; shader = 0;
+    shaderNeedsSize = false;
 
-    shader = new QOpenGLShaderProgram(this);
-    shader->addShaderFromSourceFile(QOpenGLShader::Fragment,":/Shaders/frag_shader.frag");
-    shader->addShaderFromSourceFile(QOpenGLShader::Vertex,":/Shaders/vert_shader.vert");
-    if (!shader->link()) {
-        Error() << ">>>>>>  POSSIBLY FATAL: shader link error:" << shader->log();
-        delete shader, shader = 0;
+    if (hasNvidia) {
+        shader = new QOpenGLShaderProgram(this);
+        bool okfrag = shader->addShaderFromSourceFile(QOpenGLShader::Fragment,":/Shaders/frag_shader.frag");
+        bool okvert = shader->addShaderFromSourceFile(QOpenGLShader::Vertex,":/Shaders/vert_shader.vert");
+        if (!okfrag || !okvert || !shader->link() || !shader->hasOpenGLShaderPrograms()) {
+            Debug() << ">>>>>>  POSSIBLY FATAL: shader link error:" << shader->log();
+            delete shader, shader = 0;
+            Debug() << "Trying again with a version 1.20 shader program...";
+        } else {
+            Log() << "Using version 4.20 vertex and fragment shaders.";
+        }
     }
-#ifdef Q_OS_DARWIN
-    // for now -- on OSX, we disable the shader stuff because it's broken/not working and I don't have time to troubleshoot it
-    delete shader, shader = 0;
-#endif
+    if (!shader) {
+        shader = new QOpenGLShaderProgram(this);
+        bool okfrag = shader->addShaderFromSourceFile(QOpenGLShader::Fragment,":/Shaders/frag_shader_120.frag");
+        if (!okfrag || !shader->link()) {
+            Error() << ">>>>>>  POSSIBLY FATAL: shader link error:" << shader->log();
+            delete shader, shader = 0;
+        } else {
+            Log() << "Using version 1.20 fragment shader.";
+        }
+        if (shader && !shader->hasOpenGLShaderPrograms()) delete shader, shader = 0;
+        shaderNeedsSize = true;
+    }
 }
 
 void GLWindow::shaderApplyAndDraw()
@@ -133,6 +150,10 @@ void GLWindow::shaderApplyAndDraw()
     shader->setUniformValue("hotspots", hotspotUnit);
     shader->setUniformValue("warp", warpUnit);
     shader->setUniformValue("do_warping", warpTex ? 1 : 0);
+    if (shaderNeedsSize) {
+        QSizeF size( (qreal)win_width, (qreal)win_height );
+        shader->setUniformValue("size", (QSizeF)size);
+    }
 
 
     /* draw the texture... applying hotspots */
@@ -241,6 +262,12 @@ void GLWindow::initializeGL()
     glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
 	
 	boxSelector->init();
+
+    const char *vendor = (const char *)glGetString(GL_VENDOR), *renderer = (const char *)glGetString(GL_RENDERER);
+    Debug() << "VENDOR: " << vendor;
+    Debug() << "GL_RENDERER: " << renderer;
+
+    hasNvidia = QString(vendor).toLower().contains("nvidia");
 
     setupShaders();
 }

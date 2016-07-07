@@ -167,6 +167,8 @@ private:
     void shaderApplyAndDraw();
     void setupHotspotTex();
     void setupWarpTex();
+
+    bool hasNvidia, shaderNeedsSize;
 };
 
 #endif
