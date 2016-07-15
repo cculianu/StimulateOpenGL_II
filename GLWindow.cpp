@@ -28,8 +28,8 @@ GLWindow::GLWindow(unsigned w, unsigned h, bool frameless)
 															Qt::MSWindowsOwnDC|
 #endif
 															(frameless ? Qt::FramelessWindowHint : (Qt::WindowFlags)0))), 
-       aMode(false), running(0), paused(false), tooFastWarned(false),  
-       lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.), delayCtr(0), delayt0(0.), 
+       aMode(false), running(0), paused(false),
+       lastHWFC(0), tLastFrame(0.), tLastLastFrame(0.), tLastRender(-1.), delayCtr(0), delayt0(0.),
        delayFPS(0.), debugLogFrames(false), clearColor(0.5,0.5,0.5), fs_w(0), fs_h(0), fs_pbo_ix(0), fs_delay_ctr(1.0f), shader(0), fbo(0), hotspotTex(0), warpTex(0)
 
 {
@@ -458,7 +458,7 @@ void GLWindow::paintGL()
 	if (blockPaint) return;
 	
     tThisFrame = getTime();
-    bool tooFast = false, tooSlow = false, signalDIOOn = false;
+    bool signalDIOOn = false;
 	
     if (timer->isActive()) return; // this was a spurious paint event
     unsigned timerpd = 1000/MAX(stimApp()->refreshRate(),120)/2;
@@ -472,45 +472,7 @@ void GLWindow::paintGL()
     }
 #endif
 
-    if (hasAccurateHWFrameCount() /* this is now always pretty much false */) {
-        unsigned hwfc = getHWFrameCount();
-
-        if (lastHWFC && hwfc==lastHWFC) {
-            //tooFast = true;
-        } else if (lastHWFC && hwfc-lastHWFC > 1) {
-            tooSlow = true;
-        }
-        lastHWFC = hwfc;
-    } else if (!stimApp()->busy()/*hasAccurateHWRefreshRate()*/ && tLastLastFrame > 0.) {
-        double diff = tThisFrame-tLastFrame/*, diff2 = tThisFrame-tLastLastFrame*/;
-        double tFrames = 1.0/hw_refresh;
-        if (diff > tFrames*2.) tooSlow = true;
-        /*else if (diff2 < tFrames) tooFast = true;*/
-		lastHWFC = getHWFrameCount();
-    } else
-		lastHWFC = getHWFrameCount();
-
-    if (tooFast) {
-        if (!tooFastWarned) {
-            //Debug() << "Frame " << getHWFrameCount() << " too fast, will render later";
-            tooFastWarned = true;
-        }
-        timer->start(timerpd);
-        return;
-    }
-    tooFastWarned = false;
-
-    if (tooSlow && !stimApp()->isNoDropFrameWarn()) {
-		unsigned fr = getHWFrameCount(); ///< some drivers don't return a hardware frame count!
-		if (!fr) {
-			StimPlugin *p = runningPlugin();
-			if (p) fr = p->getFrameNum();
-		} 
-		if (fr)
-			Warning() << "Dropped frame " << fr;
-		else 
-			Warning() << "Dropped a frame";
-    }
+    lastHWFC = getHWFrameCount();
                
     bool doBufSwap = false;
 
@@ -535,9 +497,6 @@ void GLWindow::paintGL()
         // glClear( GL_COLOR_BUFFER_BIT );
 
         if (running && running->initted) {
-            if (tooSlow) 
-                // indicate the frame was skipped
-                running->putMissedFrame(static_cast<unsigned>((tThisFrame-tLastFrame)*1e3));
             running->cycleTimeLeft = 1.0/getHWRefreshRate();
             running->computeFPS();
 				
@@ -681,6 +640,8 @@ void GLWindow::paintGL()
 
 		swapBuffers();// should wait for vsync...   
 
+        detectDroppedFrame();
+
 		if (running && running->delay > 0 && delayFPS <= 0. && delayt0 > 0. && 0==delayCtr && !paused) {
 			const double tElapsed = (getTime() - delayt0);
 			if (tElapsed > 0.) 	delayFPS =running->delay / tElapsed;
@@ -717,6 +678,8 @@ void GLWindow::paintGL()
 		
 
     } else {
+        tLastRender = -1.0;
+
 		// TODO FIXME XXX.. what to do about ghosting here if we aren't swapping buffers?! HALP!!
 		if (boxSelector->draw(GL_FRONT)) 
 			glFlush(); // flush required when drawing to the front buffer..
@@ -746,6 +709,37 @@ void GLWindow::paintGL()
 			running->doRealtimeParamUpdateHousekeeping();
     }
     
+}
+
+void GLWindow::detectDroppedFrame()
+{
+    const double tThisRender = getTime();
+    const double tDiff = tThisRender - tLastRender;
+    const bool isValidDiff = tLastRender >= 0.0;
+    tLastRender = tThisRender;
+    if (!isValidDiff) return;
+
+    const bool tooSlow = tDiff >= 1.85/double(stimApp()->refreshRate());
+#ifndef Q_OS_WIN
+    if (running && running->name().startsWith("Calib",Qt::CaseInsensitive)) return;
+#endif
+    if (stimApp()->busy()) return;
+    if (tooSlow && !stimApp()->isNoDropFrameWarn()) {
+        unsigned fr = getHWFrameCount(); ///< some drivers don't return a hardware frame count!
+        if (!fr) {
+            StimPlugin *p = runningPlugin();
+            if (p) fr = p->getFrameNum();
+        }
+        if (fr)
+            Warning() << "Dropped frame " << fr;
+        else
+            Warning() << "Dropped a frame";
+
+       // Debug() << "tDiff=" << tDiff << " refresh=" << stimApp()->refreshRate();
+    }
+    if (tooSlow && !paused && running && running->initted)
+        // indicate the frame was skipped
+        running->putMissedFrame(static_cast<unsigned>(tDiff*1e3), int(running->frameNum-1));
 }
 
 void GLWindow::processFrameShare(GLenum which_colorbuffer)

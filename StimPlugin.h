@@ -402,7 +402,7 @@ protected:
     QDateTime begintime, endtime;
 
     /// called by GLWindow when a frameskip is detected..
-    void putMissedFrame(unsigned cycleTimeMsecs);
+    void putMissedFrame(unsigned cycleTimeMsecs, int fNum = -1);
 
 	
 	/// Called by both GLWindow paintGL after the afterVSync() call, and also 

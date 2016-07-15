@@ -128,9 +128,10 @@ private:
 	void drawEndStateBlankScreen(StimPlugin *, bool isBlankBGFrame);
 	void drawEndStateBlankScreenImmediately(StimPlugin *, bool isBlankBGFrame);
 
-	bool paused, tooFastWarned;
+    bool paused;
 	unsigned lastHWFC; ///< last hardware frame count, only iff platform has an accurate hwfc
 	double tThisFrame, tLastFrame, tLastLastFrame;
+    double tLastRender;
 	int delayCtr;
 	double delayt0, delayFPS;
 	unsigned win_width, win_height, hw_refresh;
@@ -169,6 +170,8 @@ private:
     void setupWarpTex();
 
     bool hasNvidia, shaderNeedsSize;
+
+    void detectDroppedFrame();
 };
 
 #endif

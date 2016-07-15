@@ -623,13 +623,14 @@ void StimPlugin::writeGeneralInfo()
         outStream << missedFrames[i] << "  " << missedFrameTimes[i] << "\n";    
 }
 
-void StimPlugin::putMissedFrame(unsigned cycleTimeMsecs)
+void StimPlugin::putMissedFrame(unsigned cycleTimeMsecs, int fNum)
 {
+    unsigned whichFrame = fNum < 0 ? frameNum : unsigned(fNum);
     if (missedFrames.capacity() == missedFrames.size())
         missedFrames.reserve(missedFrames.size()*2); // make it 2x bigger
     if (missedFrameTimes.capacity() == missedFrameTimes.size())
         missedFrameTimes.reserve(missedFrameTimes.size()*2); // make it 2x bigger
-    missedFrames.push_back((unsigned)frameNum);
+    missedFrames.push_back(whichFrame);
     missedFrameTimes.push_back(cycleTimeMsecs);
 }
 
