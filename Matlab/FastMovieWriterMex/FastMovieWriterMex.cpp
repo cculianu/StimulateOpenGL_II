@@ -238,7 +238,7 @@ void to_GS_8Bit(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	if (mxGetNumberOfDimensions(prhs[0]) != 3) {
 		mexErrMsgTxt("Passed-in argument needs to be a H x W x 3 array!");
 	}
-	const int *dims = mxGetDimensions(prhs[0]);
+	const int *dims = (const int *)mxGetDimensions(prhs[0]);
 	const int w = dims[1], h = dims[0];
 	mxArray *out = mxCreateNumericMatrix(w, h, mxUINT8_CLASS, mxREAL); 
 	uint8_t *o = (uint8_t *)mxGetData(out);
